@@ -141,9 +141,9 @@ export default function OrdersPage() {
                     {returnForm?.orderId === order.id && (
                       <div className="mt-4 p-4 border" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
                         <p className="text-sm font-medium mb-2">Reason for return</p>
-                        <textarea value={returnForm.reason} onChange={e => setReturnForm({ ...returnForm, reason: e.target.value })} className="input-base w-full mb-3" style={{ height: 80, padding: '10px 14px', resize: 'none' }} placeholder="Please describe the reason for return (required)" />
+                        <textarea value={returnForm?.reason} onChange={e => setReturnForm({ ...returnForm!, reason: e.target.value })} className="input-base w-full mb-3" style={{ height: 80, padding: '10px 14px', resize: 'none' }} placeholder="Please describe the reason for return (required)" />
                         <div className="flex gap-2">
-                          <button onClick={requestReturn} disabled={!returnForm.reason.trim()} className="btn-primary text-sm disabled:opacity-50">Submit Return</button>
+                          <button onClick={requestReturn} disabled={!returnForm?.reason.trim()} className="btn-primary text-sm disabled:opacity-50">Submit Return</button>
                           <button onClick={() => setReturnForm(null)} className="btn-outline text-sm">Cancel</button>
                         </div>
                       </div>
