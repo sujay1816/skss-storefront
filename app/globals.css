@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --crimson: #8B1A2B;
+  --crimson-dark: #6B1220;
+  --crimson-light: #A52535;
+  --gold: #C9A84C;
+  --gold-dark: #A6874A;
+  --gold-light: #D4AF37;
+  --cream: #F5EDE3;
+  --cream-dark: #EDE0D0;
+  --ivory: #FDFAF7;
+  --text-primary: #1A1A1A;
+  --text-secondary: #5A4A3A;
+  --border: #E8DDD4;
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--ivory);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+.page-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 768px) { .page-container { padding: 0 16px; } }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%);
+  color: white; border: none; padding: 12px 28px;
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.25s; display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 2px 8px rgba(139,26,43,0.3);
+}
+.btn-primary:hover { background: linear-gradient(135deg, var(--crimson-light) 0%, var(--crimson) 100%); box-shadow: 0 4px 16px rgba(139,26,43,0.4); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: white; border: none; padding: 12px 28px;
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.25s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-gold:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent; color: var(--text-primary);
+  border: 1px solid var(--border); padding: 11px 28px;
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-outline:hover { border-color: var(--crimson); color: var(--crimson); }
+
+.input-base {
+  width: 100%; height: 44px; border: 1px solid var(--border); background: white;
+  padding: 0 14px; font-family: var(--font-body); font-size: 14px;
+  color: var(--text-primary); outline: none; transition: border-color 0.2s; border-radius: 2px;
+}
+.input-base:focus { border-color: var(--crimson); }
+.input-base::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+.section-heading { font-family: var(--font-heading); font-size: 36px; font-weight: 300; color: var(--text-primary); letter-spacing: 0.02em; }
+@media (max-width: 768px) { .section-heading { font-size: 26px; } }
+
+.badge-new { background: var(--crimson); color: white; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; }
+.badge-sale { background: var(--gold); color: white; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; }
+.badge-sold { background: #6B6B6B; color: white; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; }
+.badge-bestseller { background: var(--crimson-dark); color: var(--gold-light); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; }
+
+.gold-divider { display: flex; align-items: center; gap: 12px; }
+.gold-divider::before, .gold-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--gold), transparent); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+.animate-slideUp { animation: slideUp 0.5s ease-out; }
+.skeleton { background: linear-gradient(90deg, var(--cream) 25%, var(--cream-dark) 50%, var(--cream) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }

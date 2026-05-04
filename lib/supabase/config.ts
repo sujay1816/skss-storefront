@@ -1,0 +1,121 @@
+import { createClient } from './server'
+import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, OrderItem, Address } from '@/types'
+
+export async function getSiteConfig(): Promise<SiteConfig> {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+  const config: SiteConfig = {} as SiteConfig
+  if (data) data.forEach(row => { config[row.key] = row.value })
+  return config
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('categories').select('*').eq('is_active', true).order('display_order')
+  return (data || []).map(r => ({
+    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
+    imageUrl: r.image_url || '', isActive: r.is_active, displayOrder: r.display_order
+  }))
+}
+
+function mapImage(r: any): ProductImage {
+  return { id: r.id, url: r.url, publicId: r.public_id || '', altText: r.alt_text || '', isPrimary: r.is_primary, order: r.order_index }
+}
+function mapVariant(r: any): ProductVariant {
+  return { id: r.id, colour: r.colour, colourHex: r.colour_hex, stock: r.stock, sku: r.sku || '' }
+}
+function mapProduct(r: any): Product {
+  const variants = (r.product_variants || []).map(mapVariant)
+  const images = (r.product_images || []).sort((a: any, b: any) => a.order_index - b.order_index).map(mapImage)
+  const totalStock = variants.reduce((s: number, v: ProductVariant) => s + v.stock, 0)
+  const newArrivalDays = 30
+  const isNew = new Date(r.created_at) > new Date(Date.now() - newArrivalDays * 86400000)
+  return {
+    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
+    fabric: r.fabric || '', weaveType: r.weave_type || '', originRegion: r.origin_region || '',
+    occasion: r.occasion || [], careInstructions: r.care_instructions || 'Dry clean only',
+    blouseIncluded: r.blouse_included || false, length: r.length || 5.5, weightGrams: r.weight_grams || 0,
+    category: r.categories?.slug || '', categorySlug: r.categories?.slug || '', categoryName: r.categories?.name || '',
+    originalPrice: r.original_price, salePrice: r.sale_price || null,
+    discountPercent: r.discount_percent || null, saleStartDate: r.sale_start_date || null, saleEndDate: r.sale_end_date || null,
+    gstRate: r.gst_rate || 5, images, variants, totalStock, isOutOfStock: totalStock === 0,
+    isNew, isFeatured: r.is_featured || false, isBestseller: r.is_bestseller || false,
+    customFields: r.custom_fields || {}, averageRating: r.average_rating || 0, reviewCount: r.review_count || 0,
+    createdAt: r.created_at, updatedAt: r.updated_at
+  }
+}
+
+const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)`
+
+export async function getProducts(filters?: { categorySlug?: string; search?: string; featured?: boolean; bestseller?: boolean; limit?: number }): Promise<Product[]> {
+  const supabase = createClient()
+  let q = supabase.from('products').select(PRODUCT_SELECT).eq('is_active', true).order('created_at', { ascending: false })
+  if (filters?.featured) q = q.eq('is_featured', true)
+  if (filters?.bestseller) q = q.eq('is_bestseller', true)
+  if (filters?.limit) q = q.limit(filters.limit)
+  if (filters?.categorySlug) {
+    const { data: cat } = await supabase.from('categories').select('id').eq('slug', filters.categorySlug).single()
+    if (cat) q = q.eq('category_id', cat.id)
+  }
+  if (filters?.search) q = q.ilike('name', `%${filters.search}%`)
+  const { data, error } = await q
+  if (error) { console.error('getProducts error:', error.message); return [] }
+  return (data || []).map(mapProduct)
+}
+
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('products').select(PRODUCT_SELECT).eq('slug', slug).eq('is_active', true).single()
+  if (error || !data) return null
+  return mapProduct(data)
+}
+
+export async function getRelatedProducts(categorySlug: string, excludeSlug: string): Promise<Product[]> {
+  const supabase = createClient()
+  const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single()
+  if (!cat) return []
+  const { data } = await supabase.from('products').select(PRODUCT_SELECT).eq('category_id', cat.id).eq('is_active', true).neq('slug', excludeSlug).limit(4)
+  return (data || []).map(mapProduct)
+}
+
+export async function getProductReviews(productId: string): Promise<Review[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('reviews').select('*, profiles(full_name, avatar_url)').eq('product_id', productId).eq('is_approved', true).order('created_at', { ascending: false })
+  return (data || []).map((r: any) => ({
+    id: r.id, productId, userId: r.user_id, userFullName: r.profiles?.full_name || 'Anonymous',
+    userAvatarUrl: r.profiles?.avatar_url || null, rating: r.rating, comment: r.comment || '', isVerifiedPurchase: r.is_verified_purchase, createdAt: r.created_at
+  }))
+}
+
+export async function getBanners(): Promise<Banner[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('banners').select('*').eq('is_active', true).order('display_order')
+  return (data || []).map((r: any) => ({ id: r.id, imageUrl: r.image_url, heading: r.heading || '', subheading: r.subheading || null, ctaLabel: r.cta_label, ctaUrl: r.cta_url, isActive: r.is_active, order: r.display_order }))
+}
+
+export async function getUserOrders(userId: string): Promise<Order[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('orders').select('*, order_items(*)').eq('user_id', userId).order('created_at', { ascending: false })
+  return (data || []).map((r: any) => ({
+    id: r.id, orderNumber: r.order_number, userId: r.user_id, addressSnapshot: r.address_snapshot,
+    paymentMethod: r.payment_method, paymentStatus: r.payment_status,
+    razorpayOrderId: r.razorpay_order_id, razorpayPaymentId: r.razorpay_payment_id,
+    couponCode: r.coupon_code, couponDiscount: r.coupon_discount, subtotal: r.subtotal,
+    shippingCharge: r.shipping_charge, totalGst: r.total_gst, totalAmount: r.total_amount,
+    status: r.status, shiprocketOrderId: r.shiprocket_order_id, trackingId: r.tracking_id,
+    courierName: r.courier_name, estimatedDelivery: r.estimated_delivery,
+    returnReason: r.return_reason, returnImageUrl: r.return_image_url, notes: r.notes,
+    createdAt: r.created_at, updatedAt: r.updated_at,
+    items: (r.order_items || []).map((i: any) => ({
+      id: i.id, productId: i.product_id, productName: i.product_name, productImage: i.product_image,
+      colour: i.colour, quantity: i.quantity, originalPrice: i.original_price, salePrice: i.sale_price,
+      gstRate: i.gst_rate, gstAmount: i.gst_amount, total: i.total
+    }))
+  }))
+}
+
+export async function getUserAddresses(userId: string): Promise<Address[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('addresses').select('*').eq('user_id', userId).order('is_default', { ascending: false })
+  return (data || []).map((r: any) => ({ id: r.id, userId: r.user_id, fullName: r.full_name, phone: r.phone, addressLine1: r.address_line1, addressLine2: r.address_line2 || '', city: r.city, state: r.state, pincode: r.pincode, isDefault: r.is_default }))
+}
