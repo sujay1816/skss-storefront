@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
+import AuthListener from '@/components/AuthListener'
 
 export const metadata: Metadata = {
   title: { default: 'Sai Krishna Silks and Sarees — Pure Silk. Timeless Tradition. Royal Elegance.', template: '%s | Sai Krishna Silks and Sarees' },
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/images/logo.png" />
       </head>
       <body>
+        <AuthListener />
         {children}
         <Toaster position="bottom-center" toastOptions={{
           style: { background: '#1A1A1A', color: 'white', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', borderRadius: '2px' },
