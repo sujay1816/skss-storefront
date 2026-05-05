@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Heart, ShoppingBag, User, Menu, X, LogOut, Package, ChevronRight } from 'lucide-react'
+import { Search, Heart, ShoppingBag, User, Menu, X, LogOut, Package, MapPin, ChevronRight, Settings, Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useCartStore } from '@/lib/store/cart'
 import { useWishlistStore } from '@/lib/store/wishlist'
@@ -71,10 +71,13 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
     await supabase.auth.signOut()
     setProfileOpen(false)
     setMenuOpen(false)
-    toast.success('Signed out. Your cart is saved!')
+    toast.success('Signed out successfully!')
     router.push('/')
     router.refresh()
   }
+
+  const firstLetter = user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'
+  const displayName = user?.fullName || user?.email?.split('@')[0] || 'My Account'
 
   return (
     <>
@@ -128,15 +131,15 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                 {cartCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center font-semibold" style={{ background: 'var(--crimson)', fontSize: '9px' }}>{cartCount}</span>}
               </Link>
 
-              {/* Profile dropdown */}
+              {/* Profile */}
               <div className="relative" ref={profileRef}>
                 <button onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-all"
                   style={{ background: profileOpen ? 'var(--cream)' : 'transparent' }}>
                   {user ? (
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                      style={{ background: 'var(--crimson)' }}>
-                      {user.fullName?.charAt(0) || user.email?.charAt(0) || 'U'}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
+                      {firstLetter}
                     </div>
                   ) : (
                     <User size={18} style={{ color: 'var(--text-primary)' }} />
@@ -145,79 +148,92 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
 
                 <AnimatePresence>
                   {profileOpen && (
-                    <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-56 bg-white border shadow-xl z-50 rounded-lg overflow-hidden"
-                      style={{ borderColor: 'var(--border)' }}>
+                      className="absolute right-0 top-full mt-2 bg-white border shadow-2xl z-50 overflow-hidden"
+                      style={{ borderColor: 'var(--border)', borderRadius: 12, width: 240 }}>
+
                       {user ? (
                         <>
-                          {/* User info header */}
-                          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
+                          {/* User header */}
+                          <div className="px-4 py-4" style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
-                                style={{ background: 'var(--crimson)' }}>
-                                {user.fullName?.charAt(0) || user.email?.charAt(0) || 'U'}
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                                style={{ background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                                {firstLetter}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-                                  {user.fullName || 'My Account'}
-                                </p>
-                                <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+                                <p className="text-white font-semibold text-sm truncate">{displayName}</p>
+                                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{user.email}</p>
                               </div>
                             </div>
                           </div>
 
                           {/* Menu items */}
-                          <div className="py-1">
-                            <Link href="/profile" onClick={() => setProfileOpen(false)}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
-                              style={{ color: 'var(--text-primary)' }}>
-                              <User size={15} style={{ color: 'var(--crimson)' }} />
-                              <span>My Profile</span>
-                              <ChevronRight size={13} className="ml-auto" style={{ color: 'var(--text-secondary)' }} />
-                            </Link>
-                            <Link href="/orders" onClick={() => setProfileOpen(false)}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
-                              style={{ color: 'var(--text-primary)' }}>
-                              <Package size={15} style={{ color: 'var(--crimson)' }} />
-                              <span>My Orders</span>
-                              <ChevronRight size={13} className="ml-auto" style={{ color: 'var(--text-secondary)' }} />
-                            </Link>
-                            <Link href="/wishlist" onClick={() => setProfileOpen(false)}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50"
-                              style={{ color: 'var(--text-primary)' }}>
-                              <Heart size={15} style={{ color: 'var(--crimson)' }} />
-                              <span>My Wishlist</span>
-                              {wishlistCount > 0 && <span className="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--crimson)' }}>{wishlistCount}</span>}
-                            </Link>
+                          <div className="py-1.5">
+                            {[
+                              { href: '/profile', icon: <User size={15} />, label: 'My Profile', sub: 'Edit your details' },
+                              { href: '/orders', icon: <Package size={15} />, label: 'My Orders', sub: 'Track & manage orders' },
+                              { href: '/wishlist', icon: <Heart size={15} />, label: 'My Wishlist', sub: wishlistCount > 0 ? `${wishlistCount} saved items` : 'Saved items', badge: wishlistCount > 0 ? wishlistCount : null },
+                              { href: '/cart', icon: <ShoppingBag size={15} />, label: 'My Cart', sub: cartCount > 0 ? `${cartCount} items` : 'View cart', badge: cartCount > 0 ? cartCount : null },
+                            ].map(item => (
+                              <Link key={item.href} href={item.href} onClick={() => setProfileOpen(false)}
+                                className="flex items-center gap-3 px-4 py-2.5 transition-colors group"
+                                style={{ color: 'var(--text-primary)' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                <span style={{ color: 'var(--crimson)' }}>{item.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">{item.label}</p>
+                                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.sub}</p>
+                                </div>
+                                {item.badge ? (
+                                  <span className="text-xs font-bold text-white w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--crimson)', fontSize: '9px' }}>{item.badge}</span>
+                                ) : (
+                                  <ChevronRight size={13} style={{ color: 'var(--border)' }} />
+                                )}
+                              </Link>
+                            ))}
                           </div>
 
-                          {/* Logout — clearly separated */}
-                          <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
+                          {/* Sign out */}
+                          <div className="border-t p-2" style={{ borderColor: 'var(--border)' }}>
                             <button onClick={handleLogout}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-red-50"
-                              style={{ color: '#DC2626' }}>
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+                              style={{ color: '#DC2626', background: 'transparent' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                               <LogOut size={15} />
                               <span>Sign Out</span>
                             </button>
                           </div>
                         </>
                       ) : (
-                        <div className="py-1">
-                          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
+                        <>
+                          <div className="px-4 py-4" style={{ background: 'var(--cream)' }}>
+                            <p className="font-semibold text-sm mb-0.5" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Welcome!</p>
                             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Sign in to access your account</p>
                           </div>
-                          <Link href="/login" onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors hover:bg-gray-50"
-                            style={{ color: 'var(--crimson)' }}>
-                            <User size={15} /> Sign In
-                          </Link>
-                          <Link href="/signup" onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors hover:bg-gray-50 border-t"
-                            style={{ color: 'var(--text-primary)', borderColor: 'var(--border)' }}>
-                            <ChevronRight size={15} /> Create Account
-                          </Link>
-                        </div>
+                          <div className="p-3 space-y-2">
+                            <Link href="/login" onClick={() => setProfileOpen(false)}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-white transition-all"
+                              style={{ background: 'var(--crimson)', borderRadius: 8 }}
+                              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                              <User size={14} /> Sign In
+                            </Link>
+                            <Link href="/signup" onClick={() => setProfileOpen(false)}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all"
+                              style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }}
+                              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--crimson)')}
+                              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
+                              Create Account
+                            </Link>
+                          </div>
+                        </>
                       )}
                     </motion.div>
                   )}
@@ -227,7 +243,7 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
           </div>
         </div>
 
-        {/* Search bar */}
+        {/* Search */}
         <AnimatePresence>
           {searchOpen && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -236,13 +252,8 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                 <div className="relative max-w-2xl mx-auto">
                   <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
                   <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search sarees by name, fabric, occasion..."
-                    className="input-base pl-10" onKeyDown={handleSearch} />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <X size={14} style={{ color: 'var(--text-secondary)' }} />
-                    </button>
-                  )}
+                    placeholder="Search sarees by name, fabric, occasion..." className="input-base pl-10" onKeyDown={handleSearch} />
+                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2"><X size={14} style={{ color: 'var(--text-secondary)' }} /></button>}
                 </div>
               </div>
             </motion.div>
@@ -259,6 +270,8 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
             <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
               className="fixed left-0 top-0 bottom-0 z-50 w-80 flex flex-col bg-white">
+
+              {/* Header */}
               <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
                 <div className="flex items-center gap-3">
                   <Image src="/images/logo.png" alt="SKSS" width={36} height={36} className="object-contain" />
@@ -270,68 +283,79 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                 <button onClick={() => setMenuOpen(false)}><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
               </div>
 
-              {/* User info in mobile menu */}
+              {/* User info */}
               {user && (
-                <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'var(--ivory)' }}>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-                    style={{ background: 'var(--crimson)' }}>
-                    {user.fullName?.charAt(0) || 'U'}
+                <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                    {firstLetter}
                   </div>
                   <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{user.fullName || 'My Account'}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+                    <p className="text-sm font-semibold text-white">{displayName}</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{user.email}</p>
                   </div>
                 </div>
               )}
 
-              <nav className="flex-1 overflow-y-auto py-2">
-                <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Shop by Category</p>
-                {categories.map(cat => (
-                  <Link key={cat.id} href={`/shop?category=${cat.slug}`} onClick={() => setMenuOpen(false)}
-                    className="flex items-center justify-between px-5 py-3.5 border-b text-sm"
-                    style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
-                    {cat.name} <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-                  </Link>
-                ))}
-
-                <div className="mt-3 px-5 space-y-1">
-                  <p className="py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>My Account</p>
-                  {user ? (
-                    <>
-                      <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                        <User size={16} style={{ color: 'var(--crimson)' }} /> My Profile
+              <nav className="flex-1 overflow-y-auto">
+                {/* Account section */}
+                {user ? (
+                  <div className="py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>My Account</p>
+                    {[
+                      { href: '/profile', icon: <User size={16} />, label: 'My Profile' },
+                      { href: '/orders', icon: <Package size={16} />, label: 'My Orders' },
+                      { href: '/wishlist', icon: <Heart size={16} />, label: `My Wishlist${wishlistCount > 0 ? ` (${wishlistCount})` : ''}` },
+                      { href: '/cart', icon: <ShoppingBag size={16} />, label: `My Cart${cartCount > 0 ? ` (${cartCount})` : ''}` },
+                    ].map(item => (
+                      <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <span style={{ color: 'var(--crimson)' }}>{item.icon}</span>
+                        {item.label}
+                        <ChevronRight size={14} className="ml-auto" style={{ color: 'var(--border)' }} />
                       </Link>
-                      <Link href="/orders" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                        <Package size={16} style={{ color: 'var(--crimson)' }} /> My Orders
-                      </Link>
-                      <Link href="/wishlist" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                        <Heart size={16} style={{ color: 'var(--crimson)' }} /> My Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
-                      </Link>
-                    </>
-                  ) : (
-                    <div className="flex gap-3 pt-2">
-                      <Link href="/login" onClick={() => setMenuOpen(false)} className="btn-outline flex-1 justify-center" style={{ fontSize: '11px', padding: '10px 16px' }}>Sign In</Link>
-                      <Link href="/signup" onClick={() => setMenuOpen(false)} className="btn-primary flex-1 justify-center" style={{ fontSize: '11px', padding: '10px 16px' }}>Sign Up</Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex gap-2">
+                      <Link href="/login" onClick={() => setMenuOpen(false)}
+                        className="flex-1 py-2.5 text-center text-xs font-medium text-white rounded-lg"
+                        style={{ background: 'var(--crimson)' }}>Sign In</Link>
+                      <Link href="/signup" onClick={() => setMenuOpen(false)}
+                        className="flex-1 py-2.5 text-center text-xs font-medium rounded-lg"
+                        style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}>Create Account</Link>
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {/* Categories */}
+                <div className="py-2">
+                  <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Shop by Category</p>
+                  {categories.map(cat => (
+                    <Link key={cat.id} href={`/shop?category=${cat.slug}`} onClick={() => setMenuOpen(false)}
+                      className="flex items-center justify-between px-5 py-3 text-sm border-b transition-colors"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      {cat.name}
+                      <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+                    </Link>
+                  ))}
                 </div>
               </nav>
 
-              {/* Logout at bottom of mobile menu */}
+              {/* Sign out at bottom */}
               {user && (
-                <div className="p-5 border-t" style={{ borderColor: 'var(--border)' }}>
+                <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
                   <button onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-lg transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-lg transition-all"
                     style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FCA5A5' }}>
                     <LogOut size={15} /> Sign Out
                   </button>
-                </div>
-              )}
-
-              {/* Contact info */}
-              {!user && (
-                <div className="p-5 border-t" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>WhatsApp: {config.whatsapp_number}</p>
                 </div>
               )}
             </motion.div>
