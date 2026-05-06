@@ -22,7 +22,7 @@ const F = ({ label, required, children }: { label: string; required?: boolean; c
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, subtotal, clearCart } = useCartStore()
+  const { items, subtotal, clearCart, appliedCoupon, couponDiscount } = useCartStore()
   const [userId, setUserId] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -61,9 +61,11 @@ export default function CheckoutPage() {
   }, [])
 
   const sub = subtotal()
-  const shipping = sub >= 1999 ? 0 : 99
-  const gst = Math.round(sub * 0.05)
-  const total = sub + shipping + gst
+  const discount = couponDiscount()
+  const freeShipping = appliedCoupon?.type === 'free_shipping'
+  const shipping = freeShipping || sub >= 1999 ? 0 : 99
+  const gst = Math.round((sub - discount) * 0.05)
+  const total = sub - discount + shipping + gst
 
   const createOrder = async () => {
     if (!userId) return
@@ -324,6 +326,12 @@ export default function CheckoutPage() {
                 <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
                 <span>₹{sub.toLocaleString('en-IN')}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: '#16A34A' }}>Coupon ({appliedCoupon?.code})</span>
+                  <span style={{ color: '#16A34A' }}>−₹{discount.toLocaleString('en-IN')}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span style={{ color: 'var(--text-secondary)' }}>Shipping</span>
                 <span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>

@@ -14,9 +14,9 @@ const SHIPPING_CHARGE = 99
 const GST_RATE = 5
 
 export default function CartPage() {
-  const { items, removeItem, updateQty } = useCartStore()
+  const { items, removeItem, updateQty, setCoupon: setStoreCoupon, appliedCoupon: storedCoupon } = useCartStore()
   const [coupon, setCoupon] = useState('')
-  const [appliedCoupon, setAppliedCoupon] = useState<null | { code: string; discount: number; type: string }>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<null | { code: string; discount: number; type: string }>(storedCoupon)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
 
@@ -28,7 +28,9 @@ export default function CartPage() {
     if (!data) { setCouponError('Invalid or expired coupon code'); setCouponLoading(false); return }
     if (data.expiry_date && new Date(data.expiry_date) < new Date()) { setCouponError('This coupon has expired'); setCouponLoading(false); return }
     if (data.usage_count >= data.max_usage_count) { setCouponError('This coupon has reached its usage limit'); setCouponLoading(false); return }
-    setAppliedCoupon({ code: data.code, discount: data.value, type: data.type })
+    const couponData = { code: data.code, discount: data.value, type: data.type }
+    setAppliedCoupon(couponData)
+    setStoreCoupon(couponData)
     toast.success(`Coupon applied! You save ${data.type === 'percentage' ? data.value + '%' : '₹' + data.value}`)
     setCoupon(''); setCouponLoading(false)
   }
