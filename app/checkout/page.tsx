@@ -10,6 +10,16 @@ declare global { interface Window { Razorpay: any } }
 
 const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Puducherry']
 
+
+const F = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+  <div>
+    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+      {label} {required && <span style={{ color: 'var(--crimson)' }}>*</span>}
+    </label>
+    {children}
+  </div>
+)
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, subtotal, clearCart } = useCartStore()
@@ -189,14 +199,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const F = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-    <div>
-      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-        {label} {required && <span style={{ color: 'var(--crimson)' }}>*</span>}
-      </label>
-      {children}
-    </div>
-  )
+
 
   if (items.length === 0) return (
     <div className="page-container py-20 text-center">
