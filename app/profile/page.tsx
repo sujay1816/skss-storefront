@@ -1,14 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { INDIAN_STATES } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'profile' | 'addresses'>('profile')
-  const [userId, setUserId] = useState<string | null>(null)
+  const [userId, setUserId] = useState('')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -18,76 +17,61 @@ export default function ProfilePage() {
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-
-      // Use getSession (works for both email and Google OAuth)
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
-        window.location.href = '/login'
-        return
-      }
+      if (!session) { window.location.href = '/login'; return }
 
       const uid = session.user.id
-      setUserId(uid)
-      setEmail(session.user.email || '')
+      const userEmail = session.user.email || ''
+      const metaName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''
 
-      // Try to get profile
+      setUserId(uid)
+      setEmail(userEmail)
+
+      // Get profile — try upsert to handle missing profiles (Google users)
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', uid)
-        .single()
+        .from('profiles').select('*').eq('id', uid).single()
 
       if (profile) {
-        setName(profile.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '')
+        setName(profile.full_name || metaName)
         setPhone(profile.phone || '')
         setWhatsapp(profile.whatsapp_opted_in !== false)
       } else {
-        // Create profile if missing (Google OAuth users)
-        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''
-        setName(fullName)
+        // Profile doesn't exist — create it
         await supabase.from('profiles').insert({
-          id: uid,
-          email: session.user.email || '',
-          full_name: fullName,
-          role: 'customer',
-          whatsapp_opted_in: true,
+          id: uid, email: userEmail, full_name: metaName,
+          role: 'customer', whatsapp_opted_in: true,
         })
+        setName(metaName)
       }
 
-      // Load addresses
-      const { data: addrs } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('user_id', uid)
-        .order('is_default', { ascending: false })
+      const { data: addrs } = await supabase.from('addresses')
+        .select('*').eq('user_id', uid).order('is_default', { ascending: false })
       setAddresses(addrs || [])
       setLoading(false)
     }
     load()
   }, [])
 
-  const saveProfile = async () => {
+  const save = async () => {
     if (!userId) return
     setSaving(true)
     const supabase = createClient()
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
-    if (!error) toast.success('Profile updated!')
-    else toast.error('Could not update profile')
+    await supabase.from('profiles').upsert({
+      id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp
+    })
+    toast.success('Profile updated!')
     setSaving(false)
   }
 
-  const setDefaultAddress = async (id: string) => {
-    if (!userId) return
+  const setDefault = async (id: string) => {
     const supabase = createClient()
     await supabase.from('addresses').update({ is_default: false }).eq('user_id', userId)
     await supabase.from('addresses').update({ is_default: true }).eq('id', id)
     setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === id })))
-    toast.success('Default address updated')
+    toast.success('Default address set')
   }
 
-  const deleteAddress = async (id: string) => {
+  const remove = async (id: string) => {
     const supabase = createClient()
     await supabase.from('addresses').delete().eq('id', id)
     setAddresses(prev => prev.filter(a => a.id !== id))
@@ -95,22 +79,20 @@ export default function ProfilePage() {
   }
 
   if (loading) return (
-    <div className="page-container py-20 text-center">
-      <div className="inline-block w-8 h-8 border-2 rounded-full animate-spin mb-3"
-        style={{ borderColor: 'var(--crimson)', borderTopColor: 'transparent' }} />
-      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading your profile...</p>
+    <div style={{ padding: '80px 24px', textAlign: 'center' }}>
+      <div style={{ display: 'inline-block', width: 32, height: 32, border: '2px solid #8B1A2B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <p style={{ marginTop: 12, color: '#5A4A3A', fontSize: 14 }}>Loading your profile...</p>
     </div>
   )
 
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
       <h1 className="section-heading mb-8">My Profile</h1>
-
-      {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
         {(['profile', 'addresses'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className="pb-3 text-xs font-semibold tracking-widest uppercase transition-all border-b-2"
+            className="pb-3 text-xs font-semibold tracking-widest uppercase border-b-2 transition-all"
             style={{ borderColor: tab === t ? 'var(--crimson)' : 'transparent', color: tab === t ? 'var(--crimson)' : 'var(--text-secondary)' }}>
             {t === 'profile' ? 'Account Details' : 'Saved Addresses'}
           </button>
@@ -120,7 +102,7 @@ export default function ProfilePage() {
       {tab === 'profile' && (
         <div className="space-y-4">
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email (cannot change)</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email</label>
             <input className="input-base" value={email} disabled style={{ opacity: 0.6 }} />
           </div>
           <div>
@@ -134,11 +116,9 @@ export default function ProfilePage() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)}
               className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Receive WhatsApp updates on orders & offers
-            </span>
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates</span>
           </label>
-          <button onClick={saveProfile} disabled={saving} className="btn-primary">
+          <button onClick={save} disabled={saving} className="btn-primary">
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
@@ -147,9 +127,7 @@ export default function ProfilePage() {
       {tab === 'addresses' && (
         <div className="space-y-3">
           {addresses.length === 0 && (
-            <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>
-              No saved addresses. Add one at checkout.
-            </p>
+            <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>No saved addresses. Add one at checkout.</p>
           )}
           {addresses.map(a => (
             <div key={a.id} className="p-4 border flex items-start justify-between"
@@ -161,14 +139,8 @@ export default function ProfilePage() {
                 {a.is_default && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>✓ Default</span>}
               </div>
               <div className="flex flex-col gap-2 ml-4">
-                {!a.is_default && (
-                  <button onClick={() => setDefaultAddress(a.id)} className="text-xs" style={{ color: 'var(--crimson)' }}>
-                    Set Default
-                  </button>
-                )}
-                <button onClick={() => deleteAddress(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Remove
-                </button>
+                {!a.is_default && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--crimson)' }}>Set Default</button>}
+                <button onClick={() => remove(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
               </div>
             </div>
           ))}
