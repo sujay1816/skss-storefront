@@ -181,11 +181,12 @@ export default function CheckoutPage() {
           product_name: item.productName,
           product_image: item.productImage,
           colour: item.colour,
-          colour_hex: item.colourHex,
           quantity: item.quantity,
-          unit_price: item.salePrice ?? item.originalPrice,
-          total_price: (item.salePrice ?? item.originalPrice) * item.quantity,
+          original_price: item.originalPrice,
+          sale_price: item.salePrice ?? item.originalPrice,
+          total: (item.salePrice ?? item.originalPrice) * item.quantity,
           gst_rate: item.gstRate,
+          gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.quantity * (item.gstRate / 100)),
         }))
       )
 
