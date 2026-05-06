@@ -1,315 +1,316 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, ChevronDown, Check, MapPin, CreditCard, ShoppingBag, Plus, Edit2, Smartphone } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCartStore } from '@/lib/store/cart'
-import { formatPrice } from '@/lib/utils'
-import { INDIAN_STATES } from '@/lib/utils'
-import type { Address } from '@/types'
-import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
 
-type Step = 'address' | 'payment' | 'confirm'
-
-const FREE_SHIPPING = 1999
-const SHIPPING_CHARGE = 99
-const GST_RATE = 5
-
 declare global { interface Window { Razorpay: any } }
+
+const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Puducherry']
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, clearCart } = useCartStore()
-  const [step, setStep] = useState<Step>('address')
-  const [addresses, setAddresses] = useState<Address[]>([])
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null)
-  const [showNewAddress, setShowNewAddress] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi' | 'razorpay'>('razorpay')
+  const { items, subtotal, clearCart } = useCartStore()
+  const [userId, setUserId] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [couponCode, setCouponCode] = useState('')
-  const [couponDiscount, setCouponDiscount] = useState(0)
-  const [user, setUser] = useState<any>(null)
-  const [codEnabled, setCodEnabled] = useState(true)
-  const [upiEnabled, setUpiEnabled] = useState(true)
-  const [addressForm, setAddressForm] = useState({ fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', pincode: '' })
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online')
+  const [form, setForm] = useState({
+    fullName: '', phone: '', addressLine1: '', addressLine2: '',
+    city: '', state: 'Karnataka', pincode: '', saveAddress: true,
+  })
 
   useEffect(() => {
-    const init = async () => {
+    const load = async () => {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login?redirect=/checkout'); return }
-      setUser(user)
-      const { data: addrs } = await supabase.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false })
-      if (addrs && addrs.length > 0) {
-        setAddresses(addrs.map((a: any) => ({ id: a.id, userId: a.user_id, fullName: a.full_name, phone: a.phone, addressLine1: a.address_line1, addressLine2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode, isDefault: a.is_default })))
-        setSelectedAddress({ id: addrs[0].id, userId: addrs[0].user_id, fullName: addrs[0].full_name, phone: addrs[0].phone, addressLine1: addrs[0].address_line1, addressLine2: addrs[0].address_line2 || '', city: addrs[0].city, state: addrs[0].state, pincode: addrs[0].pincode, isDefault: addrs[0].is_default })
-      } else { setShowNewAddress(true) }
-      const { data: cfg } = await supabase.from('site_config').select('key, value').in('key', ['cod_enabled', 'upi_enabled'])
-      if (cfg) {
-        cfg.forEach((c: any) => {
-          if (c.key === 'cod_enabled') setCodEnabled(c.value === 'true')
-          if (c.key === 'upi_enabled') setUpiEnabled(c.value === 'true')
-        })
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.push('/login?redirect=/checkout'); return }
+      setUserId(session.user.id)
+      setEmail(session.user.email || '')
+
+      // Pre-fill from profile
+      const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', session.user.id).single()
+      if (profile) setForm(f => ({ ...f, fullName: profile.full_name || '', phone: profile.phone || '' }))
+
+      // Pre-fill default address
+      const { data: addr } = await supabase.from('addresses').select('*').eq('user_id', session.user.id).eq('is_default', true).single()
+      if (addr) setForm(f => ({ ...f, fullName: addr.full_name || f.fullName, phone: addr.phone || f.phone, addressLine1: addr.address_line1, addressLine2: addr.address_line2 || '', city: addr.city, state: addr.state, pincode: addr.pincode }))
     }
-    init()
+    load()
   }, [])
 
-  if (items.length === 0) return (
-    <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--ivory)' }}>
-      <ShoppingBag size={48} className="mb-4" style={{ color: 'var(--border)' }} />
-      <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Your cart is empty</h2>
-      <Link href="/shop" className="btn-primary mt-4">Shop Now</Link>
+  useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    document.body.appendChild(script)
+    return () => { document.body.removeChild(script) }
+  }, [])
+
+  const sub = subtotal()
+  const shipping = sub >= 1999 ? 0 : 99
+  const gst = Math.round(sub * 0.05)
+  const total = sub + shipping + gst
+
+  const createOrder = async () => {
+    if (!userId) return
+    if (!form.fullName || !form.phone || !form.addressLine1 || !form.city || !form.pincode) {
+      toast.error('Please fill all required fields'); return
+    }
+    if (items.length === 0) { toast.error('Your cart is empty'); return }
+    setLoading(true)
+
+    try {
+      const supabase = createClient()
+
+      // Save address if requested
+      if (form.saveAddress) {
+        await supabase.from('addresses').insert({
+          user_id: userId, full_name: form.fullName, phone: form.phone,
+          address_line1: form.addressLine1, address_line2: form.addressLine2,
+          city: form.city, state: form.state, pincode: form.pincode, is_default: false,
+        })
+      }
+
+      if (paymentMethod === 'cod') {
+        // COD — create order directly
+        await placeOrder(supabase, null, null)
+        return
+      }
+
+      // Online payment — create Razorpay order
+      const receipt = `order_${Date.now()}`
+      const res = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, receipt }),
+      })
+      const razorpayOrder = await res.json()
+      if (razorpayOrder.error) { toast.error(razorpayOrder.error); setLoading(false); return }
+
+      // Open Razorpay
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: razorpayOrder.amount,
+        currency: 'INR',
+        name: 'Sai Krishna Silks & Sarees',
+        description: `Order for ${items.length} item(s)`,
+        image: '/images/logo.png',
+        order_id: razorpayOrder.id,
+        handler: async (response: any) => {
+          // Verify payment
+          const verify = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(response),
+          })
+          const { verified } = await verify.json()
+          if (verified) {
+            await placeOrder(supabase, razorpayOrder.id, response.razorpay_payment_id)
+          } else {
+            toast.error('Payment verification failed. Contact support.')
+            setLoading(false)
+          }
+        },
+        prefill: { name: form.fullName, email, contact: form.phone },
+        theme: { color: '#8B1A2B' },
+        modal: { ondismiss: () => setLoading(false) },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', (response: any) => {
+        toast.error('Payment failed: ' + response.error.description)
+        setLoading(false)
+      })
+      rzp.open()
+
+    } catch (error: any) {
+      toast.error(error.message || 'Something went wrong')
+      setLoading(false)
+    }
+  }
+
+  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
+    try {
+      // Create order in DB
+      const { data: order, error } = await supabase.from('orders').insert({
+        user_id: userId,
+        status: 'confirmed',
+        payment_status: paymentMethod === 'cod' ? 'pending' : 'paid',
+        payment_method: paymentMethod === 'cod' ? 'cod' : 'razorpay',
+        razorpay_order_id: razorpayOrderId,
+        razorpay_payment_id: razorpayPaymentId,
+        subtotal: sub,
+        shipping_charge: shipping,
+        gst_amount: gst,
+        total_amount: total,
+        shipping_address: {
+          full_name: form.fullName, phone: form.phone,
+          address_line1: form.addressLine1, address_line2: form.addressLine2,
+          city: form.city, state: form.state, pincode: form.pincode,
+        },
+      }).select().single()
+
+      if (error) throw error
+
+      // Create order items
+      await supabase.from('order_items').insert(
+        items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          product_image: item.productImage,
+          colour: item.colour,
+          colour_hex: item.colourHex,
+          quantity: item.quantity,
+          unit_price: item.salePrice ?? item.originalPrice,
+          total_price: (item.salePrice ?? item.originalPrice) * item.quantity,
+          gst_rate: item.gstRate,
+        }))
+      )
+
+      // Clear cart
+      await clearCart()
+      toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
+      router.push(`/orders/${order.id}`)
+    } catch (error: any) {
+      toast.error('Order creation failed: ' + error.message)
+      setLoading(false)
+    }
+  }
+
+  const F = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+    <div>
+      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+        {label} {required && <span style={{ color: 'var(--crimson)' }}>*</span>}
+      </label>
+      {children}
     </div>
   )
 
-  const subtotal = items.reduce((s, i) => s + (i.salePrice ?? i.originalPrice) * i.quantity, 0)
-  const shipping = subtotal >= FREE_SHIPPING ? 0 : SHIPPING_CHARGE
-  const gst = Math.round((subtotal - couponDiscount) * GST_RATE / 100)
-  const total = subtotal - couponDiscount + shipping + gst
-
-  const saveAddress = async () => {
-    const f = addressForm
-    if (!f.fullName || !f.phone || !f.addressLine1 || !f.city || !f.state || !f.pincode) { toast.error('Please fill all required fields'); return }
-    const supabase = createClient()
-    const { data, error } = await supabase.from('addresses').insert({ user_id: user.id, full_name: f.fullName, phone: f.phone, address_line1: f.addressLine1, address_line2: f.addressLine2, city: f.city, state: f.state, pincode: f.pincode, is_default: addresses.length === 0 }).select().single()
-    if (error) { toast.error('Could not save address'); return }
-    const addr: Address = { id: data.id, userId: data.user_id, fullName: data.full_name, phone: data.phone, addressLine1: data.address_line1, addressLine2: data.address_line2 || '', city: data.city, state: data.state, pincode: data.pincode, isDefault: data.is_default }
-    setAddresses(prev => [...prev, addr]); setSelectedAddress(addr); setShowNewAddress(false)
-    setAddressForm({ fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', pincode: '' })
-  }
-
-  const placeOrder = async () => {
-    if (!selectedAddress) { toast.error('Please select a delivery address'); return }
-    setLoading(true)
-    const supabase = createClient()
-    try {
-      const orderPayload = {
-        user_id: user.id,
-        address_snapshot: selectedAddress,
-        payment_method: paymentMethod,
-        payment_status: paymentMethod === 'cod' ? 'pending' : 'pending',
-        coupon_code: couponCode || null,
-        coupon_discount: couponDiscount,
-        subtotal, shipping_charge: shipping, total_gst: gst, total_amount: total,
-        status: 'placed',
-      }
-      if (paymentMethod === 'razorpay') {
-        const res = await fetch('/api/razorpay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: total, currency: 'INR' }) })
-        const rzData = await res.json()
-        const script = document.createElement('script'); script.src = 'https://checkout.razorpay.com/v1/checkout.js'; document.body.appendChild(script)
-        await new Promise(r => script.onload = r)
-        const rzp = new window.Razorpay({
-          key: rzData.key, amount: rzData.amount, currency: 'INR', name: 'Sai Krishna Silks and Sarees', description: 'Order Payment',
-          image: '/images/logo.png', order_id: rzData.orderId,
-          handler: async (response: any) => {
-            const { data: order } = await supabase.from('orders').insert({ ...orderPayload, razorpay_order_id: rzData.orderId, razorpay_payment_id: response.razorpay_payment_id, payment_status: 'paid' }).select().single()
-            await insertOrderItems(supabase, order.id)
-            clearCart(); router.push(`/orders?success=${order.id}`)
-          },
-          prefill: { name: selectedAddress.fullName, contact: selectedAddress.phone },
-          theme: { color: '#8B1A2B' }
-        })
-        rzp.open(); setLoading(false); return
-      }
-      const { data: order } = await supabase.from('orders').insert(orderPayload).select().single()
-      await insertOrderItems(supabase, order.id)
-      clearCart(); router.push(`/orders?success=${order.id}`)
-    } catch (e) { toast.error('Something went wrong. Please try again.') }
-    setLoading(false)
-  }
-
-  const insertOrderItems = async (supabase: any, orderId: string) => {
-    const orderItems = items.map(item => ({
-      order_id: orderId, product_id: item.productId, product_name: item.productName, product_image: item.productImage,
-      colour: item.colour, quantity: item.quantity, original_price: item.originalPrice, sale_price: item.salePrice,
-      gst_rate: item.gstRate, gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.gstRate / 100 * item.quantity),
-      total: (item.salePrice ?? item.originalPrice) * item.quantity,
-    }))
-    await supabase.from('order_items').insert(orderItems)
-    // Decrement stock
-    for (const item of items) {
-      const { data: variant } = await supabase.from('product_variants').select('id, stock').eq('product_id', item.productId).eq('colour', item.colour).single()
-      if (variant) await supabase.from('product_variants').update({ stock: Math.max(0, variant.stock - item.quantity) }).eq('id', variant.id)
-    }
-  }
-
-  const steps: Step[] = ['address', 'payment', 'confirm']
-  const stepLabels = { address: 'Delivery', payment: 'Payment', confirm: 'Review' }
+  if (items.length === 0) return (
+    <div className="page-container py-20 text-center">
+      <p className="text-lg mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Your cart is empty</p>
+      <button onClick={() => router.push('/shop')} className="btn-primary">Browse Collection</button>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ivory)' }}>
-      <div className="page-container py-8">
-        {/* Step indicator */}
-        <div className="flex items-center gap-0 mb-10 max-w-md mx-auto">
-          {steps.map((s, i) => (
-            <div key={s} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all"
-                  style={{ background: step === s ? 'var(--crimson)' : steps.indexOf(step) > i ? 'var(--gold)' : 'var(--border)', color: steps.indexOf(step) >= i ? 'white' : 'var(--text-secondary)' }}>
-                  {steps.indexOf(step) > i ? <Check size={14} /> : i + 1}
-                </div>
-                <span className="text-xs mt-1 tracking-wide" style={{ color: step === s ? 'var(--crimson)' : 'var(--text-secondary)' }}>{stepLabels[s]}</span>
+    <div className="page-container py-8">
+      <h1 className="section-heading mb-8">Checkout</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left — Form */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Delivery Address */}
+          <div className="card p-5">
+            <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Delivery Address</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <F label="Full Name" required>
+                <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" />
+              </F>
+              <F label="Phone" required>
+                <input className="input-base" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 XXXXX XXXXX" />
+              </F>
+              <div className="col-span-2">
+                <F label="Address Line 1" required>
+                  <input className="input-base" value={form.addressLine1} onChange={e => setForm(f => ({ ...f, addressLine1: e.target.value }))} placeholder="House/Flat No, Street, Area" />
+                </F>
               </div>
-              {i < steps.length - 1 && <div className="flex-1 h-px mb-4" style={{ background: steps.indexOf(step) > i ? 'var(--gold)' : 'var(--border)' }} />}
+              <div className="col-span-2">
+                <F label="Address Line 2">
+                  <input className="input-base" value={form.addressLine2} onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))} placeholder="Landmark (optional)" />
+                </F>
+              </div>
+              <F label="City" required>
+                <input className="input-base" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" />
+              </F>
+              <F label="Pincode" required>
+                <input className="input-base" value={form.pincode} onChange={e => setForm(f => ({ ...f, pincode: e.target.value }))} placeholder="6-digit pincode" maxLength={6} />
+              </F>
+              <div className="col-span-2">
+                <F label="State" required>
+                  <select className="input-base" value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+                    {INDIAN_STATES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </F>
+              </div>
             </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left */}
-          <div className="flex-1">
-            {/* Step 1: Address */}
-            <AnimatePresence mode="wait">
-              {step === 'address' && (
-                <motion.div key="address" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
-                  <h2 className="text-2xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Delivery Address</h2>
-                  {addresses.map(addr => (
-                    <div key={addr.id} onClick={() => setSelectedAddress(addr)}
-                      className="p-4 border mb-3 cursor-pointer transition-all"
-                      style={{ borderColor: selectedAddress?.id === addr.id ? 'var(--crimson)' : 'var(--border)', background: selectedAddress?.id === addr.id ? 'var(--cream)' : 'white' }}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ borderColor: selectedAddress?.id === addr.id ? 'var(--crimson)' : 'var(--border)' }}>
-                          {selectedAddress?.id === addr.id && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--crimson)' }} />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{addr.fullName} · {addr.phone}</p>
-                          <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{addr.addressLine1}{addr.addressLine2 ? `, ${addr.addressLine2}` : ''}</p>
-                          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{addr.city}, {addr.state} – {addr.pincode}</p>
-                          {addr.isDefault && <span className="text-xs mt-1 inline-block px-2 py-0.5" style={{ background: 'var(--cream)', color: 'var(--gold)', border: '1px solid var(--gold)' }}>Default</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button onClick={() => setShowNewAddress(!showNewAddress)} className="flex items-center gap-2 text-sm mb-4" style={{ color: 'var(--crimson)' }}>
-                    <Plus size={16} /> Add New Address
-                  </button>
-                  <AnimatePresence>
-                    {showNewAddress && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="border p-5 mb-4 grid grid-cols-2 gap-4" style={{ borderColor: 'var(--border)' }}>
-                          {[['fullName', 'Full Name *', 'col-span-1'], ['phone', 'Phone *', 'col-span-1'], ['addressLine1', 'Address Line 1 *', 'col-span-2'], ['addressLine2', 'Address Line 2', 'col-span-2'], ['city', 'City *', 'col-span-1'], ['pincode', 'Pincode *', 'col-span-1']].map(([key, label, cls]) => (
-                            <div key={key} className={cls}>
-                              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{label}</label>
-                              <input className="input-base" value={(addressForm as any)[key]} onChange={e => setAddressForm(prev => ({ ...prev, [key]: e.target.value }))} />
-                            </div>
-                          ))}
-                          <div className="col-span-2">
-                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>State *</label>
-                            <select className="input-base" value={addressForm.state} onChange={e => setAddressForm(prev => ({ ...prev, state: e.target.value }))}>
-                              <option value="">Select State</option>
-                              {INDIAN_STATES.map(s => <option key={s}>{s}</option>)}
-                            </select>
-                          </div>
-                          <div className="col-span-2 flex gap-3">
-                            <button onClick={saveAddress} className="btn-primary">Save Address</button>
-                            <button onClick={() => setShowNewAddress(false)} className="btn-outline">Cancel</button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <button onClick={() => { if (!selectedAddress) { toast.error('Please select an address'); return }; setStep('payment') }} className="btn-primary w-full justify-center mt-4">
-                    Continue to Payment <ChevronRight size={14} />
-                  </button>
-                </motion.div>
-              )}
-
-              {step === 'payment' && (
-                <motion.div key="payment" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
-                  <h2 className="text-2xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Payment Method</h2>
-                  <div className="space-y-3 mb-6">
-                    {[
-                      { key: 'razorpay', icon: <CreditCard size={18} />, title: 'Credit / Debit Card', sub: 'Pay securely via Razorpay', enabled: true },
-                      { key: 'upi', icon: <Smartphone size={18} />, title: 'UPI Payment', sub: 'Pay using any UPI app', enabled: upiEnabled },
-                      { key: 'cod', icon: <ShoppingBag size={18} />, title: 'Cash on Delivery', sub: `₹${SHIPPING_CHARGE} extra charge may apply`, enabled: codEnabled },
-                    ].filter(p => p.enabled).map(p => (
-                      <div key={p.key} onClick={() => setPaymentMethod(p.key as any)}
-                        className="p-4 border cursor-pointer transition-all flex items-center gap-4"
-                        style={{ borderColor: paymentMethod === p.key ? 'var(--crimson)' : 'var(--border)', background: paymentMethod === p.key ? 'var(--cream)' : 'white' }}>
-                        <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                          style={{ borderColor: paymentMethod === p.key ? 'var(--crimson)' : 'var(--border)' }}>
-                          {paymentMethod === p.key && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--crimson)' }} />}
-                        </div>
-                        <div className="flex items-center gap-3 flex-1">
-                          <span style={{ color: 'var(--crimson)' }}>{p.icon}</span>
-                          <div>
-                            <p className="text-sm font-medium">{p.title}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{p.sub}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => setStep('address')} className="btn-outline">← Back</button>
-                    <button onClick={() => setStep('confirm')} className="btn-primary flex-1 justify-center">Review Order <ChevronRight size={14} /></button>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 'confirm' && (
-                <motion.div key="confirm" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
-                  <h2 className="text-2xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Review & Place Order</h2>
-                  {/* Address */}
-                  <div className="border p-4 mb-4 flex justify-between" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
-                    <div><p className="text-xs font-semibold tracking-widest uppercase mb-1">Delivering to</p><p className="text-sm">{selectedAddress?.fullName} · {selectedAddress?.phone}</p><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAddress?.addressLine1}, {selectedAddress?.city}, {selectedAddress?.state} – {selectedAddress?.pincode}</p></div>
-                    <button onClick={() => setStep('address')} style={{ color: 'var(--crimson)' }}><Edit2 size={14} /></button>
-                  </div>
-                  {/* Payment */}
-                  <div className="border p-4 mb-4 flex justify-between" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
-                    <div><p className="text-xs font-semibold tracking-widest uppercase mb-1">Payment</p><p className="text-sm capitalize">{paymentMethod === 'razorpay' ? 'Card / Online' : paymentMethod.toUpperCase()}</p></div>
-                    <button onClick={() => setStep('payment')} style={{ color: 'var(--crimson)' }}><Edit2 size={14} /></button>
-                  </div>
-                  {/* Items */}
-                  <div className="border p-4 mb-6 space-y-3" style={{ borderColor: 'var(--border)' }}>
-                    {items.map(i => (
-                      <div key={`${i.productId}-${i.colour}`} className="flex items-center gap-3">
-                        <div className="w-12 h-16 flex-shrink-0 border overflow-hidden" style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
-                          {i.productImage ? <Image src={i.productImage} alt={i.productName} width={48} height={64} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center" style={{ background: i.colourHex, opacity: 0.5 }} />}
-                        </div>
-                        <div className="flex-1 text-sm"><p className="font-medium" style={{ fontFamily: 'var(--font-heading)' }}>{i.productName}</p><p style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{i.colour} · Qty {i.quantity}</p></div>
-                        <span className="text-sm font-medium" style={{ color: 'var(--crimson)' }}>{formatPrice((i.salePrice ?? i.originalPrice) * i.quantity)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => setStep('payment')} className="btn-outline">← Back</button>
-                    <button onClick={placeOrder} disabled={loading} className="btn-primary flex-1 justify-center" style={{ fontSize: 13 }}>
-                      {loading ? 'Placing Order...' : `Place Order · ${formatPrice(total)}`}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <label className="flex items-center gap-2 mt-4 cursor-pointer">
+              <input type="checkbox" checked={form.saveAddress} onChange={e => setForm(f => ({ ...f, saveAddress: e.target.checked }))} style={{ accentColor: 'var(--crimson)' }} />
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save this address for future orders</span>
+            </label>
           </div>
 
-          {/* Order Summary sidebar */}
-          <div className="lg:w-72 flex-shrink-0">
-            <div className="border p-5 sticky top-24" style={{ borderColor: 'var(--border)', background: 'white' }}>
-              <h3 className="text-lg font-light mb-4" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h3>
-              <div className="space-y-2 mb-4 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
-                {items.map(i => (
-                  <div key={`${i.productId}-${i.colour}`} className="flex justify-between text-xs">
-                    <span style={{ color: 'var(--text-secondary)' }}>{i.productName} × {i.quantity}</span>
-                    <span>{formatPrice((i.salePrice ?? i.originalPrice) * i.quantity)}</span>
+          {/* Payment Method */}
+          <div className="card p-5">
+            <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Payment Method</h2>
+            <div className="space-y-3">
+              {[
+                { id: 'online', label: 'Pay Online', sub: 'UPI, Cards, Net Banking via Razorpay', icon: '💳' },
+                { id: 'cod', label: 'Cash on Delivery', sub: 'Pay when your order arrives', icon: '💵' },
+              ].map(method => (
+                <label key={method.id} className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer transition-all"
+                  style={{ borderColor: paymentMethod === method.id ? 'var(--crimson)' : 'var(--border)', background: paymentMethod === method.id ? 'var(--cream)' : 'white' }}>
+                  <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id}
+                    onChange={() => setPaymentMethod(method.id as any)} style={{ accentColor: 'var(--crimson)' }} />
+                  <span className="text-xl">{method.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{method.label}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{method.sub}</p>
                   </div>
-                ))}
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                {couponDiscount > 0 && <div className="flex justify-between"><span style={{ color: '#1B7A3E' }}>Discount</span><span style={{ color: '#1B7A3E' }}>−{formatPrice(couponDiscount)}</span></div>}
-                <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#1B7A3E' : 'inherit' }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span></div>
-                <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>GST</span><span>{formatPrice(gst)}</span></div>
-                <div className="flex justify-between font-semibold pt-2 border-t text-base" style={{ borderColor: 'var(--border)' }}>
-                  <span>Total</span><span style={{ color: 'var(--crimson)', fontFamily: 'var(--font-heading)' }}>{formatPrice(total)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right — Order Summary */}
+        <div className="space-y-4">
+          <div className="card p-5 sticky top-24">
+            <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Order Summary</h2>
+            <div className="space-y-3 mb-4">
+              {items.map((item, i) => (
+                <div key={i} className="flex gap-3">
+                  {item.productImage && (
+                    <img src={item.productImage} alt={item.productName} className="w-14 h-16 object-cover rounded flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.productName}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.colour} · Qty: {item.quantity}</p>
+                    <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)' }}>₹{((item.salePrice ?? item.originalPrice) * item.quantity).toLocaleString('en-IN')}</p>
+                  </div>
                 </div>
+              ))}
+            </div>
+            <div className="border-t pt-4 space-y-2" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
+                <span>₹{sub.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text-secondary)' }}>Shipping</span>
+                <span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--text-secondary)' }}>GST (5%)</span>
+                <span>₹{gst.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>
+                <span>Total</span>
+                <span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
+            <button onClick={createOrder} disabled={loading}
+              className="btn-primary w-full mt-4 justify-center"
+              style={{ opacity: loading ? 0.7 : 1 }}>
+              {loading ? 'Processing...' : paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')}`}
+            </button>
+            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>
+              🔒 Secured by Razorpay
+            </p>
           </div>
         </div>
       </div>
