@@ -18,23 +18,29 @@ export default function OrderDetailPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
 
+      // Get order - verify it belongs to this user
       const { data: o } = await supabase
         .from('orders').select('*').eq('id', id).eq('user_id', session.user.id).single()
       if (!o) { router.push('/orders'); return }
       setOrder(o)
 
-      // Get items using RPC (bypasses RLS)
-      const { data: oi, error: rpcError } = await supabase
-        .rpc('get_order_items', { p_order_id: id })
-      
-      if (!rpcError && oi && oi.length > 0) {
-        setItems(oi)
-      } else {
-        // Final fallback - direct query
-        const { data: oi2 } = await supabase
-          .from('order_items').select('*').eq('order_id', id)
-        setItems(oi2 || [])
-      }
+      // Fetch items using the REST API directly with auth header
+      // This bypasses RLS issues by using the user's JWT token
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+      const token = currentSession?.access_token
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/order_items?order_id=eq.${id}&select=*`,
+        {
+          headers: {
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      )
+      const oi = await res.json()
+      setItems(Array.isArray(oi) ? oi : [])
       setLoading(false)
     }
     load()
@@ -64,7 +70,6 @@ export default function OrderDetailPage() {
         <p className="text-xs mt-2 font-mono" style={{ color: '#16A34A' }}>Order ID: {String(id).slice(0, 8).toUpperCase()}</p>
       </div>
 
-      {/* Items */}
       <div className="card p-5 mb-4">
         <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
           <Package size={18} style={{ color: 'var(--crimson)' }} /> Items Ordered
@@ -76,8 +81,13 @@ export default function OrderDetailPage() {
             {items.map((item, i) => (
               <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 last:pb-0" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-lg"
-                    style={{ background: 'var(--cream)' }}>🥻</div>
+                  {item.product_image ? (
+                    <img src={item.product_image} alt={item.product_name}
+                      className="w-14 object-cover rounded flex-shrink-0" style={{ height: 64 }} />
+                  ) : (
+                    <div className="w-14 flex items-center justify-center rounded flex-shrink-0 text-2xl"
+                      style={{ height: 64, background: 'var(--cream)' }}>🥻</div>
+                  )}
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.product_name}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -86,7 +96,7 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
                 <p className="text-sm font-semibold" style={{ color: 'var(--crimson)' }}>
-                  ₹{Number(item.total || item.sale_price * item.quantity || item.original_price * item.quantity).toLocaleString('en-IN')}
+                  ₹{Number(item.total || (item.sale_price || item.original_price) * item.quantity).toLocaleString('en-IN')}
                 </p>
               </div>
             ))}
@@ -94,7 +104,6 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      {/* Price */}
       <div className="card p-5 mb-4">
         <h2 className="font-semibold mb-3" style={{ fontFamily: 'var(--font-heading)' }}>Price Summary</h2>
         <div className="space-y-2 text-sm">
@@ -112,7 +121,6 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Address */}
       <div className="card p-5 mb-4">
         <h2 className="font-semibold mb-3 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
           <MapPin size={18} style={{ color: 'var(--crimson)' }} /> Delivery Address
@@ -125,7 +133,6 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Payment */}
       <div className="card p-5 mb-8">
         <h2 className="font-semibold mb-3 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
           <CreditCard size={18} style={{ color: 'var(--crimson)' }} /> Payment Details
