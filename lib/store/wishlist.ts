@@ -14,34 +14,21 @@ export const useWishlistStore = create<WishlistStore>()(
   persist(
     (set, get) => ({
       ids: [],
-
       toggle: async (productId, userId) => {
         const isIn = get().ids.includes(productId)
-        set(state => ({
-          ids: isIn
-            ? state.ids.filter(id => id !== productId)
-            : [...state.ids, productId]
-        }))
+        set(state => ({ ids: isIn ? state.ids.filter(id => id !== productId) : [...state.ids, productId] }))
         if (userId) {
           const supabase = createClient()
-          if (isIn) {
-            await supabase.from('wishlists').delete().eq('user_id', userId).eq('product_id', productId)
-          } else {
-            await supabase.from('wishlists').insert({ user_id: userId, product_id: productId })
-          }
+          if (isIn) await supabase.from('wishlists').delete().eq('user_id', userId).eq('product_id', productId)
+          else await supabase.from('wishlists').insert({ user_id: userId, product_id: productId })
         }
       },
-
       isWishlisted: (productId) => get().ids.includes(productId),
-
-      // Load wishlist from DB on login
-      syncFromDb: async (userId: string) => {
+      syncFromDb: async (userId) => {
         const supabase = createClient()
         const { data } = await supabase.from('wishlists').select('product_id').eq('user_id', userId)
         if (data) set({ ids: data.map((r: any) => r.product_id) })
       },
-
-      // Clear local wishlist on logout (data stays in DB)
       clearLocal: () => set({ ids: [] }),
     }),
     { name: 'skss-wishlist' }

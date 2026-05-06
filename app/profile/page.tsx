@@ -14,17 +14,39 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('')
   const [whatsapp, setWhatsapp] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'profile' | 'addresses'>('profile')
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (p) { setProfile({ id: p.id, email: p.email, fullName: p.full_name, phone: p.phone, avatarUrl: p.avatar_url, role: p.role, isBlocked: p.is_blocked, whatsappOptedIn: p.whatsapp_opted_in, createdAt: p.created_at }); setName(p.full_name || ''); setPhone(p.phone || ''); setWhatsapp(p.whatsapp_opted_in) }
-      const { data: addrs } = await supabase.from('addresses').select('*').eq('user_id', user.id)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { router.push('/login'); return }
+
+      // Try to get profile, create if doesn't exist (Google OAuth users)
+      let { data: p } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+
+      if (!p) {
+        // Create profile for Google OAuth user
+        const { data: newProfile } = await supabase.from('profiles').insert({
+          id: session.user.id,
+          email: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+          role: 'customer',
+        }).select().single()
+        p = newProfile
+      }
+
+      if (p) {
+        setProfile({ id: p.id, email: p.email, fullName: p.full_name || '', phone: p.phone || null, avatarUrl: p.avatar_url || null, role: p.role, isBlocked: p.is_blocked, whatsappOptedIn: p.whatsapp_opted_in, createdAt: p.created_at })
+        setName(p.full_name || session.user.user_metadata?.full_name || '')
+        setPhone(p.phone || '')
+        setWhatsapp(p.whatsapp_opted_in !== false)
+      }
+
+      const { data: addrs } = await supabase.from('addresses').select('*').eq('user_id', session.user.id)
       if (addrs) setAddresses(addrs.map((a: any) => ({ id: a.id, userId: a.user_id, fullName: a.full_name, phone: a.phone, addressLine1: a.address_line1, addressLine2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode, isDefault: a.is_default })))
+      setLoading(false)
     }
     load()
   }, [])
@@ -54,6 +76,15 @@ export default function ProfilePage() {
     toast.success('Address removed')
   }
 
+  if (loading) return (
+    <div className="page-container py-20 text-center">
+      <div className="inline-block w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--crimson)', borderTopColor: 'transparent' }} />
+      <p className="text-sm mt-3" style={{ color: 'var(--text-secondary)' }}>Loading your profile...</p>
+    </div>
+  )
+
+  if (!profile) return null
+
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
       <h1 className="section-heading mb-8">My Profile</h1>
@@ -65,11 +96,12 @@ export default function ProfilePage() {
           </button>
         ))}
       </div>
-      {tab === 'profile' && profile && (
+
+      {tab === 'profile' && (
         <div className="space-y-4">
           <div><label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email (cannot change)</label><input className="input-base" value={profile.email} disabled style={{ opacity: 0.6 }} /></div>
           <div><label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Full Name</label><input className="input-base" value={name} onChange={e => setName(e.target.value)} /></div>
-          <div><label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label><input className="input-base" value={phone} onChange={e => setPhone(e.target.value)} /></div>
+          <div><label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label><input className="input-base" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" /></div>
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)} className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates on orders & offers</span>
@@ -77,16 +109,17 @@ export default function ProfilePage() {
           <button onClick={saveProfile} disabled={saving} className="btn-primary">{saving ? 'Saving...' : 'Save Changes'}</button>
         </div>
       )}
+
       {tab === 'addresses' && (
         <div className="space-y-3">
-          {addresses.length === 0 && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No saved addresses. Add one at checkout.</p>}
+          {addresses.length === 0 && <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>No saved addresses. Add one at checkout.</p>}
           {addresses.map(a => (
             <div key={a.id} className="p-4 border flex items-start justify-between" style={{ borderColor: 'var(--border)', background: a.isDefault ? 'var(--cream)' : 'white' }}>
               <div className="text-sm">
                 <p className="font-medium">{a.fullName} · {a.phone}</p>
                 <p style={{ color: 'var(--text-secondary)' }}>{a.addressLine1}{a.addressLine2 ? `, ${a.addressLine2}` : ''}</p>
                 <p style={{ color: 'var(--text-secondary)' }}>{a.city}, {a.state} – {a.pincode}</p>
-                {a.isDefault && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>Default</span>}
+                {a.isDefault && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>✓ Default</span>}
               </div>
               <div className="flex flex-col gap-2 ml-4">
                 {!a.isDefault && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--crimson)' }}>Set Default</button>}

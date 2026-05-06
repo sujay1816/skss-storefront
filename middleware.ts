@@ -2,11 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED = ['/profile', '/checkout', '/orders', '/wishlist']
-const GUEST_ONLY = ['/login', '/signup', '/forgot-password', '/reset-password']
+const GUEST_ONLY = ['/login', '/signup']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -16,32 +15,19 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options as any))
         },
       },
     }
   )
-
-  // Refresh session — this keeps cookies fresh automatically
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
-
-  // Protect pages that require login
   if (PROTECTED.some(r => path.startsWith(r)) && !user) {
-    const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('redirect', path)
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(path)}`, request.url))
   }
-
-  // Only redirect away from login/signup if user is verified and session is fresh
-  // Do NOT redirect if there's any doubt — avoids the loop issue
   if (GUEST_ONLY.some(r => path.startsWith(r)) && user) {
-    // Check if it's a real active session by verifying the user exists
-    if (user.id) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+    return NextResponse.redirect(new URL('/', request.url))
   }
-
   return response
 }
 

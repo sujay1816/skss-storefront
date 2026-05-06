@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Heart, ShoppingBag, User, Menu, X, LogOut, Package, MapPin, ChevronRight, Settings, Bell } from 'lucide-react'
+import { Search, Heart, ShoppingBag, User, Menu, X, LogOut, Package, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useCartStore } from '@/lib/store/cart'
 import { useWishlistStore } from '@/lib/store/wishlist'
@@ -13,7 +13,8 @@ import toast from 'react-hot-toast'
 
 interface NavbarProps { categories: Category[]; config: SiteConfig; user?: UserProfile | null }
 
-export default function Navbar({ categories, config, user }: NavbarProps) {
+export default function Navbar({ categories, config, user: serverUser }: NavbarProps) {
+  const [user, setUser] = useState<UserProfile | null>(serverUser || null)
   const [visible, setVisible] = useState(true)
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -28,9 +29,44 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
   const wishlistCount = useWishlistStore(s => s.ids.length)
   const { syncFromDb } = useWishlistStore()
 
+  // Client-side auth sync — fixes Google OAuth session detection on navigation
   useEffect(() => {
-    if (user?.id) syncFromDb(user.id)
-  }, [user?.id])
+    const supabase = createClient()
+
+    const loadUser = async (userId: string) => {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles').select('*').eq('id', userId).single()
+        if (profile) {
+          const u: UserProfile = {
+            id: profile.id, email: profile.email,
+            fullName: profile.full_name || '',
+            phone: profile.phone || null,
+            avatarUrl: profile.avatar_url || null,
+            role: profile.role, isBlocked: profile.is_blocked,
+            whatsappOptedIn: profile.whatsapp_opted_in,
+            createdAt: profile.created_at,
+          }
+          setUser(u)
+          syncFromDb(u.id)
+        }
+      } catch { setUser(null) }
+    }
+
+    // Check session immediately on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) loadUser(session.user.id)
+      else setUser(null)
+    })
+
+    // Keep in sync with auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) loadUser(session.user.id)
+      else setUser(null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,7 +104,8 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
 
   const handleLogout = async () => {
     const supabase = createClient()
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'global' })
+    setUser(null)
     setProfileOpen(false)
     setMenuOpen(false)
     toast.success('Signed out successfully!')
@@ -81,7 +118,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
 
   return (
     <>
-      {/* Announcement bar */}
       <div className="text-center py-2 text-xs tracking-widest font-light text-white" style={{ background: 'var(--crimson)' }}>
         Free shipping on orders above ₹{Number(config.free_shipping_above || 1999).toLocaleString('en-IN')} &nbsp;·&nbsp; {config.brand_tagline}
       </div>
@@ -131,14 +167,13 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                 {cartCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center font-semibold" style={{ background: 'var(--crimson)', fontSize: '9px' }}>{cartCount}</span>}
               </Link>
 
-              {/* Profile */}
               <div className="relative" ref={profileRef}>
                 <button onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-all"
                   style={{ background: profileOpen ? 'var(--cream)' : 'transparent' }}>
                   {user ? (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
+                      style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, #6B1220 100%)' }}>
                       {firstLetter}
                     </div>
                   ) : (
@@ -155,11 +190,9 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                       transition={{ duration: 0.15 }}
                       className="absolute right-0 top-full mt-2 bg-white border shadow-2xl z-50 overflow-hidden"
                       style={{ borderColor: 'var(--border)', borderRadius: 12, width: 240 }}>
-
                       {user ? (
                         <>
-                          {/* User header */}
-                          <div className="px-4 py-4" style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
+                          <div className="px-4 py-4" style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, #6B1220 100%)' }}>
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
                                 style={{ background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.4)' }}>
@@ -171,8 +204,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                               </div>
                             </div>
                           </div>
-
-                          {/* Menu items */}
                           <div className="py-1.5">
                             {[
                               { href: '/profile', icon: <User size={15} />, label: 'My Profile', sub: 'Edit your details' },
@@ -181,7 +212,7 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                               { href: '/cart', icon: <ShoppingBag size={15} />, label: 'My Cart', sub: cartCount > 0 ? `${cartCount} items` : 'View cart', badge: cartCount > 0 ? cartCount : null },
                             ].map(item => (
                               <Link key={item.href} href={item.href} onClick={() => setProfileOpen(false)}
-                                className="flex items-center gap-3 px-4 py-2.5 transition-colors group"
+                                className="flex items-center gap-3 px-4 py-2.5 transition-colors"
                                 style={{ color: 'var(--text-primary)' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -198,16 +229,13 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                               </Link>
                             ))}
                           </div>
-
-                          {/* Sign out */}
                           <div className="border-t p-2" style={{ borderColor: 'var(--border)' }}>
                             <button onClick={handleLogout}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                              style={{ color: '#DC2626', background: 'transparent' }}
+                              style={{ color: '#DC2626' }}
                               onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
                               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                              <LogOut size={15} />
-                              <span>Sign Out</span>
+                              <LogOut size={15} /><span>Sign Out</span>
                             </button>
                           </div>
                         </>
@@ -220,14 +248,14 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                           <div className="p-3 space-y-2">
                             <Link href="/login" onClick={() => setProfileOpen(false)}
                               className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-white transition-all"
-                              style={{ background: 'var(--crimson)', borderRadius: 8 }}
+                              style={{ background: 'var(--crimson)', borderRadius: 8, display: 'flex' }}
                               onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
                               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                               <User size={14} /> Sign In
                             </Link>
                             <Link href="/signup" onClick={() => setProfileOpen(false)}
                               className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-all"
-                              style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }}
+                              style={{ border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', display: 'flex' }}
                               onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--crimson)')}
                               onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
                               Create Account
@@ -243,7 +271,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
           </div>
         </div>
 
-        {/* Search */}
         <AnimatePresence>
           {searchOpen && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -261,7 +288,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
         </AnimatePresence>
       </motion.header>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {menuOpen && (
           <>
@@ -270,8 +296,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
             <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
               className="fixed left-0 top-0 bottom-0 z-50 w-80 flex flex-col bg-white">
-
-              {/* Header */}
               <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
                 <div className="flex items-center gap-3">
                   <Image src="/images/logo.png" alt="SKSS" width={36} height={36} className="object-contain" />
@@ -283,9 +307,8 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                 <button onClick={() => setMenuOpen(false)}><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
               </div>
 
-              {/* User info */}
               {user && (
-                <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
+                <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, var(--crimson) 0%, #6B1220 100%)' }}>
                   <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.4)' }}>
                     {firstLetter}
@@ -298,7 +321,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
               )}
 
               <nav className="flex-1 overflow-y-auto">
-                {/* Account section */}
                 {user ? (
                   <div className="py-2 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>My Account</p>
@@ -331,8 +353,6 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                     </div>
                   </div>
                 )}
-
-                {/* Categories */}
                 <div className="py-2">
                   <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Shop by Category</p>
                   {categories.map(cat => (
@@ -341,14 +361,12 @@ export default function Navbar({ categories, config, user }: NavbarProps) {
                       style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                      {cat.name}
-                      <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+                      {cat.name} <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
                     </Link>
                   ))}
                 </div>
               </nav>
 
-              {/* Sign out at bottom */}
               {user && (
                 <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
                   <button onClick={handleLogout}
