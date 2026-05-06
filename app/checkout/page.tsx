@@ -190,6 +190,20 @@ export default function CheckoutPage() {
         }))
       )
 
+      // Send confirmation email
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'order_confirmation',
+            order,
+            items,
+            customerEmail: email,
+          })
+        })
+      } catch (e) { console.error('Email failed:', e) }
+
       // Clear cart
       await clearCart()
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
