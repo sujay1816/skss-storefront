@@ -23,10 +23,17 @@ export default function OrderDetailPage() {
       if (!o) { router.push('/orders'); return }
       setOrder(o)
 
-      // Try order_items first, then items
+      // Try direct query first
       const { data: oi } = await supabase
         .from('order_items').select('*').eq('order_id', id)
-      setItems(oi || [])
+
+      if (oi && oi.length > 0) {
+        setItems(oi)
+      } else {
+        // Fallback to RPC function
+        const { data: oi2 } = await supabase.rpc('get_order_items', { p_order_id: id })
+        setItems(oi2 || [])
+      }
       setLoading(false)
     }
     load()
@@ -45,7 +52,6 @@ export default function OrderDetailPage() {
   )
 
   if (!order) return null
-
   const addr = order.address_snapshot || order.shipping_address || {}
 
   return (
@@ -63,19 +69,24 @@ export default function OrderDetailPage() {
           <Package size={18} style={{ color: 'var(--crimson)' }} /> Items Ordered
         </h2>
         {items.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading items...</p>
+          <p className="text-sm py-2" style={{ color: 'var(--text-secondary)' }}>No items found.</p>
         ) : (
           <div className="space-y-3">
             {items.map((item, i) => (
-              <div key={i} className="flex gap-3 items-start pb-3 border-b last:border-0 last:pb-0" style={{ borderColor: 'var(--border)' }}>
-                {item.product_image && (
-                  <img src={item.product_image} alt={item.product_name} className="w-16 object-cover rounded flex-shrink-0" style={{ height: 72 }} />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.product_name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{item.colour} · Qty: {item.quantity}</p>
-                  <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)' }}>₹{Number(item.total_price).toLocaleString('en-IN')}</p>
+              <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 last:pb-0" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-lg"
+                    style={{ background: 'var(--cream)' }}>🥻</div>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.product_name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {item.colour} · Qty: {item.quantity}
+                    </p>
+                  </div>
                 </div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--crimson)' }}>
+                  ₹{Number(item.total || item.sale_price * item.quantity || item.original_price * item.quantity).toLocaleString('en-IN')}
+                </p>
               </div>
             ))}
           </div>
@@ -87,7 +98,8 @@ export default function OrderDetailPage() {
         <h2 className="font-semibold mb-3" style={{ fontFamily: 'var(--font-heading)' }}>Price Summary</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>₹{Number(order.subtotal).toLocaleString('en-IN')}</span></div>
-          <div className="flex justify-between"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span>
+          <div className="flex justify-between">
+            <span style={{ color: 'var(--text-secondary)' }}>Shipping</span>
             <span style={{ color: Number(order.shipping_charge) === 0 ? '#16A34A' : 'inherit' }}>
               {Number(order.shipping_charge) === 0 ? 'FREE' : `₹${Number(order.shipping_charge).toLocaleString('en-IN')}`}
             </span>
