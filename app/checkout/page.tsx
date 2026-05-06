@@ -136,6 +136,15 @@ export default function CheckoutPage() {
   const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
     try {
       // Create order in DB
+      const addressData = {
+        full_name: form.fullName,
+        phone: form.phone,
+        address_line1: form.addressLine1,
+        address_line2: form.addressLine2,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+      }
       const { data: order, error } = await supabase.from('orders').insert({
         user_id: userId,
         status: 'confirmed',
@@ -145,13 +154,11 @@ export default function CheckoutPage() {
         razorpay_payment_id: razorpayPaymentId,
         subtotal: sub,
         shipping_charge: shipping,
+        total_gst: gst,
         gst_amount: gst,
         total_amount: total,
-        shipping_address: {
-          full_name: form.fullName, phone: form.phone,
-          address_line1: form.addressLine1, address_line2: form.addressLine2,
-          city: form.city, state: form.state, pincode: form.pincode,
-        },
+        address_snapshot: addressData,
+        shipping_address: addressData,
       }).select().single()
 
       if (error) throw error
