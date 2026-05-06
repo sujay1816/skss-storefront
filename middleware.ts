@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED = ['/profile', '/checkout', '/orders', '/wishlist']
-const GUEST_ONLY = ['/login', '/signup']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,19 +15,20 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options as any))
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
       },
     }
   )
+
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
+
+  // Only protect pages that need login — never redirect away from login/signup
   if (PROTECTED.some(r => path.startsWith(r)) && !user) {
     return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(path)}`, request.url))
   }
-  if (GUEST_ONLY.some(r => path.startsWith(r)) && user) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+
   return response
 }
 
