@@ -23,15 +23,16 @@ export default function OrderDetailPage() {
       if (!o) { router.push('/orders'); return }
       setOrder(o)
 
-      // Try direct query first
-      const { data: oi } = await supabase
-        .from('order_items').select('*').eq('order_id', id)
-
-      if (oi && oi.length > 0) {
+      // Get items using RPC (bypasses RLS)
+      const { data: oi, error: rpcError } = await supabase
+        .rpc('get_order_items', { p_order_id: id })
+      
+      if (!rpcError && oi && oi.length > 0) {
         setItems(oi)
       } else {
-        // Fallback to RPC function
-        const { data: oi2 } = await supabase.rpc('get_order_items', { p_order_id: id })
+        // Final fallback - direct query
+        const { data: oi2 } = await supabase
+          .from('order_items').select('*').eq('order_id', id)
         setItems(oi2 || [])
       }
       setLoading(false)
