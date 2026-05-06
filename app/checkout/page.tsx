@@ -143,7 +143,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
+  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null, session?: any) => {
     try {
       // Create order in DB
       const addressData = {
@@ -192,16 +192,25 @@ export default function CheckoutPage() {
 
       // Send confirmation email
       try {
-        await fetch('/api/send-email', {
+        const emailRes = await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'order_confirmation',
             order,
-            items,
+            items: items.map(item => ({
+              product_name: item.productName,
+              colour: item.colour,
+              quantity: item.quantity,
+              sale_price: item.salePrice ?? item.originalPrice,
+              original_price: item.originalPrice,
+              total: (item.salePrice ?? item.originalPrice) * item.quantity,
+            })),
             customerEmail: email,
           })
         })
+        const emailData = await emailRes.json()
+        if (!emailData.success) console.error('Email error:', emailData.error)
       } catch (e) { console.error('Email failed:', e) }
 
       // Clear cart
