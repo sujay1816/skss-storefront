@@ -47,7 +47,7 @@ export default function LoginPage() {
             <Image src="/images/logo.png" alt="SKSS" width={90} height={90} style={{ objectFit: 'contain', position: 'relative' }} />
           </div>
           <h1 style={{ fontSize: 48, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>Sai Krishna</h1>
-          <p style={{ color: '#C9A84C', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20 }}>✦ SILKS & SAREES ✦</p>
+          <p style={{ color: '#C9A84C', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20 }}>{config?.brand_subtitle || '✦ SILKS & SAREES ✦'}</p>
           <div style={{ width: 80, height: 1, background: 'linear-gradient(to right, transparent, #C9A84C, transparent)', marginBottom: 20 }} />
           <p style={{ fontSize: 18, fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', fontFamily: 'Cormorant Garamond, serif', lineHeight: 1.6 }}>
             "Pure Silk. Timeless Tradition.<br />Royal Elegance."

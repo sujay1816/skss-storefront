@@ -108,7 +108,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: razorpayOrder.amount,
         currency: 'INR',
-        name: 'Sai Krishna Silks & Sarees',
+        name: config?.brand_name || 'Sai Krishna Silks & Sarees',
         description: `Order for ${items.length} item(s)`,
         image: '/images/logo.png',
         order_id: razorpayOrder.id,

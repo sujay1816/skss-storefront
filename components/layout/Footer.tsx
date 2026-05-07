@@ -43,7 +43,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
               <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "SKSS"} width={48} height={48} className="object-contain" />
               <div>
                 <p className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)', fontSize: '18px' }}>{config.brand_name || 'Sai Krishna'}</p>
-                <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', letterSpacing: '0.12em' }}>SILKS & SAREES</p>
+                <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', letterSpacing: '0.12em' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
               </div>
             </div>
             <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>

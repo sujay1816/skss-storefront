@@ -66,7 +66,7 @@ export default function OrderDetailPage() {
       <div className="rounded-xl p-6 mb-6 text-center" style={{ background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '1px solid #BBF7D0' }}>
         <CheckCircle size={48} className="mx-auto mb-3" style={{ color: '#16A34A' }} />
         <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: 'var(--font-heading)', color: '#15803D' }}>Order Confirmed! 🎉</h1>
-        <p className="text-sm" style={{ color: '#166534' }}>Thank you for shopping with Sai Krishna Silks & Sarees</p>
+        <p className="text-sm" style={{ color: '#166534' }}>Thank you for your order!</p>
         <p className="text-xs mt-2 font-mono" style={{ color: '#16A34A' }}>Order ID: {String(id).slice(0, 8).toUpperCase()}</p>
       </div>
 
