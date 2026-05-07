@@ -134,9 +134,9 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             </button>
 
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <Image src="/images/logo.png" alt="Sai Krishna Silks and Sarees" width={44} height={44} className="object-contain" />
+              <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "Sai Krishna Silks and Sarees"} width={44} height={44} className="object-contain" />
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>Sai Krishna</p>
+                <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || 'Sai Krishna'}</p>
                 <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', letterSpacing: '0.15em' }}>SILKS & SAREES</p>
               </div>
             </Link>
@@ -300,7 +300,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                 <div className="flex items-center gap-3">
                   <Image src="/images/logo.png" alt="SKSS" width={36} height={36} className="object-contain" />
                   <div>
-                    <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>Sai Krishna</p>
+                    <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || 'Sai Krishna'}</p>
                     <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', fontSize: '9px' }}>SILKS & SAREES</p>
                   </div>
                 </div>

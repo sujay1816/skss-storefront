@@ -197,14 +197,14 @@ export default function HomepageClient({ config, categories, featured, bestselle
             <div className="md:w-1/3 flex justify-center">
               <div className="relative">
                 <div className="absolute -inset-3 border opacity-20" style={{ borderColor: 'var(--gold)' }} />
-                <Image src="/images/logo.png" alt="Sai Krishna Silks and Sarees" width={200} height={200} className="object-contain relative z-10" />
+                <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "Sai Krishna Silks and Sarees"} width={200} height={200} className="object-contain relative z-10" />
               </div>
             </div>
             <div className="md:w-2/3 text-center md:text-left">
               <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)' }}>Our Story</p>
               <h2 className="section-heading mb-4">A Legacy of Silk & Tradition</h2>
               <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Sai Krishna Silks and Sarees is a celebration of India's finest weaving traditions. We bring you an exquisite collection of pure silk and traditional sarees, each handpicked to ensure unmatched quality and authenticity. From the golden looms of Kanjivaram to the royal grandeur of Banarasi, every saree in our collection carries the spirit of timeless elegance.
+                {config.brand_name || 'Sai Krishna Silks and Sarees'} is a celebration of India's finest weaving traditions. We bring you an exquisite collection of pure silk and traditional sarees, each handpicked to ensure unmatched quality and authenticity. From the golden looms of Kanjivaram to the royal grandeur of Banarasi, every saree in our collection carries the spirit of timeless elegance.
               </p>
               <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
                 Whether you're dressing for a wedding, festival or everyday grace — find the saree that tells your story.
