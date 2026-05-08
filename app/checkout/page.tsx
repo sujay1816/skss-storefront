@@ -215,6 +215,19 @@ export default function CheckoutPage() {
         if (!emailData.success) console.error('Email error:', emailData.error)
       } catch (e) { console.error('Email failed:', e) }
 
+      // Send WhatsApp notification
+      try {
+        await fetch('/api/send-whatsapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'order_placed',
+            order,
+            phone: form.phone,
+          })
+        })
+      } catch (e) { console.error('WhatsApp failed:', e) }
+
       // Clear cart
       await clearCart()
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')

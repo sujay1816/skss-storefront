@@ -205,6 +205,20 @@ export async function POST(request: Request) {
         subject: `Your order has been shipped! #${String(order.id).slice(0,8).toUpperCase()}`,
         html: shippingUpdateHtml(order, trackingId, courierName),
       })
+
+      // Also send WhatsApp for shipping update
+      try {
+        const addr = order.address_snapshot || order.shipping_address || {}
+        const phone = addr.phone
+        if (phone) {
+          await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://skss-storefront.vercel.app'}/api/send-whatsapp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'order_shipped', order, phone, trackingId, courierName })
+          })
+        }
+      } catch (e) { console.error('WhatsApp shipping failed:', e) }
+
       return NextResponse.json({ success: true })
     }
 
