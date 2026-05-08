@@ -8,34 +8,29 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { type, items } = body
-
+    const { type, items } = await request.json()
     if (type === 'restore') {
       for (const item of items) {
         const { data: variant } = await supabase
           .from('product_variants').select('stock')
           .eq('product_id', item.product_id).eq('colour', item.colour).single()
-
         if (variant) {
           await supabase.from('product_variants')
             .update({ stock: variant.stock + item.quantity })
             .eq('product_id', item.product_id).eq('colour', item.colour)
         }
-
-        const { data: allVariants } = await supabase
+        const { data: all } = await supabase
           .from('product_variants').select('stock').eq('product_id', item.product_id)
-
-        if (allVariants) {
-          const totalStock = allVariants.reduce((s: number, v: any) => s + v.stock, 0)
-          await supabase.from('products').update({ stock: totalStock }).eq('id', item.product_id)
+        if (all) {
+          await supabase.from('products')
+            .update({ stock: all.reduce((s: number, v: any) => s + v.stock, 0) })
+            .eq('id', item.product_id)
         }
       }
-      return NextResponse.json({ success: true, message: 'Stock restored' })
+      return NextResponse.json({ success: true })
     }
-
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
