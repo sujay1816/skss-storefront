@@ -6,7 +6,7 @@ import { getSiteConfig, getCategories, getProducts, getBanners } from '@/lib/sup
 import { getUser } from '@/lib/supabase/get-user'
 export const dynamic = 'force-dynamic'
 
-const DEFAULT_CONFIG = { brand_name: 'Sai Krishna Silks and Sarees', brand_tagline: 'Pure Silk. Timeless Tradition. Royal Elegance.', whatsapp_number: '+919999999999', support_email: 'support@skss.in', business_email: 'hello@skss.in', free_shipping_above: '1999', default_shipping_charge: '99', estimated_delivery_days: '5-7', return_window_days: '7', default_gst_rate: '5', cod_enabled: 'true', upi_enabled: 'true', razorpay_key_id: '', instagram_url: '', facebook_url: '', youtube_url: '', gstin: '', business_address: '', new_arrivals_days: '30', low_stock_threshold: '5' }
+const DEFAULT_CONFIG = { brand_name: 'Sai Krishna Silks and Sarees', brand_tagline: 'Pure Silk. Timeless Tradition. Royal Elegance.', brand_subtitle: 'SILKS & SAREES', whatsapp_number: '+919999999999', support_email: 'support@skss.in', business_email: 'hello@skss.in', free_shipping_above: '1999', default_shipping_charge: '99', estimated_delivery_days: '5-7', return_window_days: '7', default_gst_rate: '5', cod_enabled: 'true', upi_enabled: 'true', razorpay_key_id: '', instagram_url: '', facebook_url: '', youtube_url: '', gstin: '', business_address: '', new_arrivals_days: '30', low_stock_threshold: '5' }
 
 export default async function HomePage() {
   const [config, categories, featured, bestsellers, newArrivals, banners, user] = await Promise.all([
