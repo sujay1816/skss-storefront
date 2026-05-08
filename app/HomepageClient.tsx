@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Star, Shield, Truck, RotateCcw, Award, Instagram, ChevronRight } from 'lucide-react'
+import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import type { SiteConfig, Category, Product, Banner } from '@/types'
 
@@ -341,51 +341,6 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </motion.div>
             ))}
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── INSTAGRAM GRID ── */}
-      <section className="py-10 md:py-16" style={{ background: 'white' }}>
-        <div className="page-container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-10">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Instagram size={18} style={{ color: 'var(--gold)' }} />
-              <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)' }}>Follow Our Journey</p>
-            </div>
-            <h2 className="section-heading mb-2">
-              {config.instagram_url ? (
-                <a href={config.instagram_url} target="_blank" rel="noopener noreferrer"
-                  style={{ color: 'inherit', textDecoration: 'none' }}>
-                  @{config.instagram_url.split('/').filter(Boolean).pop() || 'saikrishnasilks'}
-                </a>
-              ) : '@saikrishnasilks'}
-            </h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Tag us in your photos for a chance to be featured</p>
-          </motion.div>
-          {/* Placeholder grid — replace with real IG feed after domain setup */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="grid grid-cols-3 md:grid-cols-6 gap-1.5 md:gap-2">
-            {[...Array(6)].map((_, i) => (
-              <motion.div key={i} variants={fadeUp}
-                className="relative overflow-hidden group cursor-pointer"
-                style={{ aspectRatio: '1/1', background: `linear-gradient(${135 + i * 20}deg, var(--cream) 0%, var(--cream-dark) 100%)`, borderRadius: 4 }}>
-                <div className="w-full h-full flex items-center justify-center">
-                  <span style={{ fontSize: 32 }}>🥻</span>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                  style={{ background: 'rgba(139,26,43,0.7)' }}>
-                  <Instagram size={20} color="white" />
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-          {config.instagram_url && (
-            <div className="text-center mt-8">
-              <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                <Instagram size={14} /> Follow on Instagram
-              </a>
-            </div>
-          )}
         </div>
       </section>
 
