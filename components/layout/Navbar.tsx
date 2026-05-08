@@ -298,7 +298,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
               className="fixed left-0 top-0 bottom-0 z-50 w-80 flex flex-col bg-white">
               <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
                 <div className="flex items-center gap-3">
-                  <Image src="/images/logo.png" alt="SKSS" width={36} height={36} className="object-contain" />
+                  <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "SKSS"} width={36} height={36} className="object-contain" />
                   <div>
                     <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || 'Sai Krishna'}</p>
                     <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', fontSize: '9px' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>

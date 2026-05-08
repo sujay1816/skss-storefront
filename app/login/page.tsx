@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -8,6 +8,23 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
+  const [brandName, setBrandName] = useState('Sai Krishna')
+  const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
+  const [logoUrl, setLogoUrl] = useState('/images/logo.png')
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('site_config').select('key, value')
+      .in('key', ['brand_name', 'brand_subtitle', 'logo_url'])
+      .then(({ data }) => {
+        if (!data) return
+        const cfg: Record<string, string> = {}
+        data.forEach((r: any) => { if (r.value) cfg[r.key] = r.value })
+        if (cfg.brand_name) setBrandName(cfg.brand_name)
+        if (cfg.brand_subtitle) setBrandSubtitle(cfg.brand_subtitle)
+        if (cfg.logo_url) setLogoUrl(cfg.logo_url)
+      })
+  }, [])
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,10 +61,10 @@ export default function LoginPage() {
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 48, textAlign: 'center' }}>
           <div style={{ position: 'relative', marginBottom: 24 }}>
             <div style={{ position: 'absolute', inset: -32, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.3) 0%, transparent 70%)' }} />
-            <Image src="/images/logo.png" alt="SKSS" width={90} height={90} style={{ objectFit: 'contain', position: 'relative' }} />
+            <Image src={logoUrl} alt={brandName} width={90} height={90} style={{ objectFit: 'contain', position: 'relative' }} />
           </div>
-          <h1 style={{ fontSize: 48, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>Sai Krishna</h1>
-          <p style={{ color: '#C9A84C', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20 }}>✦ SILKS & SAREES ✦</p>
+          <h1 style={{ fontSize: 48, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>{brandName}</h1>
+          <p style={{ color: '#C9A84C', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20 }}>{`✦ ${brandSubtitle} ✦`}</p>
           <div style={{ width: 80, height: 1, background: 'linear-gradient(to right, transparent, #C9A84C, transparent)', marginBottom: 20 }} />
           <p style={{ fontSize: 18, fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', fontFamily: 'Cormorant Garamond, serif', lineHeight: 1.6 }}>
             "Pure Silk. Timeless Tradition.<br />Royal Elegance."
@@ -60,7 +77,7 @@ export default function LoginPage() {
         </div>
         <div style={{ width: '100%', maxWidth: 360 }}>
           <div className="lg:hidden" style={{ textAlign: 'center', marginBottom: 32 }}>
-            <Image src="/images/logo.png" alt="SKSS" width={50} height={50} style={{ objectFit: 'contain', margin: '0 auto 8px' }} />
+            <Image src={logoUrl} alt={brandName} width={50} height={50} style={{ objectFit: 'contain', margin: '0 auto 8px' }} />
           </div>
           <h2 style={{ fontSize: 30, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>Welcome back</h2>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 28 }}>Sign in to your account</p>

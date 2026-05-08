@@ -30,7 +30,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
           ) : (
             <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #1A1A1A 0%, #2C1810 50%, #3D1A1A 100%)' }}>
               <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                <Image src="/images/logo.png" alt="" width={400} height={400} className="object-contain" />
+                <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || ""} width={400} height={400} className="object-contain" />
               </div>
             </div>
           )}
@@ -141,7 +141,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
         className="py-20 text-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--crimson-dark) 0%, var(--crimson) 50%, #6B1220 100%)' }}>
         <div className="absolute inset-0 opacity-5 flex items-center justify-center">
-          <Image src="/images/logo.png" alt="" width={600} height={600} className="object-contain" />
+          <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || ""} width={600} height={600} className="object-contain" />
         </div>
         <div className="page-container relative z-10">
           <div className="gold-divider mb-8"><span className="text-xs tracking-widest uppercase text-white/60">Our Promise</span></div>
@@ -204,7 +204,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)' }}>Our Story</p>
               <h2 className="section-heading mb-4">A Legacy of Silk & Tradition</h2>
               <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                {config.brand_name || 'Sai Krishna Silks and Sarees'} is a celebration of India's finest weaving traditions. We bring you an exquisite collection of pure silk and traditional sarees, each handpicked to ensure unmatched quality and authenticity. From the golden looms of Kanjivaram to the royal grandeur of Banarasi, every saree in our collection carries the spirit of timeless elegance.
+                {config.brand_name || 'Our brand'} is a celebration of India's finest weaving traditions. We bring you an exquisite collection of pure silk and traditional sarees, each handpicked to ensure unmatched quality and authenticity. From the golden looms of Kanjivaram to the royal grandeur of Banarasi, every saree in our collection carries the spirit of timeless elegance.
               </p>
               <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
                 Whether you're dressing for a wedding, festival or everyday grace — find the saree that tells your story.

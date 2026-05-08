@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
       keywords: 'sarees, silk sarees, kanjivaram, banarasi, bridal sarees, buy sarees online India',
     }
   } catch {
-    return { title: 'Sai Krishna Silks and Sarees', description: 'Pure Silk. Timeless Tradition. Royal Elegance.' }
+    return { title: 'Our Store', description: 'Premium Silk Sarees' }
   }
 }
 
