@@ -1,15 +1,30 @@
-export default function TermsPage() {
+import { createClient } from '@/lib/supabase/server'
+
+export default async function Page() {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+    .in('key', ['terms_content', 'terms_content_title', 'brand_name'])
+  const cfg: Record<string, string> = {}
+  data?.forEach((r: any) => { cfg[r.key] = r.value })
+
+  const title = cfg['terms_content_title'] || 'Terms of Service'
+  const content = cfg['terms_content'] || ''
+
   return (
-    <div className="page-container py-16 max-w-3xl">
-      <h1 className="section-heading mb-8">Terms of Service</h1>
-      <div className="space-y-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        <p>By using skss.in, you agree to these Terms of Service. Please read them carefully.</p>
-        <div><h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Products</h3><p>All product images are representative. Slight colour variations may occur due to display settings. We strive to accurately represent every product.</p></div>
-        <div><h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Pricing</h3><p>All prices are in Indian Rupees (INR) and inclusive of applicable GST. We reserve the right to change prices at any time.</p></div>
-        <div><h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Orders</h3><p>An order confirmation does not guarantee product availability. In case of stock issues, we will contact you and offer a full refund.</p></div>
-        <div><h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Governing Law</h3><p>These terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in Hyderabad, Telangana.</p></div>
-        <p>For queries, contact us at support@skss.in</p>
+    <div className="page-container py-16 max-w-4xl">
+      <div className="mb-8">
+        <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Terms of Service</p>
+        <h1 className="text-4xl font-light" style={{ fontFamily: 'var(--font-heading)' }}>{title}</h1>
+        <div className="w-full h-px mt-6" style={{ background: 'linear-gradient(to right, var(--gold), transparent)' }} />
       </div>
+      {content ? (
+        <div className="prose-custom" dangerouslySetInnerHTML={{ __html: content }} />
+      ) : (
+        <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Content coming soon</p>
+          <p className="text-sm">Update this page from Admin → Pages</p>
+        </div>
+      )}
     </div>
   )
 }

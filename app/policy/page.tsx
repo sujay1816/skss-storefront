@@ -1,13 +1,30 @@
-export default function PolicyPage() {
+import { createClient } from '@/lib/supabase/server'
+
+export default async function Page() {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+    .in('key', ['policy_content', 'policy_content_title', 'brand_name'])
+  const cfg: Record<string, string> = {}
+  data?.forEach((r: any) => { cfg[r.key] = r.value })
+
+  const title = cfg['policy_content_title'] || 'Return & Refund Policy'
+  const content = cfg['policy_content'] || ''
+
   return (
-    <div className="page-container py-16 max-w-3xl">
-      <h1 className="section-heading mb-8">Return &amp; Refund Policy</h1>
-      <div className="space-y-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Return Window</h3><p>We accept returns within 7 days of delivery for unused and damaged goods only.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>How to Return</h3><p>Go to My Orders, select the order, click Request Return, and upload a clear photograph of the item. Our team will review within 2-3 business days.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Refund Process</h3><p>Once your return is approved, the refund will be processed to your original payment method within 5-7 business days. COD orders will receive a bank transfer.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Non-Returnable Items</h3><p>Items that have been used, washed, or are without original packaging are not eligible for return.</p></div>
+    <div className="page-container py-16 max-w-4xl">
+      <div className="mb-8">
+        <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Return & Refund Policy</p>
+        <h1 className="text-4xl font-light" style={{ fontFamily: 'var(--font-heading)' }}>{title}</h1>
+        <div className="w-full h-px mt-6" style={{ background: 'linear-gradient(to right, var(--gold), transparent)' }} />
       </div>
+      {content ? (
+        <div className="prose-custom" dangerouslySetInnerHTML={{ __html: content }} />
+      ) : (
+        <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Content coming soon</p>
+          <p className="text-sm">Update this page from Admin → Pages</p>
+        </div>
+      )}
     </div>
   )
 }

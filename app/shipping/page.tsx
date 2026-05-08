@@ -1,13 +1,30 @@
-export default function ShippingPage() {
+import { createClient } from '@/lib/supabase/server'
+
+export default async function Page() {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+    .in('key', ['shipping_content', 'shipping_content_title', 'brand_name'])
+  const cfg: Record<string, string> = {}
+  data?.forEach((r: any) => { cfg[r.key] = r.value })
+
+  const title = cfg['shipping_content_title'] || 'Shipping Policy'
+  const content = cfg['shipping_content'] || ''
+
   return (
-    <div className="page-container py-16 max-w-3xl">
-      <h1 className="section-heading mb-8">Shipping Policy</h1>
-      <div className="space-y-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Free Shipping</h3><p>Orders above Rs.1,999 qualify for free standard shipping across India.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Standard Delivery</h3><p>5-7 business days after dispatch. You'll receive a WhatsApp message with tracking details once your order is shipped.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Order Processing</h3><p>Orders are processed within 24-48 hours of payment confirmation. Orders placed on Sundays and public holidays are processed the next working day.</p></div>
-        <div><h3 className="font-semibold text-base mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Packaging</h3><p>All sarees are carefully folded, wrapped in tissue, and packed in our signature branded packaging to preserve the fabric during transit.</p></div>
+    <div className="page-container py-16 max-w-4xl">
+      <div className="mb-8">
+        <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Shipping Policy</p>
+        <h1 className="text-4xl font-light" style={{ fontFamily: 'var(--font-heading)' }}>{title}</h1>
+        <div className="w-full h-px mt-6" style={{ background: 'linear-gradient(to right, var(--gold), transparent)' }} />
       </div>
+      {content ? (
+        <div className="prose-custom" dangerouslySetInnerHTML={{ __html: content }} />
+      ) : (
+        <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Content coming soon</p>
+          <p className="text-sm">Update this page from Admin → Pages</p>
+        </div>
+      )}
     </div>
   )
 }
