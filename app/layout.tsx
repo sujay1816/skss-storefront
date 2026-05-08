@@ -4,21 +4,74 @@ import { Toaster } from 'react-hot-toast'
 import AuthListener from '@/components/AuthListener'
 import { createClient } from '@/lib/supabase/server'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const supabase = createClient()
-    const { data } = await supabase.from('site_config').select('key, value').in('key', ['brand_name', 'brand_tagline'])
+    const { data } = await supabase.from('site_config').select('key, value')
+      .in('key', ['brand_name', 'brand_tagline', 'logo_url', 'support_email'])
     const cfg: Record<string, string> = {}
     data?.forEach((r: any) => { cfg[r.key] = r.value })
-    const name = cfg.brand_name || 'Sai Krishna Silks and Sarees'
+
+    const name = cfg.brand_name || 'RN Bros'
     const tagline = cfg.brand_tagline || 'Pure Silk. Timeless Tradition. Royal Elegance.'
+    const logo = cfg.logo_url || `${SITE_URL}/images/logo.png`
+    const desc = `Shop the finest silk and traditional sarees at ${name}. ${tagline} Kanjivaram, Banarasi, Chanderi and more. Free shipping above ₹1,999.`
+
     return {
-      title: { default: `${name} — ${tagline}`, template: `%s | ${name}` },
-      description: `Shop the finest silk and traditional sarees at ${name}. ${tagline}`,
-      keywords: 'sarees, silk sarees, kanjivaram, banarasi, bridal sarees, buy sarees online India',
+      title: {
+        default: `${name} — ${tagline}`,
+        template: `%s | ${name}`,
+      },
+      description: desc,
+      keywords: [
+        'sarees online', 'silk sarees', 'buy sarees India',
+        'kanjivaram saree', 'banarasi silk saree', 'bridal saree',
+        'handloom sarees', 'traditional sarees', 'pure silk saree',
+        'wedding saree', 'festive sarees', 'designer sarees',
+        name.toLowerCase(), 'sarees online shopping',
+      ],
+      authors: [{ name }],
+      creator: name,
+      publisher: name,
+      metadataBase: new URL(SITE_URL),
+      alternates: { canonical: SITE_URL },
+      openGraph: {
+        type: 'website',
+        locale: 'en_IN',
+        url: SITE_URL,
+        siteName: name,
+        title: `${name} — ${tagline}`,
+        description: desc,
+        images: [{ url: logo, width: 1200, height: 630, alt: name }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${name} — ${tagline}`,
+        description: desc,
+        images: [logo],
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
+      verification: {
+        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
+      },
     }
   } catch {
-    return { title: 'Our Store', description: 'Premium Silk Sarees' }
+    return {
+      title: 'RN Bros — Premium Silk Sarees',
+      description: 'Shop pure silk sarees online. Kanjivaram, Banarasi, Chanderi and more.',
+    }
   }
 }
 
@@ -45,7 +98,8 @@ function adjustColor(hex: string, amount: number): string {
 async function getBrandConfig() {
   try {
     const supabase = createClient()
-    const { data } = await supabase.from('site_config').select('key, value').in('key', Object.keys(DEFAULT_BRAND))
+    const { data } = await supabase.from('site_config').select('key, value')
+      .in('key', Object.keys(DEFAULT_BRAND))
     const cfg: Record<string, string> = { ...DEFAULT_BRAND }
     data?.forEach((r: any) => { if (r.value) cfg[r.key] = r.value })
     return cfg
@@ -57,21 +111,50 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headingFont = brand.font_heading.replace(/ /g, '+')
   const bodyFont = brand.font_body.replace(/ /g, '+')
   const fontsUrl = `https://fonts.googleapis.com/css2?family=${headingFont}:ital,wght@0,300;0,400;0,600;1,300;1,400&family=${bodyFont}:wght@300;400;500&display=swap`
+
+  const primary = brand.color_primary || '#8B1A2B'
   const cssVars = `
     :root {
-      --crimson: ${brand.color_primary};
-      --crimson-dark: ${adjustColor(brand.color_primary, -20)};
-      --crimson-light: ${adjustColor(brand.color_primary, 20)};
-      --gold: ${brand.color_accent};
-      --gold-dark: ${adjustColor(brand.color_accent, -20)};
-      --gold-light: ${brand.color_accent};
-      --cream: ${brand.color_background};
-      --cream-dark: ${adjustColor(brand.color_background, -10)};
-      --ivory: ${brand.color_page_bg};
+      --crimson: ${primary};
+      --crimson-dark: ${adjustColor(primary, -30)};
+      --crimson-light: ${adjustColor(primary, 20)};
+      --gold: ${brand.color_accent || '#C9A84C'};
+      --gold-dark: ${adjustColor(brand.color_accent || '#C9A84C', -20)};
+      --gold-light: ${adjustColor(brand.color_accent || '#C9A84C', 15)};
+      --cream: ${brand.color_background || '#F5EDE3'};
+      --cream-dark: ${adjustColor(brand.color_background || '#F5EDE3', -15)};
+      --ivory: ${brand.color_page_bg || '#FDFAF7'};
       --font-heading: '${brand.font_heading}', serif;
       --font-body: '${brand.font_body}', sans-serif;
+      --text-primary: #1A1A1A;
+      --text-secondary: #5A4A3A;
+      --border: #E8DDD4;
     }
   `
+
+  // Organization structured data
+  const orgSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: brand.logo_url ? 'RN Bros' : 'RN Bros',
+    url: SITE_URL,
+    logo: brand.logo_url || `${SITE_URL}/images/logo.png`,
+    sameAs: [],
+  }
+
+  // WebSite structured data with SearchAction
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'RN Bros',
+    url: SITE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/shop?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
   return (
     <html lang="en">
       <head>
@@ -79,16 +162,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href={fontsUrl} rel="stylesheet" />
         <link rel="icon" href={brand.logo_url || '/images/logo.png'} />
+        <link rel="apple-touch-icon" href={brand.logo_url || '/images/logo.png'} />
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
       <body>
+        <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'var(--font-body)', fontSize: '13px' } }} />
         <AuthListener />
         {children}
-        <Toaster position="bottom-center" toastOptions={{
-          style: { background: '#1A1A1A', color: 'white', fontFamily: `'${brand.font_body}', sans-serif`, fontSize: '13px', borderRadius: '2px' },
-          success: { iconTheme: { primary: brand.color_accent, secondary: 'white' } },
-          error: { iconTheme: { primary: brand.color_primary, secondary: 'white' } }
-        }} />
       </body>
     </html>
   )
