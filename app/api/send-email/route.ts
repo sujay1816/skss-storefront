@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev'
 
-function orderConfirmationHtml(order: any, items: any[]) {
+function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishna Silks & Sarees') {
   const addr = order.address_snapshot || order.shipping_address || {}
   const itemsHtml = items.map(item => `
     <tr>
@@ -27,7 +27,7 @@ function orderConfirmationHtml(order: any, items: any[]) {
   <div style="max-width:600px;margin:0 auto;background:white">
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:40px 32px;text-align:center">
-      <h1 style="color:white;margin:0;font-size:28px;font-weight:300;letter-spacing:2px">Sai Krishna</h1>
+      <h1 style="color:white;margin:0;font-size:28px;font-weight:300;letter-spacing:2px">{brandName}</h1>
       <p style="color:#C9A84C;margin:4px 0 0;font-size:11px;letter-spacing:4px;text-transform:uppercase">SILKS & SAREES</p>
     </div>
 
@@ -108,7 +108,7 @@ function orderConfirmationHtml(order: any, items: any[]) {
 
     <!-- Footer -->
     <div style="background:#1A1A1A;padding:24px 32px;text-align:center">
-      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase">Sai Krishna Silks & Sarees</p>
+      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase">{brandName}</p>
       <p style="color:#666;margin:8px 0 0;font-size:12px">Pure Silk. Timeless Tradition. Royal Elegance.</p>
       <p style="color:#444;margin:8px 0 0;font-size:11px">Questions? WhatsApp us or reply to this email</p>
     </div>
@@ -147,7 +147,7 @@ function adminNotificationHtml(order: any, items: any[]) {
 </html>`
 }
 
-function shippingUpdateHtml(order: any, trackingId: string, courierName: string) {
+function shippingUpdateHtml(order: any, trackingId: string, courierName: string, brandName = 'Sai Krishna Silks & Sarees') {
   const addr = order.address_snapshot || order.shipping_address || {}
   return `
 <!DOCTYPE html>
@@ -155,7 +155,7 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string)
 <body style="font-family:Arial,sans-serif;background:#FDFAF7;padding:20px">
   <div style="max-width:600px;margin:0 auto;background:white;border-radius:8px;overflow:hidden">
     <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:32px;text-align:center">
-      <h1 style="color:white;margin:0;font-size:24px;font-weight:300">Sai Krishna Silks & Sarees</h1>
+      <h1 style="color:white;margin:0;font-size:24px;font-weight:300">{brandName}</h1>
     </div>
     <div style="padding:32px;text-align:center">
       <div style="font-size:48px;margin-bottom:16px">📦</div>
@@ -169,7 +169,7 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string)
       <p style="color:#3B82F6;font-size:13px">Estimated delivery in 2-3 business days</p>
     </div>
     <div style="background:#1A1A1A;padding:20px;text-align:center">
-      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px">SAIKRISHNA SILKS & SAREES</p>
+      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px">{brandName.toUpperCase()}</p>
     </div>
   </div>
 </body>
@@ -181,12 +181,21 @@ export async function POST(request: Request) {
     const { type, order, items, trackingId, courierName, customerEmail } = await request.json()
 
     if (type === 'order_confirmation') {
+      // Get brand name from site_config
+      let brandName = 'Sai Krishna Silks & Sarees'
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+        const { data } = await sb.from('site_config').select('value').eq('key', 'brand_name').single()
+        if (data?.value) brandName = data.value
+      } catch {}
+
       // Send to customer
       await resend.emails.send({
         from: FROM_EMAIL,
         to: customerEmail,
-        subject: `Order Confirmed! #${String(order.id).slice(0,8).toUpperCase()} - Sai Krishna Silks & Sarees`,
-        html: orderConfirmationHtml(order, items),
+        subject: `Order Confirmed! #${String(order.id).slice(0,8).toUpperCase()} - ${brandName}`,
+        html: orderConfirmationHtml(order, items, brandName),
       })
       // Send to admin
       await resend.emails.send({

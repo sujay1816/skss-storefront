@@ -32,6 +32,15 @@ async function sendWhatsApp(phone: string, message: string) {
 export async function POST(request: Request) {
   try {
     const { type, order, phone, trackingId, courierName } = await request.json()
+    
+    // Get brand name dynamically
+    let brandName = 'Sai Krishna Silks & Sarees'
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      const { data } = await sb.from('site_config').select('value').eq('key', 'brand_name').single()
+      if (data?.value) brandName = data.value
+    } catch {}
 
     if (!phone) return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
 
@@ -39,12 +48,12 @@ export async function POST(request: Request) {
 
     if (type === 'order_placed') {
       const addr = order.address_snapshot || order.shipping_address || {}
-      message = `Dear ${addr.full_name || 'Customer'},\n\nYour order has been confirmed!\n\nOrder ID: #${String(order.id).slice(0, 8).toUpperCase()}\nTotal: Rs.${Number(order.total_amount).toLocaleString('en-IN')}\nPayment: ${order.payment_method === 'cod' ? 'Cash on Delivery' : 'Paid Online'}\n\nEstimated delivery: 5-7 business days.\n\nThank you for shopping with Sai Krishna Silks & Sarees!\n\nFor queries, WhatsApp us at ${process.env.NEXT_PUBLIC_WHATSAPP || '+919999999999'}`
+      message = `Dear ${addr.full_name || 'Customer'},\n\nYour order has been confirmed!\n\nOrder ID: #${String(order.id).slice(0, 8).toUpperCase()}\nTotal: Rs.${Number(order.total_amount).toLocaleString('en-IN')}\nPayment: ${order.payment_method === 'cod' ? 'Cash on Delivery' : 'Paid Online'}\n\nEstimated delivery: 5-7 business days.\n\nThank you for shopping with ${brandName}!\n\nFor queries, WhatsApp us at ${process.env.NEXT_PUBLIC_WHATSAPP || '+919999999999'}`
     }
 
     if (type === 'order_shipped') {
       const addr = order.address_snapshot || order.shipping_address || {}
-      message = `Dear ${addr.full_name || 'Customer'},\n\nGreat news! Your order #${String(order.id).slice(0, 8).toUpperCase()} has been shipped!\n\nCourier: ${courierName}\nTracking ID: ${trackingId}\n\nYour saree is on its way! Estimated delivery in 2-3 days.\n\nThank you for shopping with Sai Krishna Silks & Sarees!`
+      message = `Dear ${addr.full_name || 'Customer'},\n\nGreat news! Your order #${String(order.id).slice(0, 8).toUpperCase()} has been shipped!\n\nCourier: ${courierName}\nTracking ID: ${trackingId}\n\nYour saree is on its way! Estimated delivery in 2-3 days.\n\nThank you for shopping with ${brandName}!`
     }
 
     if (!message) return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
