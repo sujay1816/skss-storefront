@@ -192,6 +192,39 @@ export default function CheckoutPage() {
         }))
       )
 
+      // Reduce stock for each item ordered
+      for (const item of items) {
+        // Reduce variant stock
+        const { data: variant } = await supabase
+          .from('product_variants')
+          .select('stock')
+          .eq('product_id', item.productId)
+          .eq('colour', item.colour)
+          .single()
+        
+        if (variant) {
+          await supabase
+            .from('product_variants')
+            .update({ stock: Math.max(0, variant.stock - item.quantity) })
+            .eq('product_id', item.productId)
+            .eq('colour', item.colour)
+        }
+
+        // Reduce overall product stock (sum of all variants)
+        const { data: allVariants } = await supabase
+          .from('product_variants')
+          .select('stock')
+          .eq('product_id', item.productId)
+        
+        if (allVariants) {
+          const totalStock = allVariants.reduce((sum: number, v: any) => sum + v.stock, 0)
+          await supabase
+            .from('products')
+            .update({ stock: totalStock })
+            .eq('id', item.productId)
+        }
+      }
+
       // Send confirmation email
       try {
         const emailRes = await fetch('/api/send-email', {
