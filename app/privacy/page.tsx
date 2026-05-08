@@ -1,13 +1,37 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+    .in('key', ['brand_name'])
+  const cfg: Record<string, string> = {}
+  data?.forEach((r: any) => { cfg[r.key] = r.value })
+  const brandName = cfg.brand_name || 'RN Bros'
+
+  return {
+    title: 'Privacy Policy',
+    description: `Read our privacy policy to understand how we collect, use and protect your personal information.`,
+    alternates: { canonical: `${SITE_URL}/privacy` },
+    openGraph: {
+      title: `Privacy Policy | ${brandName}`,
+      description: `Read our privacy policy to understand how we collect, use and protect your personal information.`,
+      type: 'website',
+      url: `${SITE_URL}/privacy`,
+    },
+  }
+}
 
 export default async function Page() {
   const supabase = createClient()
   const { data } = await supabase.from('site_config').select('key, value')
-    .in('key', ['privacy_content', 'privacy_content_title', 'brand_name'])
+    .in('key', ['privacy_content', 'privacy_title', 'brand_name'])
   const cfg: Record<string, string> = {}
   data?.forEach((r: any) => { cfg[r.key] = r.value })
 
-  const title = cfg['privacy_content_title'] || 'Privacy Policy'
+  const title = cfg['privacy_title'] || 'Privacy Policy'
   const content = cfg['privacy_content'] || ''
 
   return (
