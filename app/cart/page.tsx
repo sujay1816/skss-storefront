@@ -113,7 +113,7 @@ export default function CartPage() {
                       <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Colour: <span style={{ color: 'var(--text-primary)' }}>{item.colour}</span></p>
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={12} /></button>
+                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined)} className="w-8 h-8 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={12} /></button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
                           <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined)} disabled={item.quantity >= item.stock} className="w-8 h-8 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={12} /></button>
                         </div>
