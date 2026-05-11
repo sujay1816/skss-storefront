@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Package, MapPin, CreditCard, ArrowLeft } from 'lucide-react'
+import { Package, MapPin, CreditCard, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function OrderDetailPage() {
@@ -63,13 +63,31 @@ export default function OrderDetailPage() {
 
   return (
     <div className="page-container py-8 max-w-2xl">
-      <div className="rounded-xl p-6 mb-6 text-center" style={{ background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '1px solid #BBF7D0' }}>
-        <CheckCircle size={48} className="mx-auto mb-3" style={{ color: '#16A34A' }} />
-        <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: 'var(--font-heading)', color: '#15803D' }}>Order Confirmed! 🎉</h1>
-        <p className="text-sm" style={{ color: '#166534' }}>Thank you for your order!</p>
-        <p className="text-xs mt-2 font-mono" style={{ color: '#16A34A' }}>Order ID: {String(id).slice(0, 8).toUpperCase()}</p>
-      </div>
-
+      {(() => {
+        const statusConfig: Record<string, { bg: string; border: string; icon: string; title: string; subtitle: string; color: string }> = {
+          confirmed:        { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '✅', title: 'Order Confirmed!',       subtitle: 'Thank you for your order!',                color: '#15803D' },
+          processing:       { bg: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', border: '#BFDBFE', icon: '⚙️', title: 'Order Processing',        subtitle: 'We are preparing your order.',             color: '#1D4ED8' },
+          shipped:          { bg: 'linear-gradient(135deg, #F5F3FF, #EDE9FE)', border: '#DDD6FE', icon: '🚚', title: 'Order Shipped!',           subtitle: order.courier_name ? `Courier: ${order.courier_name}` : 'Your order is on the way!', color: '#6D28D9' },
+          delivered:        { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '🎉', title: 'Order Delivered!',         subtitle: 'We hope you love your saree!',             color: '#15803D' },
+          cancelled:        { bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', border: '#FECDD3', icon: '❌', title: 'Order Cancelled',          subtitle: 'This order has been cancelled.',           color: '#BE123C' },
+          return_requested: { bg: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', border: '#FDE68A', icon: '↩️', title: 'Return Requested',        subtitle: 'We are reviewing your return request.',   color: '#92400E' },
+          return_approved:  { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '✅', title: 'Return Approved',          subtitle: 'Please ship the item back to us.',        color: '#15803D' },
+          return_rejected:  { bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', border: '#FECDD3', icon: '❌', title: 'Return Rejected',          subtitle: 'Your return request was not approved.',   color: '#BE123C' },
+          refunded:         { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '💰', title: 'Refund Processed',         subtitle: 'Your refund has been processed.',          color: '#15803D' },
+        }
+        const s = statusConfig[order.status] || statusConfig.confirmed
+        return (
+          <div className="rounded-xl p-6 mb-6 text-center" style={{ background: s.bg, border: `1px solid ${s.border}` }}>
+            <div className="text-5xl mb-3">{s.icon}</div>
+            <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: 'var(--font-heading)', color: s.color }}>{s.title}</h1>
+            <p className="text-sm" style={{ color: s.color }}>{s.subtitle}</p>
+            {order.tracking_id && (
+              <p className="text-xs mt-2 font-mono" style={{ color: s.color }}>Tracking: {order.tracking_id}</p>
+            )}
+            <p className="text-xs mt-2 font-mono" style={{ color: s.color }}>Order ID: {String(id).slice(0, 8).toUpperCase()}</p>
+          </div>
+        )
+      })()}
       <div className="card p-5 mb-4">
         <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
           <Package size={18} style={{ color: 'var(--crimson)' }} /> Items Ordered
