@@ -78,15 +78,25 @@ export default function CheckoutPage() {
     try {
       const supabase = createClient()
 
-      // Save address if requested
+      // Save address if requested — check for duplicate first
       if (form.saveAddress) {
-        await supabase.from('addresses').insert({
-          user_id: userId, full_name: form.fullName, phone: form.phone,
-          address_line1: form.addressLine1, address_line2: form.addressLine2,
-          city: form.city, state: form.state, pincode: form.pincode, is_default: false,
-        })
-      }
+        const { data: existing } = await supabase
+          .from('addresses')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('address_line1', form.addressLine1)
+          .eq('city', form.city)
+          .eq('pincode', form.pincode)
+          .maybeSingle()
 
+        if (!existing) {
+          await supabase.from('addresses').insert({
+            user_id: userId, full_name: form.fullName, phone: form.phone,
+            address_line1: form.addressLine1, address_line2: form.addressLine2,
+            city: form.city, state: form.state, pincode: form.pincode, is_default: false,
+          })
+        }
+      }
       if (paymentMethod === 'cod') {
         // COD — create order directly
         await placeOrder(supabase, null, null)
