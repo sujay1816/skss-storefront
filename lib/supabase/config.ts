@@ -47,22 +47,26 @@ function mapProduct(r: any): Product {
 
 const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)`
 
-export async function getProducts(filters?: { categorySlug?: string; search?: string; featured?: boolean; bestseller?: boolean; limit?: number }): Promise<Product[]> {
+export async function getProducts(filters?: { categorySlug?: string; category?: string; search?: string; featured?: boolean; bestseller?: boolean; newArrivals?: boolean; limit?: number }): Promise<Product[]> {
   const supabase = createClient()
   let q = supabase.from('products').select(PRODUCT_SELECT).eq('is_active', true).order('created_at', { ascending: false })
   if (filters?.featured) q = q.eq('is_featured', true)
   if (filters?.bestseller) q = q.eq('is_bestseller', true)
   if (filters?.limit) q = q.limit(filters.limit)
-  if (filters?.categorySlug) {
-    const { data: cat } = await supabase.from('categories').select('id').eq('slug', filters.categorySlug).single()
+  const categorySlug = filters?.categorySlug || filters?.category
+  if (categorySlug) {
+    const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single()
     if (cat) q = q.eq('category_id', cat.id)
+  }
+  if (filters?.newArrivals) {
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString()
+    q = q.gte('created_at', cutoff)
   }
   if (filters?.search) q = q.ilike('name', `%${filters.search}%`)
   const { data, error } = await q
   if (error) { console.error('getProducts error:', error.message); return [] }
   return (data || []).map(mapProduct)
 }
-
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = createClient()
   const { data, error } = await supabase.from('products').select(PRODUCT_SELECT).eq('slug', slug).eq('is_active', true).single()
