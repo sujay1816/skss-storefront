@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,7 +19,14 @@ export default function CartPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<null | { code: string; discount: number; type: string }>(storedCoupon)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null)
+    })
+  }, [])
   const applyCoupon = async () => {
     if (!coupon.trim()) return
     setCouponLoading(true); setCouponError('')
@@ -108,14 +115,14 @@ export default function CartPage() {
                         <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
                           <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={12} /></button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1)} disabled={item.quantity >= item.stock} className="w-8 h-8 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={12} /></button>
+                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined)} disabled={item.quantity >= item.stock} className="w-8 h-8 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={12} /></button>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
                             <p className="font-medium" style={{ color: 'var(--crimson)' }}>{formatPrice(price * item.quantity)}</p>
                             {isOnSale && <p className="text-xs line-through" style={{ color: 'var(--text-secondary)' }}>{formatPrice(item.originalPrice * item.quantity)}</p>}
                           </div>
-                          <button onClick={() => { removeItem(item.productId, item.colour); toast.success('Item removed') }} className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
+                          <button onClick={() => { removeItem(item.productId, item.colour, userId || undefined); toast.success('Item removed') }} className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
                         </div>
                       </div>
                     </div>
