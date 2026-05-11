@@ -224,7 +224,20 @@ export default function CheckoutPage() {
             .eq('id', item.productId)
         }
       }
-
+      // Increment coupon usage count
+      if (appliedCoupon?.code) {
+        const { data: coup } = await supabase
+          .from('coupons')
+          .select('usage_count')
+          .eq('code', appliedCoupon.code)
+          .single()
+        if (coup) {
+          await supabase
+            .from('coupons')
+            .update({ usage_count: coup.usage_count + 1 })
+            .eq('code', appliedCoupon.code)
+        }
+      }
       // Send confirmation email
       try {
         const emailRes = await fetch('/api/send-email', {
