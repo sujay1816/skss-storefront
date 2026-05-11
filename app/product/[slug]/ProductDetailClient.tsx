@@ -215,7 +215,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           <div className="flex items-center gap-4 mb-6">
             <p className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--text-primary)' }}>Quantity</p>
             <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-9 h-9 flex items-center justify-center text-lg" style={{ color: 'var(--text-primary)' }}>−</button>
+              <button onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} className="w-9 h-9 flex items-center justify-center text-lg disabled:opacity-30" style={{ color: 'var(--text-primary)' }}>−</button>
               <span className="w-10 text-center text-sm font-medium">{qty}</span>
               <button onClick={() => setQty(Math.min(selectedVariant?.stock || 1, qty + 1))} className="w-9 h-9 flex items-center justify-center text-lg" style={{ color: 'var(--text-primary)' }}>+</button>
             </div>

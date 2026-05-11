@@ -10,7 +10,6 @@ declare global { interface Window { Razorpay: any } }
 
 const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Puducherry']
 
-
 const F = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
   <div>
     <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -31,6 +30,8 @@ export default function CheckoutPage() {
     fullName: '', phone: '', addressLine1: '', addressLine2: '',
     city: '', state: 'Karnataka', pincode: '', saveAddress: true,
   })
+  // Issue 3 fix — phone validation error state
+  const [phoneError, setPhoneError] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -39,12 +40,8 @@ export default function CheckoutPage() {
       if (!session) { router.push('/login?redirect=/checkout'); return }
       setUserId(session.user.id)
       setEmail(session.user.email || '')
-
-      // Pre-fill from profile
       const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', session.user.id).single()
       if (profile) setForm(f => ({ ...f, fullName: profile.full_name || '', phone: profile.phone || '' }))
-
-      // Pre-fill default address
       const { data: addr } = await supabase.from('addresses').select('*').eq('user_id', session.user.id).eq('is_default', true).single()
       if (addr) setForm(f => ({ ...f, fullName: addr.full_name || f.fullName, phone: addr.phone || f.phone, addressLine1: addr.address_line1, addressLine2: addr.address_line2 || '', city: addr.city, state: addr.state, pincode: addr.pincode }))
     }
@@ -52,13 +49,28 @@ export default function CheckoutPage() {
   }, [])
 
   useEffect(() => {
-    // Load Razorpay script
     const script = document.createElement('script')
     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
     script.async = true
     document.body.appendChild(script)
     return () => { document.body.removeChild(script) }
   }, [])
+
+  // Issue 3 fix — validate Indian phone number
+  const validatePhone = (phone: string): boolean => {
+    const clean = phone.replace(/[\s\-\(\)]/g, '')
+    const pattern = /^(\+91|91)?[6-9]\d{9}$/
+    return pattern.test(clean)
+  }
+
+  const handlePhoneChange = (val: string) => {
+    setForm(f => ({ ...f, phone: val }))
+    if (val && !validatePhone(val)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number')
+    } else {
+      setPhoneError('')
+    }
+  }
 
   const sub = subtotal()
   const discount = couponDiscount()
@@ -72,23 +84,22 @@ export default function CheckoutPage() {
     if (!form.fullName || !form.phone || !form.addressLine1 || !form.city || !form.pincode) {
       toast.error('Please fill all required fields'); return
     }
+    // Issue 3 fix — block submission if phone invalid
+    if (!validatePhone(form.phone)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number')
+      toast.error('Please enter a valid phone number')
+      return
+    }
+    if (form.pincode.length !== 6) {
+      toast.error('Please enter a valid 6-digit pincode'); return
+    }
     if (items.length === 0) { toast.error('Your cart is empty'); return }
     setLoading(true)
 
     try {
       const supabase = createClient()
-
-      // Save address if requested — check for duplicate first
       if (form.saveAddress) {
-        const { data: existing } = await supabase
-          .from('addresses')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('address_line1', form.addressLine1)
-          .eq('city', form.city)
-          .eq('pincode', form.pincode)
-          .maybeSingle()
-
+        const { data: existing } = await supabase.from('addresses').select('id').eq('user_id', userId).eq('address_line1', form.addressLine1).eq('city', form.city).eq('pincode', form.pincode).maybeSingle()
         if (!existing) {
           await supabase.from('addresses').insert({
             user_id: userId, full_name: form.fullName, phone: form.phone,
@@ -98,12 +109,8 @@ export default function CheckoutPage() {
         }
       }
       if (paymentMethod === 'cod') {
-        // COD — create order directly
-        await placeOrder(supabase, null, null)
-        return
+        await placeOrder(supabase, null, null); return
       }
-
-      // Online payment — create Razorpay order
       const receipt = `order_${Date.now()}`
       const res = await fetch('/api/create-order', {
         method: 'POST',
@@ -113,7 +120,6 @@ export default function CheckoutPage() {
       const razorpayOrder = await res.json()
       if (razorpayOrder.error) { toast.error(razorpayOrder.error); setLoading(false); return }
 
-      // Open Razorpay
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: razorpayOrder.amount,
@@ -123,7 +129,6 @@ export default function CheckoutPage() {
         image: (document.querySelector('link[rel="icon"]') as HTMLLinkElement)?.href || '/images/logo.png',
         order_id: razorpayOrder.id,
         handler: async (response: any) => {
-          // Verify payment
           const verify = await fetch('/api/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -141,150 +146,61 @@ export default function CheckoutPage() {
         theme: { color: '#8B1A2B' },
         modal: { ondismiss: () => setLoading(false) },
       }
-
       const rzp = new window.Razorpay(options)
       rzp.on('payment.failed', (response: any) => {
         toast.error('Payment failed: ' + response.error.description)
         setLoading(false)
       })
       rzp.open()
-
     } catch (error: any) {
       toast.error(error.message || 'Something went wrong')
       setLoading(false)
     }
   }
 
-  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null, session?: any) => {
+  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
     try {
-      // Server-side stock validation
       for (const item of items) {
-        const { data: variant } = await supabase
-          .from('product_variants')
-          .select('stock')
-          .eq('product_id', item.productId)
-          .eq('colour', item.colour)
-          .single()
+        const { data: variant } = await supabase.from('product_variants').select('stock').eq('product_id', item.productId).eq('colour', item.colour).single()
         if (!variant || variant.stock < item.quantity) {
-          toast.error(`Sorry, "${item.productName} (${item.colour})" is out of stock or has insufficient quantity. Please update your cart.`)
-          setLoading(false)
-          return
+          toast.error(`Sorry, "${item.productName} (${item.colour})" is out of stock.`)
+          setLoading(false); return
         }
       }
-      
-      // Create order in DB
-      const addressData = {
-        full_name: form.fullName,
-        phone: form.phone,
-        address_line1: form.addressLine1,
-        address_line2: form.addressLine2,
-        city: form.city,
-        state: form.state,
-        pincode: form.pincode,
-      }
+      const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
       const { data: order, error } = await supabase.from('orders').insert({
-        user_id: userId,
-        status: 'confirmed',
+        user_id: userId, status: 'confirmed',
         payment_status: paymentMethod === 'cod' ? 'pending' : 'paid',
         payment_method: paymentMethod === 'cod' ? 'cod' : 'razorpay',
-        razorpay_order_id: razorpayOrderId,
-        razorpay_payment_id: razorpayPaymentId,
-        subtotal: sub,
-        shipping_charge: shipping,
-        total_gst: gst,
-        gst_amount: gst,
-        total_amount: total,
-        coupon_code: appliedCoupon?.code || null,
-        coupon_discount: discount || 0,
-        address_snapshot: addressData,
-        shipping_address: addressData,
+        razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId,
+        subtotal: sub, shipping_charge: shipping, total_gst: gst, gst_amount: gst,
+        total_amount: total, coupon_code: appliedCoupon?.code || null,
+        coupon_discount: discount || 0, address_snapshot: addressData, shipping_address: addressData,
       }).select().single()
       if (error) throw error
-
-      // Create order items
-      await supabase.from('order_items').insert(
-        items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          product_name: item.productName,
-          product_image: item.productImage,
-          colour: item.colour,
-          quantity: item.quantity,
-          original_price: item.originalPrice,
-          sale_price: item.salePrice ?? item.originalPrice,
-          total: (item.salePrice ?? item.originalPrice) * item.quantity,
-          gst_rate: item.gstRate,
-          gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.quantity * (item.gstRate / 100)),
-        }))
-      )
-
-      // Reduce stock via server API (uses service role key to bypass RLS)
+      await supabase.from('order_items').insert(items.map(item => ({
+        order_id: order.id, product_id: item.productId, product_name: item.productName,
+        product_image: item.productImage, colour: item.colour, quantity: item.quantity,
+        original_price: item.originalPrice, sale_price: item.salePrice ?? item.originalPrice,
+        total: (item.salePrice ?? item.originalPrice) * item.quantity,
+        gst_rate: item.gstRate, gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.quantity * (item.gstRate / 100)),
+      })))
       await fetch('/api/update-stock', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || '',
-        },
-        body: JSON.stringify({
-          type: 'deduct',
-          items: items.map(item => ({
-            product_id: item.productId,
-            colour: item.colour,
-            quantity: item.quantity,
-          }))
-        })
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || '' },
+        body: JSON.stringify({ type: 'deduct', items: items.map(item => ({ product_id: item.productId, colour: item.colour, quantity: item.quantity })) })
       })
-      // Increment coupon usage count
       if (appliedCoupon?.code) {
-        const { data: coup } = await supabase
-          .from('coupons')
-          .select('usage_count')
-          .eq('code', appliedCoupon.code)
-          .single()
-        if (coup) {
-          await supabase
-            .from('coupons')
-            .update({ usage_count: coup.usage_count + 1 })
-            .eq('code', appliedCoupon.code)
-        }
+        const { data: coup } = await supabase.from('coupons').select('usage_count').eq('code', appliedCoupon.code).single()
+        if (coup) await supabase.from('coupons').update({ usage_count: coup.usage_count + 1 }).eq('code', appliedCoupon.code)
       }
-      // Send confirmation email
       try {
-        const emailRes = await fetch('/api/send-email', {
+        await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'order_confirmation',
-            order,
-            items: items.map(item => ({
-              product_name: item.productName,
-              colour: item.colour,
-              quantity: item.quantity,
-              sale_price: item.salePrice ?? item.originalPrice,
-              original_price: item.originalPrice,
-              total: (item.salePrice ?? item.originalPrice) * item.quantity,
-            })),
-            customerEmail: email,
-          })
+          body: JSON.stringify({ type: 'order_confirmation', order, items: items.map(item => ({ product_name: item.productName, colour: item.colour, quantity: item.quantity, sale_price: item.salePrice ?? item.originalPrice, original_price: item.originalPrice, total: (item.salePrice ?? item.originalPrice) * item.quantity })), customerEmail: email })
         })
-        const emailData = await emailRes.json()
-        if (!emailData.success) console.error('Email error:', emailData.error)
       } catch (e) { console.error('Email failed:', e) }
-
-      // Send WhatsApp notification
-    /* try {
-        await fetch('/api/send-whatsapp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'order_placed',
-            order,
-            phone: form.phone,
-          })
-        })
-      } catch (e) { console.error('WhatsApp failed:', e) } */
-
-      // Clear cart
       await clearCart()
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
       router.push(`/orders/${order.id}`)
@@ -293,8 +209,6 @@ export default function CheckoutPage() {
       setLoading(false)
     }
   }
-
-
 
   if (items.length === 0) return (
     <div className="page-container py-20 text-center">
@@ -307,9 +221,7 @@ export default function CheckoutPage() {
     <div className="page-container py-8">
       <h1 className="section-heading mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left — Form */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Delivery Address */}
           <div className="card p-5">
             <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Delivery Address</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -317,7 +229,16 @@ export default function CheckoutPage() {
                 <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" />
               </F>
               <F label="Phone" required>
-                <input className="input-base" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 XXXXX XXXXX" />
+                <input
+                  className="input-base"
+                  value={form.phone}
+                  onChange={e => handlePhoneChange(e.target.value)}
+                  placeholder="+91 XXXXX XXXXX"
+                  type="tel"
+                  style={{ borderColor: phoneError ? 'var(--crimson)' : undefined }}
+                />
+                {/* Issue 3 fix — show validation error */}
+                {phoneError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{phoneError}</p>}
               </F>
               <div className="col-span-2">
                 <F label="Address Line 1" required>
@@ -333,7 +254,14 @@ export default function CheckoutPage() {
                 <input className="input-base" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" />
               </F>
               <F label="Pincode" required>
-                <input className="input-base" value={form.pincode} onChange={e => setForm(f => ({ ...f, pincode: e.target.value }))} placeholder="6-digit pincode" maxLength={6} />
+                <input
+                  className="input-base"
+                  value={form.pincode}
+                  onChange={e => setForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g, '') }))}
+                  placeholder="6-digit pincode"
+                  maxLength={6}
+                  type="tel"
+                />
               </F>
               <div className="col-span-2">
                 <F label="State" required>
@@ -349,7 +277,6 @@ export default function CheckoutPage() {
             </label>
           </div>
 
-          {/* Payment Method */}
           <div className="card p-5">
             <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Payment Method</h2>
             <div className="space-y-3">
@@ -359,8 +286,7 @@ export default function CheckoutPage() {
               ].map(method => (
                 <label key={method.id} className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer transition-all"
                   style={{ borderColor: paymentMethod === method.id ? 'var(--crimson)' : 'var(--border)', background: paymentMethod === method.id ? 'var(--cream)' : 'white' }}>
-                  <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id}
-                    onChange={() => setPaymentMethod(method.id as any)} style={{ accentColor: 'var(--crimson)' }} />
+                  <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id} onChange={() => setPaymentMethod(method.id as any)} style={{ accentColor: 'var(--crimson)' }} />
                   <span className="text-xl">{method.icon}</span>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{method.label}</p>
@@ -372,16 +298,13 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Right — Order Summary */}
         <div className="space-y-4">
           <div className="card p-5 sticky top-24">
             <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Order Summary</h2>
             <div className="space-y-3 mb-4">
               {items.map((item, i) => (
                 <div key={i} className="flex gap-3">
-                  {item.productImage && (
-                    <img src={item.productImage} alt={item.productName} className="w-14 h-16 object-cover rounded flex-shrink-0" />
-                  )}
+                  {item.productImage && <img src={item.productImage} alt={item.productName} className="w-14 h-16 object-cover rounded flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.productName}</p>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.colour} · Qty: {item.quantity}</p>
@@ -391,37 +314,20 @@ export default function CheckoutPage() {
               ))}
             </div>
             <div className="border-t pt-4 space-y-2" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
-                <span>₹{sub.toLocaleString('en-IN')}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: '#16A34A' }}>Coupon ({appliedCoupon?.code})</span>
-                  <span style={{ color: '#16A34A' }}>−₹{discount.toLocaleString('en-IN')}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-secondary)' }}>Shipping</span>
-                <span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-secondary)' }}>GST (5%)</span>
-                <span>₹{gst.toLocaleString('en-IN')}</span>
-              </div>
+              <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>₹{sub.toLocaleString('en-IN')}</span></div>
+              {discount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#16A34A' }}>Coupon ({appliedCoupon?.code})</span><span style={{ color: '#16A34A' }}>−₹{discount.toLocaleString('en-IN')}</span></div>}
+              <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+              <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST (5%)</span><span>₹{gst.toLocaleString('en-IN')}</span></div>
               <div className="flex justify-between font-semibold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-                <span>Total</span>
-                <span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
+                <span>Total</span><span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
-            <button onClick={createOrder} disabled={loading}
+            <button onClick={createOrder} disabled={loading || !!phoneError}
               className="btn-primary w-full mt-4 justify-center"
-              style={{ opacity: loading ? 0.7 : 1 }}>
+              style={{ opacity: loading || phoneError ? 0.7 : 1 }}>
               {loading ? 'Processing...' : paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')}`}
             </button>
-            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>
-              🔒 Secured by Razorpay
-            </p>
+            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>🔒 Secured by Razorpay</p>
           </div>
         </div>
       </div>

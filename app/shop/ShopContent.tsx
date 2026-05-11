@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, X, Search, ChevronDown } from 'lucide-react'
+import { SlidersHorizontal, X, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import type { Product, Category, SiteConfig } from '@/types'
 import { formatPrice } from '@/lib/utils'
@@ -16,11 +16,27 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Best Discount' },
 ]
 
-export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch }: {
-  products: Product[]; categories: Category[]; config: SiteConfig; userId?: string; initialCategory?: string; initialSearch?: string
+const PAGE_SIZE = 16
+
+// Issue 2 fix — skeleton card for loading state
+const SkeletonCard = () => (
+  <div className="bg-white overflow-hidden" style={{ border: '1px solid var(--border)', borderRadius: 4 }}>
+    <div className="skeleton" style={{ aspectRatio: '3/4' }} />
+    <div className="p-3 space-y-2">
+      <div className="skeleton h-3 w-1/2 rounded" />
+      <div className="skeleton h-4 w-4/5 rounded" />
+      <div className="skeleton h-4 w-1/3 rounded" />
+    </div>
+  </div>
+)
+
+export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading }: {
+  products: Product[]; categories: Category[]; config: SiteConfig; userId?: string;
+  initialCategory?: string; initialSearch?: string; isLoading?: boolean
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [search, setSearch] = useState(initialSearch || '')
+  const [searchInput, setSearchInput] = useState(initialSearch || '')
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || '')
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>([])
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([])
@@ -29,9 +45,11 @@ export default function ShopContent({ products, categories, config, userId, init
   const [onlyNew, setOnlyNew] = useState(false)
   const [onlyInStock, setOnlyInStock] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
+  const [page, setPage] = useState(1)
 
   const toggleFilter = (arr: string[], val: string, set: (v: string[]) => void) => {
     set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
+    setPage(1)
   }
 
   const filtered = useMemo(() => {
@@ -53,8 +71,18 @@ export default function ShopContent({ products, categories, config, userId, init
     }
   }, [products, search, selectedCategory, selectedFabrics, selectedOccasions, priceMin, priceMax, onlyNew, onlyInStock, sortBy])
 
+  // Issue 5 fix — pagination
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   const activeCount = (selectedCategory ? 1 : 0) + selectedFabrics.length + selectedOccasions.length + (priceMin || priceMax ? 1 : 0) + (onlyNew ? 1 : 0) + (onlyInStock ? 1 : 0)
-  const clearAll = () => { setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([]); setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false) }
+  const clearAll = () => { setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([]); setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false); setPage(1) }
+
+  // Issue 9 fix — search submit handler
+  const handleSearchSubmit = () => {
+    setSearch(searchInput.trim())
+    setPage(1)
+  }
 
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="pb-5 mb-5 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -78,8 +106,8 @@ export default function ShopContent({ products, categories, config, userId, init
       </div>
       <FilterSection title="Category">
         <div className="flex flex-wrap gap-2">
-          <FilterChip label="All" active={!selectedCategory} onClick={() => setSelectedCategory('')} />
-          {categories.map(c => <FilterChip key={c.id} label={c.name} active={selectedCategory === c.slug} onClick={() => setSelectedCategory(selectedCategory === c.slug ? '' : c.slug)} />)}
+          <FilterChip label="All" active={!selectedCategory} onClick={() => { setSelectedCategory(''); setPage(1) }} />
+          {categories.map(c => <FilterChip key={c.id} label={c.name} active={selectedCategory === c.slug} onClick={() => { setSelectedCategory(selectedCategory === c.slug ? '' : c.slug); setPage(1) }} />)}
         </div>
       </FilterSection>
       <FilterSection title="Fabric">
@@ -90,14 +118,14 @@ export default function ShopContent({ products, categories, config, userId, init
       </FilterSection>
       <FilterSection title="Price Range">
         <div className="flex gap-2 items-center">
-          <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
+          <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>to</span>
-          <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => setPriceMax(e.target.value)} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
+          <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
         </div>
       </FilterSection>
       <FilterSection title="Quick Filters">
         <div className="space-y-2">
-          {[['New Arrivals', onlyNew, () => setOnlyNew(!onlyNew)], ['In Stock Only', onlyInStock, () => setOnlyInStock(!onlyInStock)]].map(([label, checked, onChange]: any) => (
+          {[['New Arrivals', onlyNew, () => { setOnlyNew(!onlyNew); setPage(1) }], ['In Stock Only', onlyInStock, () => { setOnlyInStock(!onlyInStock); setPage(1) }]].map(([label, checked, onChange]: any) => (
             <label key={label as string} className="flex items-center gap-2 cursor-pointer text-xs" style={{ color: 'var(--text-secondary)' }}>
               <input type="checkbox" checked={checked} onChange={onChange} className="w-4 h-4 accent-crimson" style={{ accentColor: 'var(--crimson)' }} />
               {label}
@@ -114,17 +142,34 @@ export default function ShopContent({ products, categories, config, userId, init
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="section-heading">Our Collection</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{filtered.length} sarees found</p>
+          {/* Issue 2 & 5 fix — show product count and page info */}
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {isLoading ? 'Loading...' : `${filtered.length} sarees found${totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ''}`}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="input-base pl-9" style={{ height: 36, width: 180, fontSize: 13 }} />
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Issue 9 fix — search with submit button */}
+          <div className="relative flex">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit() }}
+              placeholder="Search..."
+              className="input-base pl-9"
+              style={{ height: 36, width: 160, fontSize: 13, borderRadius: '2px 0 0 2px', borderRight: 'none' }}
+            />
+            <button
+              onClick={handleSearchSubmit}
+              className="flex items-center justify-center px-3 text-white text-xs font-medium"
+              style={{ background: 'var(--crimson)', height: 36, borderRadius: '0 2px 2px 0', minWidth: 44 }}>
+              Go
+            </button>
           </div>
           {/* Sort */}
           <div className="relative">
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-base pr-8 appearance-none cursor-pointer" style={{ height: 36, fontSize: 12, paddingRight: 28 }}>
+            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} className="input-base pr-8 appearance-none cursor-pointer" style={{ height: 36, fontSize: 12, paddingRight: 28 }}>
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
@@ -153,6 +198,9 @@ export default function ShopContent({ products, categories, config, userId, init
                   <button onClick={() => setFiltersOpen(false)}><X size={20} /></button>
                 </div>
                 <Filters />
+                <button onClick={() => setFiltersOpen(false)} className="btn-primary w-full justify-center mt-4">
+                  Show {filtered.length} Results
+                </button>
               </motion.div>
             </>
           )}
@@ -160,7 +208,12 @@ export default function ShopContent({ products, categories, config, userId, init
 
         {/* Products grid */}
         <div className="flex-1">
-          {filtered.length === 0 ? (
+          {/* Issue 2 fix — skeleton loading state */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-4xl mb-4">🥻</p>
               <p className="text-lg mb-2" style={{ fontFamily: 'var(--font-heading)' }}>No sarees found</p>
@@ -168,15 +221,58 @@ export default function ShopContent({ products, categories, config, userId, init
               <button onClick={clearAll} className="btn-outline text-sm">Clear Filters</button>
             </div>
           ) : (
-            <motion.div layout className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-              <AnimatePresence>
-                {filtered.map(p => (
-                  <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
-                    <ProductCard product={p} userId={userId} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+            <>
+              <motion.div layout className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                <AnimatePresence>
+                  {paginated.map(p => (
+                    <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
+                      <ProductCard product={p} userId={userId} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Issue 5 fix — Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-12">
+                  <button
+                    onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    disabled={page === 1}
+                    className="flex items-center gap-1 px-4 py-2 text-xs font-medium border transition-all disabled:opacity-30"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                    <ChevronLeft size={14} /> Prev
+                  </button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                      .reduce((acc: (number | string)[], n, idx, arr) => {
+                        if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push('...')
+                        acc.push(n)
+                        return acc
+                      }, [])
+                      .map((n, i) => (
+                        typeof n === 'string' ? (
+                          <span key={`dots-${i}`} className="px-2 py-2 text-xs" style={{ color: 'var(--text-secondary)' }}>…</span>
+                        ) : (
+                          <button key={n} onClick={() => { setPage(n as number); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                            className="w-9 h-9 text-xs font-medium border transition-all"
+                            style={{ borderColor: page === n ? 'var(--crimson)' : 'var(--border)', background: page === n ? 'var(--crimson)' : 'transparent', color: page === n ? 'white' : 'var(--text-primary)' }}>
+                            {n}
+                          </button>
+                        )
+                      ))
+                    }
+                  </div>
+                  <button
+                    onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    disabled={page === totalPages}
+                    className="flex items-center gap-1 px-4 py-2 text-xs font-medium border transition-all disabled:opacity-30"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                    Next <ChevronRightIcon size={14} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

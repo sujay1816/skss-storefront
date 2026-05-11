@@ -79,11 +79,15 @@ export default function CartPage() {
   const totalItems = items.reduce((s, i) => s + i.quantity, 0)
 
   if (items.length === 0) return (
-    <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--ivory)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--ivory)' }}>
       <ShoppingBag size={64} className="mb-6" style={{ color: 'var(--border)' }} />
       <h2 className="text-3xl font-light mb-3" style={{ fontFamily: 'var(--font-heading)' }}>Your cart is empty</h2>
-      <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>Discover beautiful sarees and add them to your cart.</p>
-      <Link href="/shop" className="btn-primary">Shop Now <ArrowRight size={14} /></Link>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Discover beautiful sarees and add them to your cart.</p>
+      <div className="flex flex-col sm:flex-row gap-3 mb-10">
+        <Link href="/shop" className="btn-primary">Browse Collection <ArrowRight size={14} /></Link>
+        <Link href="/shop?filter=new" className="btn-outline">New Arrivals</Link>
+        <Link href="/shop?filter=bestsellers" className="btn-outline">Bestsellers</Link>
+      </div>
     </div>
   )
 
@@ -141,7 +145,7 @@ export default function CartPage() {
               })}
             </AnimatePresence>
             <div className="mt-4">
-              <Link href="/shop" className="text-xs flex items-center gap-1" style={{ color: 'var(--crimson)' }}>← Continue Shopping</Link>
+              <Link href="/shop" className="text-sm flex items-center gap-1 font-medium" style={{ color: 'var(--crimson)' }}>← Continue Shopping</Link>
             </div>
           </div>
 

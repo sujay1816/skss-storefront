@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
     .in('key', ['brand_name'])
   const cfg: Record<string, string> = {}
   data?.forEach((r: any) => { cfg[r.key] = r.value })
-  const brandName = cfg.brand_name || 'RN Bros'
+  const brandName = cfg.brand_name || 'Sai Krishna Silks & Sarees'
 
   return {
     title: 'Contact Us',
@@ -35,7 +35,7 @@ export default async function ContactPage() {
   const localBusinessSchema = {
     '@context': 'https://schema.org',
     '@type': 'ClothingStore',
-    name: cfg.brand_name || 'RN Bros',
+    name: cfg.brand_name || 'Sai Krishna Silks & Sarees',
     description: 'Premium silk sarees — Kanjivaram, Banarasi, Chanderi and more',
     url: SITE_URL,
     telephone: cfg.whatsapp_number || '',

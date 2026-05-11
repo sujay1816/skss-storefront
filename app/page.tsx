@@ -1,6 +1,7 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import WhatsAppButton from '@/components/layout/WhatsAppButton'
+import BackToTop from '@/components/layout/BackToTop'
 import HomepageClient from './HomepageClient'
 import { getSiteConfig, getCategories, getProducts, getBanners } from '@/lib/supabase/config'
 import { getUser } from '@/lib/supabase/get-user'
@@ -25,6 +26,7 @@ export default async function HomePage() {
       <HomepageClient config={safeConfig} categories={categories} featured={featured} bestsellers={bestsellers} newArrivals={newArrivals} banners={banners} userId={user?.id} />
       <Footer config={safeConfig} categories={categories} />
       <WhatsAppButton number={safeConfig.whatsapp_number} />
+      <BackToTop />
     </>
   )
 }

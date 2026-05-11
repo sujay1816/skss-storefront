@@ -5,13 +5,14 @@ import WhatsAppButton from '@/components/layout/WhatsAppButton'
 import { getSiteConfig, getCategories, getProducts } from '@/lib/supabase/config'
 import { getUser } from '@/lib/supabase/get-user'
 import ShopContent from './ShopContent'
+import BackToTop from '@/components/layout/BackToTop'
 export const dynamic = 'force-dynamic'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 
 export async function generateMetadata({ searchParams }: { searchParams: any }): Promise<Metadata> {
   const config = await getSiteConfig().catch(() => ({} as any))
-  const brandName = config.brand_name || 'RN Bros'
+  const brandName = config.brand_name || 'Sai Krishna Silks & Sarees'
   const category = searchParams?.category
   const filter = searchParams?.filter
   const q = searchParams?.q
@@ -91,7 +92,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
   const collectionSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: `${config.brand_name || 'RN Bros'} — Saree Collection`,
+    name: `${config.brand_name || 'Sai Krishna Silks & Sarees'} — Saree Collection`,
     description: 'Premium silk sarees collection',
     url: `${SITE_URL}/shop`,
     numberOfItems: products.length,

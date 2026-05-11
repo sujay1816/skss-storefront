@@ -15,14 +15,18 @@ export default function OrdersPage() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login?redirect=/orders'); return }
-      const { data } = await supabase.from('orders').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
+      // Issue 7 fix — also fetch order_items to show thumbnails
+      const { data } = await supabase
+        .from('orders')
+        .select('*, order_items(product_name, product_image, colour, quantity)')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
       setOrders(data || [])
       setLoading(false)
     }
     load()
   }, [])
 
-  // Issue H fix — added all return/refund statuses so badges show correct colours
   const statusColors: Record<string, string> = {
     confirmed:        '#16A34A',
     processing:       '#2563EB',
@@ -36,7 +40,6 @@ export default function OrdersPage() {
     refunded:         '#16A34A',
   }
 
-  // Issue H fix — human readable labels for status badges
   const statusLabels: Record<string, string> = {
     confirmed:        'Confirmed',
     processing:       'Processing',
@@ -69,29 +72,59 @@ export default function OrdersPage() {
         <div className="space-y-3">
           {orders.map(order => {
             const addr = order.address_snapshot || order.shipping_address || {}
+            const orderItems = order.order_items || []
+            // Issue 7 fix — show up to 3 item thumbnails
+            const previewItems = orderItems.slice(0, 3)
+            const extraCount = orderItems.length - previewItems.length
+
             return (
               <Link key={order.id} href={`/orders/${order.id}`}
-                className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+                className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-md transition-shadow"
                 style={{ textDecoration: 'none' }}>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'var(--cream)' }}>
-                    <Package size={18} style={{ color: 'var(--crimson)' }} />
+
+                {/* Item thumbnails */}
+                {previewItems.length > 0 && (
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    {previewItems.map((item: any, i: number) => (
+                      <div key={i} className="relative w-14 h-16 sm:w-12 sm:h-14 border overflow-hidden rounded flex-shrink-0"
+                        style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
+                        {item.product_image ? (
+                          <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-base">🥻</div>
+                        )}
+                        {i === previewItems.length - 1 && extraCount > 0 && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">+{extraCount}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      Order #{order.id?.slice(0, 8).toUpperCase()}
+                )}
+
+                {/* Order info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    Order #{order.order_number || order.id?.slice(0, 8).toUpperCase()}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {addr.city ? ` · ${addr.city}` : ''}
+                  </p>
+                  {/* Item names preview */}
+                  {previewItems.length > 0 && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                      {previewItems.map((i: any) => i.product_name).join(', ')}
+                      {extraCount > 0 ? ` +${extraCount} more` : ''}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {addr.city ? ` · ${addr.city}` : ''}
-                    </p>
-                    <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)' }}>
-                      ₹{Number(order.total_amount).toLocaleString('en-IN')}
-                    </p>
-                  </div>
+                  )}
+                  <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)' }}>
+                    ₹{Number(order.total_amount).toLocaleString('en-IN')}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white"
                     style={{ background: statusColors[order.status] || '#6B7280' }}>
                     {statusLabels[order.status] || order.status}

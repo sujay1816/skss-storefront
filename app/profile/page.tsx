@@ -1,9 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'profile' | 'addresses'>('profile')
@@ -19,33 +22,20 @@ export default function ProfilePage() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { window.location.href = '/login'; return }
-
       const uid = session.user.id
       const userEmail = session.user.email || ''
       const metaName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''
-
-      setUserId(uid)
-      setEmail(userEmail)
-
-      // Get profile — try upsert to handle missing profiles (Google users)
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', uid).single()
-
+      setUserId(uid); setEmail(userEmail)
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', uid).single()
       if (profile) {
         setName(profile.full_name || metaName)
         setPhone(profile.phone || '')
         setWhatsapp(profile.whatsapp_opted_in !== false)
       } else {
-        // Profile doesn't exist — create it
-        await supabase.from('profiles').insert({
-          id: uid, email: userEmail, full_name: metaName,
-          role: 'customer', whatsapp_opted_in: true,
-        })
+        await supabase.from('profiles').insert({ id: uid, email: userEmail, full_name: metaName, role: 'customer', whatsapp_opted_in: true })
         setName(metaName)
       }
-
-      const { data: addrs } = await supabase.from('addresses')
-        .select('*').eq('user_id', uid).order('is_default', { ascending: false })
+      const { data: addrs } = await supabase.from('addresses').select('*').eq('user_id', uid).order('is_default', { ascending: false })
       setAddresses(addrs || [])
       setLoading(false)
     }
@@ -56,9 +46,7 @@ export default function ProfilePage() {
     if (!userId) return
     setSaving(true)
     const supabase = createClient()
-    await supabase.from('profiles').upsert({
-      id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp
-    })
+    await supabase.from('profiles').upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
     toast.success('Profile updated!')
     setSaving(false)
   }
@@ -88,6 +76,15 @@ export default function ProfilePage() {
 
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
+      {/* Issue 8 fix — back navigation */}
+      <button onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm mb-6 transition-colors"
+        style={{ color: 'var(--text-secondary)' }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>
+        <ArrowLeft size={16} /> Back
+      </button>
+
       <h1 className="section-heading mb-8">My Profile</h1>
       <div className="flex gap-4 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
         {(['profile', 'addresses'] as const).map(t => (
@@ -111,11 +108,10 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
-            <input className="input-base" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" />
+            <input className="input-base" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" type="tel" />
           </div>
           <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)}
-              className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
+            <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)} className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates</span>
           </label>
           <button onClick={save} disabled={saving} className="btn-primary">
