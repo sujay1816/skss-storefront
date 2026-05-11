@@ -27,19 +27,21 @@ export default function HomepageClient({ config, categories, featured, bestselle
   const heroBanner = banners[0]
 
   // Compute overlay gradient based on admin setting
-  const overlayGradient = {
+  const overlayMap: Record<string, string> = {
     dark:  'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)',
     light: 'linear-gradient(105deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
     none:  'none',
     left:  'linear-gradient(to right, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.5) 50%, transparent 100%)',
     right: 'linear-gradient(to left, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.5) 50%, transparent 100%)',
-  }[heroBanner?.overlayStyle || 'dark'] || 'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)'
+  }
+  const overlayGradient = overlayMap[heroBanner?.overlayStyle || 'dark'] || overlayMap.dark
 
-  const textCol = {
+  const textColMap: Record<string, { primary: string; secondary: string; accent: string; border: string }> = {
     white: { primary: 'white', secondary: 'rgba(255,255,255,0.7)', accent: 'var(--gold-light)', border: 'rgba(201,168,76,0.4)' },
     gold:  { primary: 'var(--gold-light)', secondary: 'rgba(201,168,76,0.8)', accent: 'white', border: 'rgba(255,255,255,0.4)' },
     dark:  { primary: '#1A0E0A', secondary: 'rgba(26,14,10,0.7)', accent: 'var(--crimson)', border: 'rgba(26,14,10,0.3)' },
-  }[heroBanner?.textColor || 'white'] || { primary: 'white', secondary: 'rgba(255,255,255,0.7)', accent: 'var(--gold-light)', border: 'rgba(201,168,76,0.4)' }
+  }
+  const textCol = textColMap[heroBanner?.textColor || 'white'] || textColMap.white
 
   return (
     <>
