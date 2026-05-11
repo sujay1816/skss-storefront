@@ -69,6 +69,17 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
     getUser().catch(() => null),
   ])
 
+  // Load fabric types from site_config for dynamic filter chips
+  const fabricsData = await (async () => {
+    try {
+      const { createClient } = await import('@/lib/supabase/server')
+      const sb = createClient()
+      const { data } = await sb.from('site_config').select('value').eq('key', 'fabric_types').single()
+      if (data?.value) return JSON.parse(data.value) as string[]
+    } catch {}
+    return ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
+  })()
+
   const products = await getProducts({
     category: searchParams?.category,
     featured: searchParams?.filter === 'featured',
@@ -110,6 +121,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
         userId={user?.id}
         initialCategory={searchParams?.category}
         initialSearch={searchParams?.q}
+        fabrics={fabricsData}
       />
       <Footer config={config} categories={categories} />
       <WhatsAppButton number={config.whatsapp_number || ''} />

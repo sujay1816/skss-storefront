@@ -6,7 +6,7 @@ import ProductCard from '@/components/product/ProductCard'
 import type { Product, Category, SiteConfig } from '@/types'
 import { formatPrice } from '@/lib/utils'
 
-const FABRICS = ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
+const DEFAULT_FABRICS = ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
 const OCCASIONS = ['Wedding','Festive','Casual','Office','Party','Religious','Daily Wear']
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
@@ -30,10 +30,11 @@ const SkeletonCard = () => (
   </div>
 )
 
-export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading }: {
+export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading, fabrics: fabricsProp }: {
   products: Product[]; categories: Category[]; config: SiteConfig; userId?: string;
-  initialCategory?: string; initialSearch?: string; isLoading?: boolean
+  initialCategory?: string; initialSearch?: string; isLoading?: boolean; fabrics?: string[]
 }) {
+  const fabrics = fabricsProp && fabricsProp.length > 0 ? fabricsProp : DEFAULT_FABRICS
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [search, setSearch] = useState(initialSearch || '')
   const [searchInput, setSearchInput] = useState(initialSearch || '')
@@ -111,7 +112,7 @@ export default function ShopContent({ products, categories, config, userId, init
         </div>
       </FilterSection>
       <FilterSection title="Fabric">
-        <div className="flex flex-wrap gap-2">{FABRICS.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics)} />)}</div>
+        <div className="flex flex-wrap gap-2">{fabrics.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics)} />)}</div>
       </FilterSection>
       <FilterSection title="Occasion">
         <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions)} />)}</div>
