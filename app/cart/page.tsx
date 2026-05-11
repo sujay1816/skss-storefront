@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, X } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from 'lucide-react'
 import { useCartStore } from '@/lib/store/cart'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/utils'
@@ -16,12 +16,26 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(1999)
+  const [shippingCharge, setShippingCharge] = useState(99)
+  const [gstRate, setGstRate] = useState(5)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUserId(session?.user?.id || null)
     })
+    supabase.from('site_config')
+      .select('key, value')
+      .in('key', ['free_shipping_above', 'default_shipping_charge', 'default_gst_rate'])
+      .then(({ data }) => {
+        if (!data) return
+        data.forEach((r: any) => {
+          if (r.key === 'free_shipping_above') setFreeShippingThreshold(Number(r.value) || 1999)
+          if (r.key === 'default_shipping_charge') setShippingCharge(Number(r.value) || 99)
+          if (r.key === 'default_gst_rate') setGstRate(Number(r.value) || 5)
+        })
+      })
   }, [])
   const applyCoupon = async () => {
     if (!coupon.trim()) return
@@ -58,9 +72,9 @@ export default function CartPage() {
   }
   const subtotal = items.reduce((s, i) => s + (i.salePrice ?? i.originalPrice) * i.quantity, 0)
   const couponDiscount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? Math.round(subtotal * appliedCoupon.discount / 100) : appliedCoupon.type === 'free_shipping' ? 0 : appliedCoupon.discount) : 0
-  const freeShipping = appliedCoupon?.type === 'free_shipping'
-  const shipping = freeShipping || subtotal >= FREE_SHIPPING ? 0 : SHIPPING_CHARGE
-  const gst = Math.round((subtotal - couponDiscount) * GST_RATE / 100)
+  const isFreeShipping = appliedCoupon?.type === 'free_shipping'
+  const shipping = isFreeShipping || subtotal >= freeShippingThreshold ? 0 : shippingCharge
+  const gst = Math.round((subtotal - couponDiscount) * gstRate / 100)
   const total = subtotal - couponDiscount + shipping + gst
   const totalItems = items.reduce((s, i) => s + i.quantity, 0)
 
@@ -78,11 +92,11 @@ export default function CartPage() {
       <div className="page-container py-8">
         <h1 className="section-heading mb-8">Shopping Cart <span className="text-base font-normal ml-2" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>({totalItems} items)</span></h1>
 
-        {subtotal < FREE_SHIPPING && (
+        {subtotal < freeShippingThreshold && (
           <div className="mb-6 p-3 text-xs text-center border" style={{ borderColor: 'var(--gold)', background: 'var(--cream)', color: 'var(--text-secondary)' }}>
-            Add <span className="font-semibold" style={{ color: 'var(--crimson)' }}>{formatPrice(FREE_SHIPPING - subtotal)}</span> more for free shipping!
+            Add <span className="font-semibold" style={{ color: 'var(--crimson)' }}>{formatPrice(freeShippingThreshold - subtotal)}</span> more for free shipping!
             <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (subtotal / FREE_SHIPPING) * 100)}%`, background: 'var(--crimson)' }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (subtotal / freeShippingThreshold) * 100)}%`, background: 'var(--crimson)' }} />
             </div>
           </div>
         )}
@@ -156,7 +170,7 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                 {couponDiscount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#1B7A3E' }}>Coupon Discount</span><span style={{ color: '#1B7A3E' }}>−{formatPrice(couponDiscount)}</span></div>}
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#1B7A3E' : 'inherit' }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span></div>
-                <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({GST_RATE}%)</span><span>{formatPrice(gst)}</span></div>
+                <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>{formatPrice(gst)}</span></div>
               </div>
               <div className="flex justify-between font-medium mb-6">
                 <span>Total</span><span className="text-lg" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{formatPrice(total)}</span>
