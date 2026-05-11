@@ -24,17 +24,35 @@ export default function CartPage() {
     if (!coupon.trim()) return
     setCouponLoading(true); setCouponError('')
     const supabase = createClient()
+
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession()
+
+    // Fetch coupon
     const { data } = await supabase.from('coupons').select('*').eq('code', coupon.toUpperCase()).eq('is_active', true).single()
     if (!data) { setCouponError('Invalid or expired coupon code'); setCouponLoading(false); return }
     if (data.expiry_date && new Date(data.expiry_date) < new Date()) { setCouponError('This coupon has expired'); setCouponLoading(false); return }
     if (data.usage_count >= data.max_usage_count) { setCouponError('This coupon has reached its usage limit'); setCouponLoading(false); return }
+
+    // Check per-user usage limit
+    if (session?.user && data.per_user_limit) {
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('coupon_code', data.code)
+      if ((count || 0) >= data.per_user_limit) {
+        setCouponError('You have already used this coupon the maximum number of times')
+        setCouponLoading(false); return
+      }
+    }
+
     const couponData = { code: data.code, discount: data.value, type: data.type }
     setAppliedCoupon(couponData)
     setStoreCoupon(couponData)
     toast.success(`Coupon applied! You save ${data.type === 'percentage' ? data.value + '%' : '₹' + data.value}`)
     setCoupon(''); setCouponLoading(false)
   }
-
   const subtotal = items.reduce((s, i) => s + (i.salePrice ?? i.originalPrice) * i.quantity, 0)
   const couponDiscount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? Math.round(subtotal * appliedCoupon.discount / 100) : appliedCoupon.type === 'free_shipping' ? 0 : appliedCoupon.discount) : 0
   const freeShipping = appliedCoupon?.type === 'free_shipping'
