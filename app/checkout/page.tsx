@@ -169,10 +169,11 @@ export default function CheckoutPage() {
         total_gst: gst,
         gst_amount: gst,
         total_amount: total,
+        coupon_code: appliedCoupon?.code || null,
+        coupon_discount: discount || 0,
         address_snapshot: addressData,
         shipping_address: addressData,
       }).select().single()
-
       if (error) throw error
 
       // Create order items
