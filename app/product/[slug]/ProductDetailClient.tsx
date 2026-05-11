@@ -77,7 +77,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     if (!reviewText.trim()) return
     setReviewSubmitting(true)
     const supabase = createClient()
-    const { error } = await supabase.from('reviews').insert({ product_id: product.id, user_id: userId, rating: reviewRating, comment: reviewText, is_approved: true })
+    const { error } = await supabase.from('reviews').insert({ product_id: product.id, user_id: userId, rating: reviewRating, comment: reviewText, is_approved: false })
     if (error) { toast.error('Could not submit review. You may have already reviewed this product.'); setReviewSubmitting(false); return }
     setReviewSubmitted(true)
     toast.success('Review submitted! Thank you.')
