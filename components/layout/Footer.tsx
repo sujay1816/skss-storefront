@@ -43,7 +43,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
           <h3 className="text-3xl font-light text-white mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Stay Draped in Elegance</h3>
           <p className="text-sm mb-6 text-white/70">Get early access to new arrivals, exclusive offers and styling tips.</p>
           <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 sm:gap-0 max-w-md mx-auto">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" className="input-base flex-1" style={{ borderRadius: "2px 0 0 2px" }} className="input-base flex-1" required />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" className="input-base flex-1" style={{ borderRadius: '2px 0 0 2px', borderRight: 'none' }} required />
             <button type="submit" disabled={loading} className="btn-gold flex-shrink-0 sm:flex-shrink" style={{ borderRadius: '0 2px 2px 0', minWidth: 100, width: '100%' }}>{loading ? '...' : 'Subscribe'}</button>
           </form>
         </div>
