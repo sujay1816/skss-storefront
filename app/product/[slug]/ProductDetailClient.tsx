@@ -114,10 +114,22 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">
-        {/* Images */}
+        {/* Images + Video */}
         <div className="lg:w-1/2">
-          <motion.div className="relative w-full overflow-hidden mb-3" style={{ aspectRatio: '3/4', background: 'var(--cream)' }} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
-            {primaryImage?.url ? (
+          {/* Main display — shows active image or video */}
+          <motion.div className="relative w-full overflow-hidden mb-3" style={{ aspectRatio: '3/4', background: 'var(--cream)' }} whileHover={{ scale: activeImage === -1 ? 1 : 1.02 }} transition={{ duration: 0.3 }}>
+            {activeImage === -1 && product.videoUrl ? (
+              /* Video view */
+              <video
+                className="w-full h-full"
+                style={{ objectFit: 'cover' }}
+                controls
+                playsInline
+                preload="metadata"
+              >
+                <source src={product.videoUrl} type="video/mp4" />
+              </video>
+            ) : primaryImage?.url ? (
               <Image src={primaryImage.url} alt={primaryImage.altText || product.name} fill className="object-cover" priority />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: 'var(--cream)' }}>
@@ -130,7 +142,9 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               {isOnSale && <span className="badge-sale">{product.discountPercent}% Off</span>}
             </div>
           </motion.div>
-          {product.images.length > 1 && (
+
+          {/* Thumbnails — images + optional video thumbnail */}
+          {(product.images.length > 1 || product.videoUrl) && (
             <div className="flex gap-2">
               {product.images.map((img, i) => (
                 <button key={img.id} onClick={() => setActiveImage(i)}
@@ -139,6 +153,19 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
+              {/* Video thumbnail — shows play icon */}
+              {product.videoUrl && (
+                <button onClick={() => setActiveImage(-1)}
+                  className="relative flex-1 border-2 overflow-hidden transition-all flex items-center justify-center"
+                  style={{ aspectRatio: '1', borderRadius: 2, borderColor: activeImage === -1 ? 'var(--crimson)' : 'var(--border)', background: '#1A0E0A' }}>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                      <svg width="12" height="14" viewBox="0 0 12 14" fill="white"><path d="M1 1l10 6-10 6V1z"/></svg>
+                    </div>
+                    <span className="text-white text-xs" style={{ fontSize: 9 }}>VIDEO</span>
+                  </div>
+                </button>
+              )}
             </div>
           )}
         </div>

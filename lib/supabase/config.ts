@@ -41,7 +41,7 @@ function mapProduct(r: any): Product {
     gstRate: r.gst_rate || 5, images, variants, totalStock, isOutOfStock: totalStock === 0,
     isNew, isFeatured: r.is_featured || false, isBestseller: r.is_bestseller || false,
     customFields: r.custom_fields || {}, averageRating: r.average_rating || 0, reviewCount: r.review_count || 0,
-    createdAt: r.created_at, updatedAt: r.updated_at
+    createdAt: r.created_at, updatedAt: r.updated_at, videoUrl: r.video_url || null
   }
 }
 
@@ -94,7 +94,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
 export async function getBanners(): Promise<Banner[]> {
   const supabase = createClient()
   const { data } = await supabase.from('banners').select('*').eq('is_active', true).order('display_order')
-  return (data || []).map((r: any) => ({ id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || "center", heading: r.heading || "", headingItalic: r.heading_italic || "", subheading: r.subheading || null, badgeText: r.badge_text || "", ctaLabel: r.cta_label, ctaUrl: r.cta_url, ctaSecondaryLabel: r.cta_secondary_label || "", ctaSecondaryUrl: r.cta_secondary_url || "", overlayStyle: r.overlay_style || "dark", textColor: r.text_color || "white", isActive: r.is_active, order: r.display_order }))
+  return (data || []).map((r: any) => ({ id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || "center", heading: r.heading || "", headingItalic: r.heading_italic || "", subheading: r.subheading || null, badgeText: r.badge_text || "", ctaLabel: r.cta_label, ctaUrl: r.cta_url, ctaSecondaryLabel: r.cta_secondary_label || "", ctaSecondaryUrl: r.cta_secondary_url || "", overlayStyle: r.overlay_style || "dark", textColor: r.text_color || "white", isActive: r.is_active, order: r.display_order, videoUrl: r.video_url || null }))
 }
 
 export async function getUserOrders(userId: string): Promise<Order[]> {

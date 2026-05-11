@@ -9,6 +9,7 @@ export interface Product {
   images:ProductImage[]; variants:ProductVariant[]; totalStock:number; isOutOfStock:boolean;
   isNew:boolean; isFeatured:boolean; isBestseller:boolean; customFields:Record<string,string>;
   averageRating:number; reviewCount:number; createdAt:string; updatedAt:string;
+  videoUrl:string|null;
 }
 export interface CartItem {
   productId:string; productName:string; productSlug:string; productImage:string;
@@ -49,6 +50,7 @@ export interface Banner {
   textColor:string;
   isActive:boolean;
   order:number;
+  videoUrl:string|null;
 }
 export interface Category { id:string; name:string; slug:string; description:string; imageUrl:string; isActive:boolean; displayOrder:number; }
 export interface SiteConfig { brand_name:string; brand_tagline:string; brand_subtitle:string; whatsapp_number:string; support_email:string; business_email:string; free_shipping_above:string; default_shipping_charge:string; estimated_delivery_days:string; return_window_days:string; default_gst_rate:string; cod_enabled:string; upi_enabled:string; instagram_url:string; facebook_url:string; youtube_url:string; gstin:string; business_address:string; new_arrivals_days:string; low_stock_threshold:string; [key:string]:string; }

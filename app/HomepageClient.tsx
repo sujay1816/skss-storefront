@@ -48,7 +48,26 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative overflow-hidden" style={{ height: '95vh', minHeight: 640 }}>
         <motion.div className="absolute inset-0" style={{ y: heroY }}>
-          {heroBanner?.imageUrl ? (
+          {heroBanner?.videoUrl ? (
+            /* Background video — muted, autoplay, lazy loaded for performance */
+            <video
+              key={heroBanner.videoUrl}
+              className="w-full h-full"
+              style={{ objectFit: 'cover', objectPosition: heroBanner.imageFocus || 'center' }}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              poster={heroBanner.imageUrl || undefined}
+            >
+              <source src={heroBanner.videoUrl} type="video/mp4" />
+              {/* Fallback to image if video fails */}
+              {heroBanner.imageUrl && (
+                <img src={heroBanner.imageUrl} alt="Hero" className="w-full h-full" style={{ objectFit: 'cover' }} />
+              )}
+            </video>
+          ) : heroBanner?.imageUrl ? (
             <img
               src={heroBanner.imageUrl}
               alt="Hero"
