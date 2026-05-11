@@ -15,7 +15,7 @@ export interface CartItem {
   colour:string; colourHex:string; originalPrice:number; salePrice:number|null;
   quantity:number; stock:number; gstRate:number;
 }
-export type OrderStatus='placed'|'confirmed'|'shipped'|'delivered'|'cancelled'|'return_requested'|'return_approved'|'return_rejected'|'refunded';
+export type OrderStatus='confirmed'|'shipped'|'delivered'|'cancelled'|'return_requested'|'return_approved'|'return_rejected'|'refunded';
 export type PaymentMethod='cod'|'upi'|'razorpay';
 export type PaymentStatus='pending'|'paid'|'failed'|'refunded';
 export interface OrderItem { id:string; productId:string; productName:string; productImage:string; colour:string; quantity:number; originalPrice:number; salePrice:number|null; gstRate:number; gstAmount:number; total:number; }
@@ -33,6 +33,22 @@ export interface UserProfile { id:string; email:string; fullName:string; phone:s
 export interface Review { id:string; productId:string; userId:string; userFullName:string; userAvatarUrl:string|null; rating:number; comment:string; isVerifiedPurchase:boolean; createdAt:string; }
 export type CouponType='percentage'|'flat'|'free_shipping';
 export interface Coupon { id:string; code:string; type:CouponType; value:number; minOrderValue:number; maxUsageCount:number; usageCount:number; perUserLimit:number; expiryDate:string|null; isActive:boolean; }
-export interface Banner { id:string; imageUrl:string; heading:string; subheading:string|null; ctaLabel:string; ctaUrl:string; isActive:boolean; order:number; }
+export interface Banner {
+  id:string;
+  imageUrl:string;
+  imageFocus:string;
+  heading:string;
+  headingItalic:string;
+  subheading:string|null;
+  badgeText:string;
+  ctaLabel:string;
+  ctaUrl:string;
+  ctaSecondaryLabel:string;
+  ctaSecondaryUrl:string;
+  overlayStyle:string;
+  textColor:string;
+  isActive:boolean;
+  order:number;
+}
 export interface Category { id:string; name:string; slug:string; description:string; imageUrl:string; isActive:boolean; displayOrder:number; }
 export interface SiteConfig { brand_name:string; brand_tagline:string; brand_subtitle:string; whatsapp_number:string; support_email:string; business_email:string; free_shipping_above:string; default_shipping_charge:string; estimated_delivery_days:string; return_window_days:string; default_gst_rate:string; cod_enabled:string; upi_enabled:string; instagram_url:string; facebook_url:string; youtube_url:string; gstin:string; business_address:string; new_arrivals_days:string; low_stock_threshold:string; [key:string]:string; }
