@@ -74,7 +74,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
     try {
       const { createClient } = await import('@/lib/supabase/server')
       const sb = createClient()
-      const { data } = await sb.from('site_config').select('value').eq('key', 'fabric_types').single()
+      const { data } = await sb.from('site_config').select('value').eq('key', 'fabric_types').maybeSingle()
       if (data?.value) return JSON.parse(data.value) as string[]
     } catch {}
     return ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
