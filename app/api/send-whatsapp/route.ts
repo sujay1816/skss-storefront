@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server'
 
 const FAST2SMS_KEY = process.env.FAST2SMS_API_KEY!
 
-async function sendWhatsApp(phone: string, message: string) {
-  // Clean phone number - remove country code, spaces, dashes
+async function sendSMS(phone: string, message: string) {
   const clean = phone.replace(/\D/g, '').replace(/^91/, '').slice(-10)
   if (clean.length !== 10) {
-    console.error('Invalid phone number:', phone, '→', clean)
+    console.error('[SMS] Invalid phone number:', phone, '→', clean)
     return { success: false, error: 'Invalid phone number' }
   }
+
+  if (!FAST2SMS_KEY) {
+    console.error('[SMS] FAST2SMS_API_KEY is not set')
+    return { success: false, error: 'API key not configured' }
+  }
+
+  console.log('[SMS] Sending to:', clean, '| Message length:', message.length)
 
   const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
     method: 'POST',
@@ -17,7 +23,7 @@ async function sendWhatsApp(phone: string, message: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      route: 'q', // Quick transactional route
+      route: 'q',
       message,
       language: 'english',
       flash: 0,
@@ -26,14 +32,14 @@ async function sendWhatsApp(phone: string, message: string) {
   })
 
   const data = await res.json()
+  console.log('[SMS] Fast2SMS response:', JSON.stringify(data))
   return { success: data.return === true, data }
 }
 
 export async function POST(request: Request) {
   try {
     const { type, order, phone, trackingId, courierName } = await request.json()
-    
-    // Get brand name dynamically
+
     let brandName = 'Sai Krishna Silks & Sarees'
     try {
       const { createClient } = await import('@supabase/supabase-js')
@@ -47,22 +53,26 @@ export async function POST(request: Request) {
     let message = ''
 
     if (type === 'order_placed') {
-      const addr = order.address_snapshot || order.shipping_address || {}
-      message = `Dear ${addr.full_name || 'Customer'},\n\nYour order has been confirmed!\n\nOrder ID: #${String(order.id).slice(0, 8).toUpperCase()}\nTotal: Rs.${Number(order.total_amount).toLocaleString('en-IN')}\nPayment: ${order.payment_method === 'cod' ? 'Cash on Delivery' : 'Paid Online'}\n\nEstimated delivery: 5-7 business days.\n\nThank you for shopping with ${brandName}!\n\nFor queries, WhatsApp us at ${process.env.NEXT_PUBLIC_WHATSAPP || '+919999999999'}`
+      const orderId = String(order.id).slice(0, 8).toUpperCase()
+      const total = Number(order.total_amount).toLocaleString('en-IN')
+      const payment = order.payment_method === 'cod' ? 'COD' : 'Paid Online'
+      // Keep message short and single-line friendly for SMS route
+      message = `Order confirmed! ID: #${orderId} | Total: Rs.${total} | Payment: ${payment} | Delivery in 5-7 days. Thank you for shopping with ${brandName}!`
     }
 
     if (type === 'order_shipped') {
-      const addr = order.address_snapshot || order.shipping_address || {}
-      message = `Dear ${addr.full_name || 'Customer'},\n\nGreat news! Your order #${String(order.id).slice(0, 8).toUpperCase()} has been shipped!\n\nCourier: ${courierName}\nTracking ID: ${trackingId}\n\nYour saree is on its way! Estimated delivery in 2-3 days.\n\nThank you for shopping with ${brandName}!`
+      const orderId = String(order.id).slice(0, 8).toUpperCase()
+      message = `Your ${brandName} order #${orderId} is shipped! Courier: ${courierName} | Tracking: ${trackingId}. Delivery in 2-3 days.`
     }
 
     if (!message) return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
 
-    const result = await sendWhatsApp(phone, message)
+    console.log('[SMS] type:', type, '| phone:', phone)
+    const result = await sendSMS(phone, message)
     return NextResponse.json(result)
 
   } catch (error: any) {
-    console.error('WhatsApp error:', error)
+    console.error('[SMS] Error:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
