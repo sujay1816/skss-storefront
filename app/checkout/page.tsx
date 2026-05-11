@@ -259,7 +259,7 @@ export default function CheckoutPage() {
       } catch (e) { console.error('Email failed:', e) }
 
       // Send WhatsApp notification
-      try {
+    /* try {
         await fetch('/api/send-whatsapp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -269,7 +269,7 @@ export default function CheckoutPage() {
             phone: form.phone,
           })
         })
-      } catch (e) { console.error('WhatsApp failed:', e) }
+      } catch (e) { console.error('WhatsApp failed:', e) } */
 
       // Clear cart
       await clearCart()
