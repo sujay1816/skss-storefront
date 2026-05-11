@@ -26,23 +26,43 @@ export default function HomepageClient({ config, categories, featured, bestselle
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
   const heroBanner = banners[0]
 
+  // Compute overlay gradient based on admin setting
+  const overlayGradient = {
+    dark:  'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)',
+    light: 'linear-gradient(105deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+    none:  'none',
+    left:  'linear-gradient(to right, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.5) 50%, transparent 100%)',
+    right: 'linear-gradient(to left, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.5) 50%, transparent 100%)',
+  }[heroBanner?.overlayStyle || 'dark'] || 'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)'
+
+  const textCol = {
+    white: { primary: 'white', secondary: 'rgba(255,255,255,0.7)', accent: 'var(--gold-light)', border: 'rgba(201,168,76,0.4)' },
+    gold:  { primary: 'var(--gold-light)', secondary: 'rgba(201,168,76,0.8)', accent: 'white', border: 'rgba(255,255,255,0.4)' },
+    dark:  { primary: '#1A0E0A', secondary: 'rgba(26,14,10,0.7)', accent: 'var(--crimson)', border: 'rgba(26,14,10,0.3)' },
+  }[heroBanner?.textColor || 'white'] || { primary: 'white', secondary: 'rgba(255,255,255,0.7)', accent: 'var(--gold-light)', border: 'rgba(201,168,76,0.4)' }
+
   return (
     <>
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative overflow-hidden" style={{ height: '95vh', minHeight: 640 }}>
         <motion.div className="absolute inset-0" style={{ y: heroY }}>
           {heroBanner?.imageUrl ? (
-            <Image src={heroBanner.imageUrl} alt="Hero" fill className="object-cover" priority />
+            <img
+              src={heroBanner.imageUrl}
+              alt="Hero"
+              className="w-full h-full"
+              style={{ objectFit: 'cover', objectPosition: heroBanner.imageFocus || 'center' }}
+            />
           ) : (
             <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }}>
               <div className="absolute inset-0 flex items-center justify-center opacity-5">
                 <Image src={config.logo_url || '/images/logo.png'} alt="" width={600} height={600} className="object-contain" />
               </div>
-              {/* Decorative gold lines */}
               <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(201,168,76,0.03) 60px, rgba(201,168,76,0.03) 61px)', backgroundSize: '120px 120px' }} />
             </div>
           )}
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)' }} />
+          {/* Dynamic overlay */}
+          <div className="absolute inset-0" style={{ background: overlayGradient }} />
           {/* Bottom fade */}
           <div className="absolute bottom-0 left-0 right-0 h-40" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.15), transparent)' }} />
         </motion.div>
@@ -50,36 +70,57 @@ export default function HomepageClient({ config, categories, featured, bestselle
         <motion.div style={{ opacity: heroOpacity }} className="relative z-10 h-full flex items-center">
           <div className="page-container">
             <motion.div initial="hidden" animate="visible" variants={stagger} className="max-w-3xl">
+
+              {/* Badge text */}
               <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
-                <div className="h-px w-12" style={{ background: 'var(--gold)' }} />
-                <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-body)' }}>New Collection 2025</span>
+                <div className="h-px w-12" style={{ background: textCol.accent }} />
+                <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
+                  {heroBanner?.badgeText || 'New Collection 2025'}
+                </span>
               </motion.div>
-              <motion.h1 variants={fadeUp} className="font-light text-white leading-none mb-6"
-                style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(36px, 8vw, 96px)', letterSpacing: '-0.01em' }}>
-                {heroBanner?.heading || <>Draped in<br /><em style={{ color: 'var(--gold-light)' }}>Royal Elegance</em></>}
+
+              {/* Heading */}
+              <motion.h1 variants={fadeUp} className="font-light leading-none mb-6"
+                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)', fontSize: 'clamp(36px, 8vw, 96px)', letterSpacing: '-0.01em' }}>
+                {heroBanner?.heading || 'Draped in'}
+                {heroBanner?.headingItalic ? (
+                  <><br /><em style={{ color: textCol.accent }}>{heroBanner.headingItalic}</em></>
+                ) : (
+                  <><br /><em style={{ color: 'var(--gold-light)' }}>Royal Elegance</em></>
+                )}
               </motion.h1>
+
+              {/* Subheading */}
               <motion.p variants={fadeUp} className="text-base font-light mb-3 max-w-lg"
-                style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
+                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
                 {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman. Each piece a masterpiece of Indian heritage.'}
               </motion.p>
+
               <motion.p variants={fadeUp} className="text-sm mb-10 tracking-widest"
-                style={{ color: 'var(--gold)', fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
+                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
                 "{config.brand_tagline}"
               </motion.p>
+
+              {/* CTA Buttons */}
               <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
-                <Link href="/shop" className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all flex-1 sm:flex-none"
+                <Link href={heroBanner?.ctaUrl || '/shop'}
+                  className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all flex-1 sm:flex-none"
                   style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)', boxShadow: '0 4px 24px rgba(139,26,43,0.5)' }}>
                   {heroBanner?.ctaLabel || 'Shop Now'}
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link href="/shop?filter=new"
-                  className="flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all flex-1 sm:flex-none"
-                  style={{ border: '1px solid rgba(201,168,76,0.4)', color: 'rgba(255,255,255,0.85)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--gold)'; (e.currentTarget as HTMLElement).style.color = 'var(--gold-light)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,168,76,0.4)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.85)' }}>
-                  New Arrivals
+                {/* Secondary CTA — from admin or fallback to New Arrivals */}
+                <Link href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'}
+                  className="flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase transition-all flex-1 sm:flex-none"
+                  style={{ border: `1px solid ${textCol.border}`, color: textCol.secondary }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = textCol.accent; (e.currentTarget as HTMLElement).style.color = textCol.primary }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = textCol.border; (e.currentTarget as HTMLElement).style.color = textCol.secondary }}>
+                  {heroBanner?.ctaSecondaryLabel || 'New Arrivals'}
                 </Link>
               </motion.div>
+            </motion.div>
+          </div>
+        </motion.div>
             </motion.div>
           </div>
         </motion.div>
