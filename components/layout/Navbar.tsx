@@ -96,7 +96,8 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
 
   const handleSearch = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`)
+      // Issue F fix — use ?q= param which shop/page.tsx reads correctly
+      router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
       setSearchOpen(false); setSearchQuery('')
     }
     if (e.key === 'Escape') setSearchOpen(false)

@@ -4,6 +4,9 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev'
+// Issue A & B fix — use env vars so URLs update automatically when domain changes
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'
 
 function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishna Silks & Sarees') {
   const addr = order.address_snapshot || order.shipping_address || {}
@@ -27,7 +30,7 @@ function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishn
   <div style="max-width:600px;margin:0 auto;background:white">
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:40px 32px;text-align:center">
-      <h1 style="color:white;margin:0;font-size:28px;font-weight:300;letter-spacing:2px">{brandName}</h1>
+      <h1 style="color:white;margin:0;font-size:28px;font-weight:300;letter-spacing:2px">${brandName}</h1>
       <p style="color:#C9A84C;margin:4px 0 0;font-size:11px;letter-spacing:4px;text-transform:uppercase">SILKS & SAREES</p>
     </div>
 
@@ -62,6 +65,11 @@ function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishn
           <span style="color:#5A4A3A;font-size:14px">GST (5%)</span>
           <span style="color:#1A1A1A;font-size:14px">₹${Number(order.total_gst||order.gst_amount||0).toLocaleString('en-IN')}</span>
         </div>
+        ${order.coupon_code ? `
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+          <span style="color:#16A34A;font-size:14px">Coupon (${order.coupon_code})</span>
+          <span style="color:#16A34A;font-size:14px">−₹${Number(order.coupon_discount||0).toLocaleString('en-IN')}</span>
+        </div>` : ''}
         <div style="display:flex;justify-content:space-between;border-top:1px solid #C9A84C;padding-top:12px">
           <span style="color:#1A1A1A;font-size:16px;font-weight:700">Total Paid</span>
           <span style="color:#8B1A2B;font-size:16px;font-weight:700">₹${Number(order.total_amount).toLocaleString('en-IN')}</span>
@@ -97,9 +105,9 @@ function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishn
         <p style="color:#3B82F6;margin:8px 0 0;font-size:13px">You will receive a shipping confirmation once your order is dispatched</p>
       </div>
 
-      <!-- CTA -->
+      <!-- CTA — Issue A fix: uses SITE_URL env var -->
       <div style="text-align:center;margin-top:28px">
-        <a href="https://skss-storefront.vercel.app/orders/${order.id}"
+        <a href="${SITE_URL}/orders/${order.id}"
           style="background:#8B1A2B;color:white;padding:14px 32px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;display:inline-block">
           View Order Details
         </a>
@@ -108,7 +116,7 @@ function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishn
 
     <!-- Footer -->
     <div style="background:#1A1A1A;padding:24px 32px;text-align:center">
-      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase">{brandName}</p>
+      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase">${brandName}</p>
       <p style="color:#666;margin:8px 0 0;font-size:12px">Pure Silk. Timeless Tradition. Royal Elegance.</p>
       <p style="color:#444;margin:8px 0 0;font-size:11px">Questions? WhatsApp us or reply to this email</p>
     </div>
@@ -133,10 +141,12 @@ function adminNotificationHtml(order: any, items: any[]) {
       <p style="font-size:14px;color:#333"><strong>Payment:</strong> ${order.payment_method==='cod'?'Cash on Delivery':'Online - '+order.payment_status}</p>
       <p style="font-size:14px;color:#333"><strong>Customer:</strong> ${addr.full_name} · ${addr.phone}</p>
       <p style="font-size:14px;color:#333"><strong>Address:</strong> ${addr.address_line1}, ${addr.city}, ${addr.state}</p>
+      ${order.coupon_code ? `<p style="font-size:14px;color:#333"><strong>Coupon:</strong> ${order.coupon_code} (−₹${Number(order.coupon_discount||0).toLocaleString('en-IN')})</p>` : ''}
       <h3 style="font-size:14px;color:#333">Items:</h3>
       ${items.map(i=>`<p style="font-size:13px;color:#555;margin:4px 0">• ${i.product_name} (${i.colour}) × ${i.quantity}</p>`).join('')}
+      <!-- Issue B fix: uses ADMIN_URL env var -->
       <div style="text-align:center;margin-top:20px">
-        <a href="https://skss-admin-u9ms.vercel.app/orders"
+        <a href="${ADMIN_URL}/orders"
           style="background:#8B1A2B;color:white;padding:12px 24px;border-radius:4px;text-decoration:none;font-size:14px">
           View in Admin Panel
         </a>
@@ -155,7 +165,7 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string,
 <body style="font-family:Arial,sans-serif;background:#FDFAF7;padding:20px">
   <div style="max-width:600px;margin:0 auto;background:white;border-radius:8px;overflow:hidden">
     <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:32px;text-align:center">
-      <h1 style="color:white;margin:0;font-size:24px;font-weight:300">{brandName}</h1>
+      <h1 style="color:white;margin:0;font-size:24px;font-weight:300">${brandName}</h1>
     </div>
     <div style="padding:32px;text-align:center">
       <div style="font-size:48px;margin-bottom:16px">📦</div>
@@ -167,9 +177,16 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string,
       </div>
       <p style="color:#5A4A3A;font-size:14px">Delivering to: <strong>${addr.full_name}</strong>, ${addr.city}</p>
       <p style="color:#3B82F6;font-size:13px">Estimated delivery in 2-3 business days</p>
+      <!-- Issue A fix: uses SITE_URL env var -->
+      <div style="text-align:center;margin-top:20px">
+        <a href="${SITE_URL}/orders/${order.id}"
+          style="background:#8B1A2B;color:white;padding:12px 24px;border-radius:4px;text-decoration:none;font-size:14px">
+          Track Your Order
+        </a>
+      </div>
     </div>
     <div style="background:#1A1A1A;padding:20px;text-align:center">
-      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px">{brandName.toUpperCase()}</p>
+      <p style="color:#C9A84C;margin:0;font-size:11px;letter-spacing:3px">${brandName.toUpperCase()}</p>
     </div>
   </div>
 </body>
@@ -208,25 +225,33 @@ export async function POST(request: Request) {
     }
 
     if (type === 'shipping_update') {
+      let brandName = 'Sai Krishna Silks & Sarees'
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+        const { data } = await sb.from('site_config').select('value').eq('key', 'brand_name').single()
+        if (data?.value) brandName = data.value
+      } catch {}
+
       await resend.emails.send({
         from: FROM_EMAIL,
         to: customerEmail,
         subject: `Your order has been shipped! #${String(order.id).slice(0,8).toUpperCase()}`,
-        html: shippingUpdateHtml(order, trackingId, courierName),
+        html: shippingUpdateHtml(order, trackingId, courierName, brandName),
       })
 
-      // Also send WhatsApp for shipping update
-      try {
+      // Issue C fix: WhatsApp on shipping is commented out until DLT is set up
+      /* try {
         const addr = order.address_snapshot || order.shipping_address || {}
         const phone = addr.phone
         if (phone) {
-          await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://skss-storefront.vercel.app'}/api/send-whatsapp`, {
+          await fetch(`${SITE_URL}/api/send-whatsapp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'order_shipped', order, phone, trackingId, courierName })
           })
         }
-      } catch (e) { console.error('WhatsApp shipping failed:', e) }
+      } catch (e) { console.error('WhatsApp shipping failed:', e) } */
 
       return NextResponse.json({ success: true })
     }

@@ -22,9 +22,32 @@ export default function OrdersPage() {
     load()
   }, [])
 
+  // Issue H fix — added all return/refund statuses so badges show correct colours
   const statusColors: Record<string, string> = {
-    confirmed: '#16A34A', processing: '#2563EB', shipped: '#7C3AED',
-    delivered: '#16A34A', cancelled: '#DC2626', pending: '#D97706'
+    confirmed:        '#16A34A',
+    processing:       '#2563EB',
+    shipped:          '#7C3AED',
+    delivered:        '#16A34A',
+    cancelled:        '#DC2626',
+    pending:          '#D97706',
+    return_requested: '#92400E',
+    return_approved:  '#16A34A',
+    return_rejected:  '#DC2626',
+    refunded:         '#16A34A',
+  }
+
+  // Issue H fix — human readable labels for status badges
+  const statusLabels: Record<string, string> = {
+    confirmed:        'Confirmed',
+    processing:       'Processing',
+    shipped:          'Shipped',
+    delivered:        'Delivered',
+    cancelled:        'Cancelled',
+    pending:          'Pending',
+    return_requested: 'Return Requested',
+    return_approved:  'Return Approved',
+    return_rejected:  'Return Rejected',
+    refunded:         'Refunded',
   }
 
   if (loading) return (
@@ -69,9 +92,9 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white capitalize"
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white"
                     style={{ background: statusColors[order.status] || '#6B7280' }}>
-                    {order.status}
+                    {statusLabels[order.status] || order.status}
                   </span>
                   <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
                 </div>

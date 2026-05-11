@@ -9,6 +9,10 @@ import toast from 'react-hot-toast'
 
 export default function SignupPage() {
   const router = useRouter()
+  // Issue G fix — read redirect param so user lands back on the right page after signup
+  const redirect = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('redirect') || '/'
+    : '/'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,7 +48,8 @@ export default function SignupPage() {
     })
     if (error) { toast.error(error.message); setLoading(false); return }
     toast.success(`Account created! Welcome to ${brandName}.`)
-    router.push('/')
+    // Issue G fix — redirect to intended page instead of always going to /
+    router.push(redirect)
     router.refresh()
   }
 
@@ -53,7 +58,8 @@ export default function SignupPage() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      // Issue G fix — pass redirect param through Google OAuth callback
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` }
     })
   }
 
