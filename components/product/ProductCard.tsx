@@ -46,6 +46,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
     toast.success(wishlisted ? 'Removed from wishlist' : 'Added to wishlist!')
     setWishlistLoading(false)
   }
+
   return (
     <motion.div
       className="relative cursor-pointer"
@@ -123,16 +124,22 @@ export default function ProductCard({ product, userId }: { product: Product; use
             </motion.button>
           </div>
 
-          {/* Add to cart button */}
+          {/* Add to Cart button
+              Issue 1 fix — removed whileInView which caused repeated triggering and blinking.
+              Now uses CSS transition via isHovered state instead of conflicting Framer Motion animations. */}
           {!product.isOutOfStock && (
-            <motion.button
-              className="absolute bottom-0 left-0 right-0 py-3 text-xs font-medium tracking-widest uppercase text-white flex items-center justify-center gap-2"
-              style={{ background: 'var(--crimson)', zIndex: 10 }}
-              initial={{ y: '100%' }} animate={{ y: '0%' }} whileInView={{ y: '100%' }}
-              whileHover={{ background: 'var(--gold)' }}
+            <button
+              className="absolute bottom-0 left-0 right-0 py-3 text-xs font-medium tracking-widest uppercase text-white flex items-center justify-center gap-2 transition-all duration-300"
+              style={{
+                background: 'var(--crimson)',
+                zIndex: 10,
+                transform: isHovered ? 'translateY(0)' : 'translateY(100%)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--gold)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--crimson)')}
               onClick={handleAddToCart}>
               <ShoppingBag size={13} /> Add to Cart
-            </motion.button>
+            </button>
           )}
         </div>
 
@@ -157,7 +164,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>({product.reviewCount})</span>
               </div>
             )}
-            {/* Pricing — show sale price prominently with strikethrough */}
+            {/* Pricing */}
             <div className="flex items-baseline gap-2">
               <span className="font-semibold text-base" style={{ color: 'var(--crimson)' }}>{formatPrice(effectivePrice)}</span>
               {isOnSale && (
