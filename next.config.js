@@ -51,11 +51,6 @@ const nextConfig = {
     ]
   },
 
-  // Power pack features
-  experimental: {
-    optimizeCss: true,
-  },
-
   // Powered by header
   poweredByHeader: false,
 }
