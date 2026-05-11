@@ -26,6 +26,9 @@ export default function LoginPage() {
       })
   }, [])
   const router = useRouter()
+  const redirect = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('redirect') || '/'
+    : '/'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -39,7 +42,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { toast.error(error.message); setLoading(false); return }
     toast.success('Welcome back!')
-    router.push('/')
+    router.push(redirect)
     router.refresh()
   }
 
@@ -48,7 +51,7 @@ export default function LoginPage() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` }
     })
   }
 
