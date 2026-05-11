@@ -208,24 +208,19 @@ export default function CheckoutPage() {
         }))
       )
 
-      // Reduce stock for each item ordered
-      for (const item of items) {
-        // Reduce variant stock
-        const { data: variant } = await supabase
-          .from('product_variants')
-          .select('stock')
-          .eq('product_id', item.productId)
-          .eq('colour', item.colour)
-          .single()
-        
-        if (variant) {
-          await supabase
-            .from('product_variants')
-            .update({ stock: Math.max(0, variant.stock - item.quantity) })
-            .eq('product_id', item.productId)
-            .eq('colour', item.colour)
-        }
-
+      // Reduce stock via server API (uses service role key to bypass RLS)
+      await fetch('/api/update-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'deduct',
+          items: items.map(item => ({
+            product_id: item.productId,
+            colour: item.colour,
+            quantity: item.quantity,
+          }))
+        })
+      })
         // Reduce overall product stock (sum of all variants)
         const { data: allVariants } = await supabase
           .from('product_variants')
