@@ -221,20 +221,6 @@ export default function CheckoutPage() {
           }))
         })
       })
-        // Reduce overall product stock (sum of all variants)
-        const { data: allVariants } = await supabase
-          .from('product_variants')
-          .select('stock')
-          .eq('product_id', item.productId)
-        
-        if (allVariants) {
-          const totalStock = allVariants.reduce((sum: number, v: any) => sum + v.stock, 0)
-          await supabase
-            .from('products')
-            .update({ stock: totalStock })
-            .eq('id', item.productId)
-        }
-      }
       // Increment coupon usage count
       if (appliedCoupon?.code) {
         const { data: coup } = await supabase
