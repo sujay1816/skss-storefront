@@ -138,7 +138,7 @@ export default function CartPage() {
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between p-3 border" style={{ borderColor: 'var(--gold)', background: 'var(--cream)' }}>
                     <div className="flex items-center gap-2"><Tag size={14} style={{ color: 'var(--gold)' }} /><span className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{appliedCoupon.code}</span></div>
-                    <button onClick={() => setAppliedCoupon(null)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
+                    <button onClick={() => { setAppliedCoupon(null); setStoreCoupon(null) }} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
