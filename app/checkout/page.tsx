@@ -147,6 +147,21 @@ export default function CheckoutPage() {
 
   const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null, session?: any) => {
     try {
+      // Server-side stock validation
+      for (const item of items) {
+        const { data: variant } = await supabase
+          .from('product_variants')
+          .select('stock')
+          .eq('product_id', item.productId)
+          .eq('colour', item.colour)
+          .single()
+        if (!variant || variant.stock < item.quantity) {
+          toast.error(`Sorry, "${item.productName} (${item.colour})" is out of stock or has insufficient quantity. Please update your cart.`)
+          setLoading(false)
+          return
+        }
+      }
+      
       // Create order in DB
       const addressData = {
         full_name: form.fullName,
