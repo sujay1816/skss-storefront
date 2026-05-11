@@ -7,9 +7,14 @@ const supabase = createClient(
 )
 
 export async function POST(request: Request) {
+  // Verify internal secret header
+  const secret = request.headers.get('x-internal-secret')
+  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { type, items } = await request.json()
-
     if (type === 'deduct') {
       for (const item of items) {
         const { data: variant } = await supabase
