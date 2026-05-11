@@ -211,7 +211,10 @@ export default function CheckoutPage() {
       // Reduce stock via server API (uses service role key to bypass RLS)
       await fetch('/api/update-stock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || '',
+        },
         body: JSON.stringify({
           type: 'deduct',
           items: items.map(item => ({
