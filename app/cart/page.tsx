@@ -9,10 +9,6 @@ import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-const FREE_SHIPPING = 1999
-const SHIPPING_CHARGE = 99
-const GST_RATE = 5
-
 export default function CartPage() {
   const { items, removeItem, updateQty, setCoupon: setStoreCoupon, appliedCoupon: storedCoupon } = useCartStore()
   const [coupon, setCoupon] = useState('')
