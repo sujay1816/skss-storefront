@@ -123,10 +123,8 @@ export default function HomepageClient({ config, categories, featured, bestselle
             </motion.div>
           </div>
         </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
 
+        {/* Scroll indicator */}
         {/* Scroll indicator */}
         <motion.div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
           animate={{ y: [0, 8, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}>
