@@ -14,6 +14,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
   const [flipped, setFlipped] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [wishlistLoading, setWishlistLoading] = useState(false)
   const addItem = useCartStore(s => s.addItem)
   const { toggle, isWishlisted } = useWishlistStore()
   const wishlisted = isWishlisted(product.id)
@@ -39,10 +40,12 @@ export default function ProductCard({ product, userId }: { product: Product; use
 
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault()
+    if (wishlistLoading) return
+    setWishlistLoading(true)
     await toggle(product.id, userId)
     toast.success(wishlisted ? 'Removed from wishlist' : 'Added to wishlist!')
+    setWishlistLoading(false)
   }
-
   return (
     <motion.div
       className="relative cursor-pointer"
@@ -104,9 +107,9 @@ export default function ProductCard({ product, userId }: { product: Product; use
           <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
             <motion.button
               className="w-9 h-9 md:w-8 md:h-8 bg-white flex items-center justify-center shadow-sm transition-all md:opacity-0 md:translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
-              style={{ border: '1px solid var(--border)' }}
+              style={{ border: '1px solid var(--border)', opacity: wishlistLoading ? 0.5 : 1, cursor: wishlistLoading ? 'not-allowed' : 'pointer' }}
               onClick={handleWishlist}
-              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)')}
+              onMouseEnter={e => !wishlistLoading && ((e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)')}
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--border)')}>
               <Heart size={14} fill={wishlisted ? 'var(--crimson)' : 'none'} stroke={wishlisted ? 'var(--crimson)' : 'currentColor'} style={{ color: wishlisted ? 'var(--crimson)' : 'var(--text-primary)' }} />
             </motion.button>
