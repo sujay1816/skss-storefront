@@ -9,6 +9,7 @@ import { getUser } from '@/lib/supabase/get-user'
 export const dynamic = 'force-dynamic'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
+const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     ])
     if (!product) return { title: 'Product Not Found' }
 
-    const brandName = config.brand_name || 'RN Bros'
+    const brandName = config.brand_name || BRAND_NAME
     const price = product.salePrice || product.originalPrice
     const primaryImage = product.images?.find((i: any) => i.isPrimary) || product.images?.[0]
     const imageUrl = primaryImage?.url || `${SITE_URL}/images/logo.png`
@@ -72,7 +73,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       },
     }
   } catch {
-    return { title: 'Product | RN Bros' }
+    return { title:  }
   }
 }
 
@@ -104,7 +105,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     sku: product.variants?.[0]?.sku || product.slug,
     brand: {
       '@type': 'Brand',
-      name: config.brand_name || 'RN Bros',
+      name: config.brand_name || BRAND_NAME,
     },
     offers: {
       '@type': 'Offer',
@@ -115,7 +116,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       seller: {
         '@type': 'Organization',
-        name: config.brand_name || 'RN Bros',
+        name: config.brand_name || BRAND_NAME,
       },
       shippingDetails: {
         '@type': 'OfferShippingDetails',

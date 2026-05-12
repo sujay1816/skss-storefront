@@ -5,6 +5,7 @@ import AuthListener from '@/components/AuthListener'
 import { createClient } from '@/lib/supabase/server'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
+const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -14,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const cfg: Record<string, string> = {}
     data?.forEach((r: any) => { cfg[r.key] = r.value })
 
-    const name = cfg.brand_name || 'RN Bros'
+    const name = cfg.brand_name || BRAND_NAME
     const tagline = cfg.brand_tagline || 'Pure Silk. Timeless Tradition. Royal Elegance.'
     const logo = cfg.logo_url || `${SITE_URL}/images/logo.png`
     const desc = `Shop the finest silk and traditional sarees at ${name}. ${tagline} Kanjivaram, Banarasi, Chanderi and more. Free shipping above ₹1,999.`
@@ -69,7 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
     }
   } catch {
     return {
-      title: 'RN Bros — Premium Silk Sarees',
+      title: ,
       description: 'Shop pure silk sarees online. Kanjivaram, Banarasi, Chanderi and more.',
     }
   }
@@ -136,7 +137,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const orgSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: brand.logo_url ? 'RN Bros' : 'RN Bros',
+    name: BRAND_NAME,
     url: SITE_URL,
     logo: brand.logo_url || `${SITE_URL}/images/logo.png`,
     sameAs: [],
@@ -146,7 +147,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'RN Bros',
+    name: BRAND_NAME,
     url: SITE_URL,
     potentialAction: {
       '@type': 'SearchAction',
