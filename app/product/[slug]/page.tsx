@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       },
     }
   } catch {
-    return { title:  }
+    return { title: `${process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'} — Premium Silk Sarees` }
   }
 }
 
