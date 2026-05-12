@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -27,9 +27,21 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [qty, setQty] = useState(1)
+  // #10 — lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(0)
+  // #3 — sticky bar visibility (show after scrolling past CTAs)
+  const [showStickyBar, setShowStickyBar] = useState(false)
   const addItem = useCartStore(s => s.addItem)
   const { toggle, isWishlisted } = useWishlistStore()
   const wishlisted = isWishlisted(product.id)
+
+  // #3 — sticky bar
+  useEffect(() => {
+    const onScroll = () => setShowStickyBar(window.scrollY > 500)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const effectivePrice = getEffectivePrice(product)
   const isOnSale = effectivePrice < product.originalPrice
@@ -117,7 +129,26 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         {/* Images + Video */}
         <div className="lg:w-1/2">
           {/* Main display — shows active image or video */}
-          <motion.div className="relative w-full overflow-hidden mb-3" style={{ aspectRatio: '3/4', background: 'var(--cream)' }} whileHover={{ scale: activeImage === -1 ? 1 : 1.02 }} transition={{ duration: 0.3 }}>
+          {/* #10 — lightbox */}
+          {lightboxOpen && (
+            <div className="lightbox-overlay" onClick={() => setLightboxOpen(false)}>
+              <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
+              {product.images.length > 1 && (
+                <>
+                  <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(0, i-1)) }}>‹</button>
+                  <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(product.images.length-1, i+1)) }}>›</button>
+                </>
+              )}
+              {product.images[lightboxIdx]?.url && (
+                <img src={product.images[lightboxIdx].url} alt={product.name} className="lightbox-img" />
+              )}
+            </div>
+          )}
+          <motion.div
+            className="relative w-full overflow-hidden mb-3 cursor-zoom-in"
+            style={{ aspectRatio: '3/4', background: 'var(--cream)' }}
+            onClick={() => { if (activeImage !== -1) { setLightboxIdx(activeImage); setLightboxOpen(true) } }}
+            whileHover={{ scale: activeImage === -1 ? 1 : 1.02 }} transition={{ duration: 0.3 }}>
             {activeImage === -1 && product.videoUrl ? (
               /* Video view */
               <video
@@ -332,6 +363,24 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           </div>
         </div>
       </section>
+
+      {/* #3 — Sticky mobile Add to Cart bar */}
+      <div className={`sticky-product-bar ${showStickyBar ? 'visible' : ''}`}>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium truncate" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>{product.name}</p>
+          <p className="text-base font-semibold" style={{ color: 'var(--crimson)' }}>
+            <span style={{ fontSize: '0.7em', verticalAlign: 'super', opacity: 0.8 }}>₹</span>
+            {effectivePrice.toLocaleString('en-IN')}
+          </p>
+        </div>
+        <button
+          onClick={handleAddToCart}
+          disabled={!selectedVariant || selectedVariant.stock === 0}
+          className="btn-primary flex-shrink-0"
+          style={{ padding: '10px 20px', fontSize: 11 }}>
+          {!selectedVariant || selectedVariant.stock === 0 ? 'Out of Stock' : addedToCart ? '✓ Added!' : 'Add to Cart'}
+        </button>
+      </div>
 
       {/* Related */}
       {relatedProducts.length > 0 && (

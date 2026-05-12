@@ -33,7 +33,7 @@ const SkeletonCard = () => (
 // Previously defined inside the component causing re-mounts on every filter click
 const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="pb-5 mb-5 border-b" style={{ borderColor: 'var(--border)' }}>
-    <h4 className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-primary)' }}>{title}</h4>
+    <h4 className="filter-section-title">{title}</h4>
     {children}
   </div>
 )
@@ -119,10 +119,31 @@ export default function ShopContent({ products, categories, config, userId, init
         <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions)} />)}</div>
       </FilterSection>
       <FilterSection title="Price Range">
-        <div className="flex gap-2 items-center">
-          <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>to</span>
-          <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 36, fontSize: 12 }} />
+        <div className="space-y-3">
+          <div className="flex justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <span>₹{Number(priceMin || 0).toLocaleString('en-IN')}</span>
+            <span>₹{Number(priceMax || 50000).toLocaleString('en-IN')}</span>
+          </div>
+          <input
+            type="range" min={0} max={50000} step={500}
+            value={priceMin || 0}
+            onChange={e => { setPriceMin(e.target.value === '0' ? '' : e.target.value); setPage(1) }}
+            className="price-slider w-full"
+          />
+          <input
+            type="range" min={0} max={50000} step={500}
+            value={priceMax || 50000}
+            onChange={e => { setPriceMax(e.target.value === '50000' ? '' : e.target.value); setPage(1) }}
+            className="price-slider w-full"
+          />
+          <div className="flex gap-2 mt-1">
+            <input type="number" placeholder="Min ₹" value={priceMin}
+              onChange={e => { setPriceMin(e.target.value); setPage(1) }}
+              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Max ₹" value={priceMax}
+              onChange={e => { setPriceMax(e.target.value); setPage(1) }}
+              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+          </div>
         </div>
       </FilterSection>
       <FilterSection title="Quick Filters">
@@ -216,11 +237,14 @@ export default function ShopContent({ products, categories, config, userId, init
               {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-4xl mb-4">🥻</p>
-              <p className="text-lg mb-2" style={{ fontFamily: 'var(--font-heading)' }}>No sarees found</p>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Try adjusting your filters</p>
-              <button onClick={clearAll} className="btn-outline text-sm">Clear Filters</button>
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <span style={{ fontSize: 36 }}>🥻</span>
+              </div>
+              <h3 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>No sarees found</h3>
+              <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>We couldn't find anything matching your filters.</p>
+              <p className="text-xs mb-6" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>Try broadening your search or clearing some filters.</p>
+              <button onClick={clearAll} className="btn-primary" style={{ fontSize: 11 }}>Clear All Filters</button>
             </div>
           ) : (
             <>

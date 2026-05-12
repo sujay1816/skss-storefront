@@ -80,10 +80,13 @@ export default function CartPage() {
 
   if (items.length === 0) return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--ivory)' }}>
-      <ShoppingBag size={64} className="mb-6" style={{ color: 'var(--border)' }} />
+      <div className="empty-state-icon mb-6" style={{ width: 96, height: 96 }}>
+        <ShoppingBag size={40} style={{ color: 'var(--crimson)', opacity: 0.5 }} />
+      </div>
       <h2 className="text-3xl font-light mb-3" style={{ fontFamily: 'var(--font-heading)' }}>Your cart is empty</h2>
-      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Discover beautiful sarees and add them to your cart.</p>
-      <div className="flex flex-col sm:flex-row gap-3 mb-10">
+      <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Looks like you haven't added anything yet.</p>
+      <p className="text-xs mb-8" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>Discover our handpicked collection of pure silk sarees.</p>
+      <div className="flex flex-col sm:flex-row gap-3">
         <Link href="/shop" className="btn-primary">Browse Collection <ArrowRight size={14} /></Link>
         <Link href="/shop?filter=new" className="btn-outline">New Arrivals</Link>
         <Link href="/shop?filter=bestsellers" className="btn-outline">Bestsellers</Link>
@@ -149,10 +152,11 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* Summary */}
+          {/* Summary — receipt style */}
           <div className="lg:w-80 flex-shrink-0">
-            <div className="border p-6 sticky top-24" style={{ borderColor: 'var(--border)', background: 'white' }}>
-              <h2 className="text-xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h2>
+            <div className="cart-receipt p-6 sticky top-24">
+              <h2 className="text-xl font-light mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h2>
+              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>{totalItems} item{totalItems !== 1 ? 's' : ''}</p>
               {/* Coupon */}
               <div className="mb-5">
                 <p className="text-xs font-medium tracking-wide uppercase mb-2" style={{ color: 'var(--text-primary)' }}>Coupon Code</p>
@@ -176,10 +180,14 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#1B7A3E' : 'inherit' }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span></div>
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>{formatPrice(gst)}</span></div>
               </div>
-              <div className="flex justify-between font-medium mb-6">
-                <span>Total</span><span className="text-lg" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{formatPrice(total)}</span>
+              <div className="cart-total-row" style={{ margin: '0 -24px', padding: '14px 24px' }}>
+                <span className="text-sm font-medium tracking-wide uppercase" style={{ letterSpacing: '0.08em' }}>Total</span>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 300 }}>
+                  <span style={{ fontSize: '0.65em', verticalAlign: 'super', opacity: 0.8 }}>₹</span>
+                  {total.toLocaleString('en-IN')}
+                </span>
               </div>
-              <Link href="/checkout" className="btn-primary w-full justify-center block text-center">Proceed to Checkout <ArrowRight size={14} /></Link>
+              <Link href="/checkout" className="btn-primary w-full justify-center block text-center mt-4">Proceed to Checkout <ArrowRight size={14} /></Link>
             </div>
           </div>
         </div>

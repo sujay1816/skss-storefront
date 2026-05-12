@@ -190,12 +190,12 @@ export default function HomepageClient({ config, categories, featured, bestselle
             <div className="w-16 h-px mx-auto mt-4" style={{ background: 'linear-gradient(to right, transparent, var(--gold), transparent)' }} />
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            className="category-grid-3col">
             {categories.map((cat, i) => (
               <motion.div key={cat.id} variants={fadeUp}>
                 <Link href={`/shop?category=${cat.slug}`} className="group block">
                   <div className="relative overflow-hidden rounded-lg mb-3 transition-all"
-                    style={{ aspectRatio: '3/4', background: 'var(--cream)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                    style={{ aspectRatio: '2/3', background: 'var(--cream)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
                     {cat.imageUrl ? (
                       <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                     ) : (

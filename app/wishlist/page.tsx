@@ -36,10 +36,13 @@ export default function WishlistPage() {
     <div className="page-container py-8 animate-fadeIn">
       <h1 className="section-heading mb-8">My Wishlist</h1>
       {ids.length === 0 ? (
-        <div className="text-center py-20">
-          <Heart size={48} className="mx-auto mb-4" style={{ color: 'var(--border)' }} />
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <Heart size={36} style={{ color: 'var(--crimson)' }} />
+          </div>
           <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Your wishlist is empty</h2>
-          <Link href="/shop" className="btn-primary mt-4 inline-flex">Browse Collection</Link>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Save the sarees you love and come back to them anytime.</p>
+          <Link href="/shop" className="btn-primary inline-flex">Browse Collection</Link>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{products.map(p => <ProductCard key={p.id} product={p} userId={user?.id} />)}</div>

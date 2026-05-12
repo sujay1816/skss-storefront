@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import AuthListener from '@/components/AuthListener'
+import PageProgress from '@/components/layout/PageProgress'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
@@ -170,6 +172,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'var(--font-body)', fontSize: '13px' } }} />
+        <Suspense fallback={null}><PageProgress /></Suspense>
         <AuthListener />
         {children}
       </body>
