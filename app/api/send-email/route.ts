@@ -8,7 +8,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'
 
-function orderConfirmationHtml(order: any, items: any[], brandName = 'Sai Krishna Silks & Sarees') {
+function orderConfirmationHtml(order: any, items: any[], brandName: string) {
   const addr = order.address_snapshot || order.shipping_address || {}
   const itemsHtml = items.map(item => `
     <tr>
@@ -157,7 +157,7 @@ function adminNotificationHtml(order: any, items: any[]) {
 </html>`
 }
 
-function shippingUpdateHtml(order: any, trackingId: string, courierName: string, brandName = 'Sai Krishna Silks & Sarees') {
+function shippingUpdateHtml(order: any, trackingId: string, courierName: string, brandName: string) {
   const addr = order.address_snapshot || order.shipping_address || {}
   return `
 <!DOCTYPE html>
@@ -199,7 +199,8 @@ export async function POST(request: Request) {
 
     if (type === 'order_confirmation') {
       // Get brand name from site_config
-      let brandName = 'Sai Krishna Silks & Sarees'
+      const brandNameEnv = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
+      let brandName = brandNameEnv
       try {
         const { createClient } = await import('@supabase/supabase-js')
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -225,7 +226,8 @@ export async function POST(request: Request) {
     }
 
     if (type === 'shipping_update') {
-      let brandName = 'Sai Krishna Silks & Sarees'
+      const brandNameEnv = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
+      let brandName = brandNameEnv
       try {
         const { createClient } = await import('@supabase/supabase-js')
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)

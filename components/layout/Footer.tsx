@@ -57,7 +57,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
             <div className="flex items-center gap-3 mb-4">
               <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "SKSS"} width={48} height={48} className="object-contain" />
               <div>
-                <p className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)', fontSize: '18px' }}>{config.brand_name || 'Sai Krishna'}</p>
+                <p className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)', fontSize: '18px' }}>{config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}</p>
                 <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', letterSpacing: '0.12em' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
       {/* Bottom bar */}
       <div className="border-t py-4" style={{ borderColor: 'var(--border)' }}>
         <div className="page-container flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>© {new Date().getFullYear()} {config.brand_name || 'Sai Krishna Silks and Sarees'}. All rights reserved.</p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>© {new Date().getFullYear()} {config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}. All rights reserved.</p>
           <div className="flex items-center gap-4">
             {config.gstin && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>GSTIN: {config.gstin}</p>}
             <div className="flex items-center gap-2">
