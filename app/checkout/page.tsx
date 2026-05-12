@@ -191,8 +191,14 @@ export default function CheckoutPage() {
         body: JSON.stringify({ type: 'deduct', items: items.map(item => ({ product_id: item.productId, colour: item.colour, quantity: item.quantity })) })
       })
       if (appliedCoupon?.code) {
-        const { data: coup } = await supabase.from('coupons').select('usage_count').eq('code', appliedCoupon.code).single()
-        if (coup) await supabase.from('coupons').update({ usage_count: coup.usage_count + 1 }).eq('code', appliedCoupon.code)
+        // Fix — atomic increment via RPC to prevent race condition
+        // Two simultaneous orders with the same coupon would both read the
+        // same usage_count and both write +1, resulting in undercounting.
+        // The RPC does a single SQL UPDATE usage_count = usage_count + 1
+        // which is atomic at the database level.
+        if (appliedCoupon?.code) {
+          await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
+        }
       }
       try {
         await fetch('/api/send-email', {
