@@ -136,15 +136,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </div>
         </motion.div>
 
-        {/* Scroll indicator */}
-       /* <motion.div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          animate={{ y: [0, 8, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}>
-          <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>Scroll</span>
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-px h-6" style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(201,168,76,0.6))' }} />
-            <div className="w-1 h-1 rounded-full" style={{ background: 'var(--gold)' }} />
-          </div>
-        </motion.div>  */
+    
 
 
       </section>
