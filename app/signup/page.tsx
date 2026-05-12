@@ -19,7 +19,7 @@ export default function SignupPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [brandName, setBrandName] = useState('Sai Krishna')
+  const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
   const [logoUrl, setLogoUrl] = useState('/images/logo.png')
 

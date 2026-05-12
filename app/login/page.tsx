@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
-  const [brandName, setBrandName] = useState('Sai Krishna')
+  const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
   const [logoUrl, setLogoUrl] = useState('/images/logo.png')
 

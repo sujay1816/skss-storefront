@@ -124,16 +124,15 @@ export default function ProductCard({ product, userId }: { product: Product; use
             </motion.button>
           </div>
 
-          {/* Add to Cart button
-              Issue 1 fix — removed whileInView which caused repeated triggering and blinking.
-              Now uses CSS transition via isHovered state instead of conflicting Framer Motion animations. */}
+          {/* Fix #3 — Add to Cart: always visible on mobile, hover-reveal on desktop
+              Mobile users have no hover state so the button was completely invisible.
+              Now shown permanently on mobile (md:translate-y-full md:group-hover:translate-y-0) */}
           {!product.isOutOfStock && (
             <button
-              className="absolute bottom-0 left-0 right-0 py-3 text-xs font-medium tracking-widest uppercase text-white flex items-center justify-center gap-2 transition-all duration-300"
+              className="absolute bottom-0 left-0 right-0 py-3 text-xs font-medium tracking-widest uppercase text-white flex items-center justify-center gap-2 transition-all duration-300 md:translate-y-full md:group-hover:translate-y-0"
               style={{
                 background: 'var(--crimson)',
                 zIndex: 10,
-                transform: isHovered ? 'translateY(0)' : 'translateY(100%)',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--gold)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'var(--crimson)')}

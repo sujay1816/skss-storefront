@@ -125,6 +125,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
       />
       <Footer config={config} categories={categories} />
       <WhatsAppButton number={config.whatsapp_number || ''} />
+      <BackToTop />
     </>
   )
 }

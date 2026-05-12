@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { SlidersHorizontal, X, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import type { Product, Category, SiteConfig } from '@/types'
-import { formatPrice } from '@/lib/utils'
 
 const DEFAULT_FABRICS = ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
 const OCCASIONS = ['Wedding','Festive','Casual','Office','Party','Religious','Daily Wear']
@@ -28,6 +27,22 @@ const SkeletonCard = () => (
       <div className="skeleton h-4 w-1/3 rounded" />
     </div>
   </div>
+)
+
+// Fix #2 — FilterSection, FilterChip moved outside ShopContent
+// Previously defined inside the component causing re-mounts on every filter click
+const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="pb-5 mb-5 border-b" style={{ borderColor: 'var(--border)' }}>
+    <h4 className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-primary)' }}>{title}</h4>
+    {children}
+  </div>
+)
+
+const FilterChip = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
+  <button onClick={onClick} className="px-3 py-1.5 text-xs border transition-all duration-150"
+    style={{ borderColor: active ? 'var(--crimson)' : 'var(--border)', background: active ? 'var(--crimson)' : 'transparent', color: active ? 'white' : 'var(--text-secondary)' }}>
+    {label}
+  </button>
 )
 
 export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading, fabrics: fabricsProp }: {
@@ -84,20 +99,6 @@ export default function ShopContent({ products, categories, config, userId, init
     setSearch(searchInput.trim())
     setPage(1)
   }
-
-  const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="pb-5 mb-5 border-b" style={{ borderColor: 'var(--border)' }}>
-      <h4 className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-primary)' }}>{title}</h4>
-      {children}
-    </div>
-  )
-
-  const FilterChip = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
-    <button onClick={onClick} className="px-3 py-1.5 text-xs border transition-all duration-150"
-      style={{ borderColor: active ? 'var(--crimson)' : 'var(--border)', background: active ? 'var(--crimson)' : 'transparent', color: active ? 'white' : 'var(--text-secondary)' }}>
-      {label}
-    </button>
-  )
 
   const Filters = () => (
     <div>

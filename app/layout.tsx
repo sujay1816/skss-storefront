@@ -70,7 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
     }
   } catch {
     return {
-      title: ,
+      title: `${BRAND_NAME} — Premium Silk Sarees`,
       description: 'Shop pure silk sarees online. Kanjivaram, Banarasi, Chanderi and more.',
     }
   }
