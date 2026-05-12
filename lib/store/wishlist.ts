@@ -14,21 +14,48 @@ export const useWishlistStore = create<WishlistStore>()(
   persist(
     (set, get) => ({
       ids: [],
+
       toggle: async (productId, userId) => {
         const isIn = get().ids.includes(productId)
-        set(state => ({ ids: isIn ? state.ids.filter(id => id !== productId) : [...state.ids, productId] }))
+        // Optimistically update local state
+        set(state => ({
+          ids: isIn ? state.ids.filter(id => id !== productId) : [...state.ids, productId]
+        }))
+
         if (userId) {
           const supabase = createClient()
-          if (isIn) await supabase.from('wishlists').delete().eq('user_id', userId).eq('product_id', productId)
-          else await supabase.from('wishlists').insert({ user_id: userId, product_id: productId })
+          // Fix #5 — handle errors and revert local state if DB write fails
+          if (isIn) {
+            const { error } = await supabase.from('wishlists').delete()
+              .eq('user_id', userId).eq('product_id', productId)
+            if (error) {
+              console.error('Wishlist remove error:', error.message)
+              // Revert optimistic update
+              set(state => ({ ids: [...state.ids, productId] }))
+            }
+          } else {
+            const { error } = await supabase.from('wishlists').insert({
+              user_id: userId, product_id: productId
+            })
+            if (error) {
+              console.error('Wishlist add error:', error.message)
+              // Revert optimistic update
+              set(state => ({ ids: state.ids.filter(id => id !== productId) }))
+            }
+          }
         }
       },
+
       isWishlisted: (productId) => get().ids.includes(productId),
+
       syncFromDb: async (userId) => {
         const supabase = createClient()
-        const { data } = await supabase.from('wishlists').select('product_id').eq('user_id', userId)
+        const { data, error } = await supabase.from('wishlists')
+          .select('product_id').eq('user_id', userId)
+        if (error) { console.error('Wishlist sync error:', error.message); return }
         if (data) set({ ids: data.map((r: any) => r.product_id) })
       },
+
       clearLocal: () => set({ ids: [] }),
     }),
     { name: 'skss-wishlist' }

@@ -46,15 +46,31 @@ export default function ProfilePage() {
     if (!userId) return
     setSaving(true)
     const supabase = createClient()
-    await supabase.from('profiles').upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
-    toast.success('Profile updated!')
+    // Fix #7 — check for errors instead of always showing success
+    const { error } = await supabase.from('profiles').upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
+    if (error) {
+      toast.error('Could not save profile. Please try again.')
+      console.error('Profile save error:', error.message)
+    } else {
+      toast.success('Profile updated!')
+    }
     setSaving(false)
   }
 
   const setDefault = async (id: string) => {
     const supabase = createClient()
-    await supabase.from('addresses').update({ is_default: false }).eq('user_id', userId)
-    await supabase.from('addresses').update({ is_default: true }).eq('id', id)
+    // Fix #8 — use atomic RPC to prevent race condition
+    // Old: two sequential updates (if second fails, all addresses have is_default=false)
+    // New: single SQL function that does both updates atomically
+    const { error } = await supabase.rpc('set_default_address', {
+      p_user_id: userId,
+      p_address_id: id,
+    })
+    if (error) {
+      // Fallback to sequential if RPC not yet created
+      await supabase.from('addresses').update({ is_default: false }).eq('user_id', userId)
+      await supabase.from('addresses').update({ is_default: true }).eq('id', id)
+    }
     setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === id })))
     toast.success('Default address set')
   }

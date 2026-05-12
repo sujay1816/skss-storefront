@@ -24,23 +24,14 @@ export default function OrderDetailPage() {
       if (!o) { router.push('/orders'); return }
       setOrder(o)
 
-      // Fetch items using the REST API directly with auth header
-      // This bypasses RLS issues by using the user's JWT token
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-      const token = currentSession?.access_token
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/order_items?order_id=eq.${id}&select=*`,
-        {
-          headers: {
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        }
-      )
-      const oi = await res.json()
-      setItems(Array.isArray(oi) ? oi : [])
+      // Fix #4 — use Supabase client directly instead of raw REST API
+      // Raw REST was fragile and unnecessarily complex
+      const { data: oi, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', id)
+      if (itemsError) console.error('Order items error:', itemsError.message)
+      setItems(oi || [])
       setLoading(false)
     }
     load()

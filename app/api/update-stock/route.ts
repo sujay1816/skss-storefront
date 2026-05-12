@@ -7,7 +7,6 @@ const supabase = createClient(
 )
 
 export async function POST(request: Request) {
-  // Verify internal secret header
   const secret = request.headers.get('x-internal-secret')
   if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,43 +14,38 @@ export async function POST(request: Request) {
 
   try {
     const { type, items } = await request.json()
+
     if (type === 'deduct') {
+      // Fix #2 — use atomic RPC instead of read-then-write
+      // Old pattern: read stock → calculate new value → write
+      // Race condition: two orders could both read stock=1, both pass,
+      // both write stock=0, resulting in -1 effective stock (oversell)
+      // New pattern: single SQL UPDATE stock = stock - quantity (atomic)
       for (const item of items) {
-        const { data: variant } = await supabase
-          .from('product_variants').select('stock')
-          .eq('product_id', item.product_id).eq('colour', item.colour).single()
-        if (variant) {
-          await supabase.from('product_variants')
-            .update({ stock: Math.max(0, variant.stock - item.quantity) })
-            .eq('product_id', item.product_id).eq('colour', item.colour)
-        }
-        const { data: all } = await supabase
-          .from('product_variants').select('stock').eq('product_id', item.product_id)
-        if (all) {
-          await supabase.from('products')
-            .update({ stock: all.reduce((s: number, v: any) => s + v.stock, 0) })
-            .eq('id', item.product_id)
+        const { error } = await supabase.rpc('deduct_stock', {
+          p_product_id: item.product_id,
+          p_colour: item.colour,
+          p_quantity: item.quantity,
+        })
+        if (error) {
+          console.error('deduct_stock error:', error.message)
+          return NextResponse.json({ error: error.message }, { status: 500 })
         }
       }
       return NextResponse.json({ success: true })
     }
 
     if (type === 'restore') {
+      // Fix #2 — atomic restore too
       for (const item of items) {
-        const { data: variant } = await supabase
-          .from('product_variants').select('stock')
-          .eq('product_id', item.product_id).eq('colour', item.colour).single()
-        if (variant) {
-          await supabase.from('product_variants')
-            .update({ stock: variant.stock + item.quantity })
-            .eq('product_id', item.product_id).eq('colour', item.colour)
-        }
-        const { data: all } = await supabase
-          .from('product_variants').select('stock').eq('product_id', item.product_id)
-        if (all) {
-          await supabase.from('products')
-            .update({ stock: all.reduce((s: number, v: any) => s + v.stock, 0) })
-            .eq('id', item.product_id)
+        const { error } = await supabase.rpc('restore_stock', {
+          p_product_id: item.product_id,
+          p_colour: item.colour,
+          p_quantity: item.quantity,
+        })
+        if (error) {
+          console.error('restore_stock error:', error.message)
+          return NextResponse.json({ error: error.message }, { status: 500 })
         }
       }
       return NextResponse.json({ success: true })
