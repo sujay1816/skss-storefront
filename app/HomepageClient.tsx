@@ -10,13 +10,6 @@ import type { SiteConfig, Category, Product, Banner } from '@/types'
 const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }
 
-const TESTIMONIALS = [
-  { name: 'Priya Sharma', city: 'Mumbai', rating: 5, text: 'The Kanjivaram saree I ordered was absolutely stunning. The quality is exceptional and delivery was quick. Will definitely order again!' },
-  { name: 'Ananya Krishnan', city: 'Bangalore', rating: 5, text: 'Wore this to my sister\'s wedding and received so many compliments. The silk feels luxurious and the colors are exactly as shown.' },
-  { name: 'Meera Patel', city: 'Ahmedabad', rating: 5, text: 'Beautiful packaging, authentic silk, fast shipping. This is my go-to store for premium sarees. Highly recommended!' },
-  { name: 'Lakshmi Iyer', city: 'Chennai', rating: 5, text: 'The Banarasi saree is a masterpiece. Every thread is perfect. Customer service was also very helpful with my queries.' },
-]
-
 export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId }: {
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
 }) {
@@ -154,19 +147,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </div>
         </motion.div>
 
-        {/* Stats bar */}
-        <div className="absolute bottom-0 left-0 right-0 hidden md:block">
-          <div className="page-container">
-            <div className="flex gap-8 py-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-              {[['500+', 'Saree Designs'], ['10,000+', 'Happy Customers'], ['15+', 'Years Legacy'], ['100%', 'Authentic Silk']].map(([num, label]) => (
-                <div key={label} className="flex items-center gap-3">
-                  <span className="text-xl font-light" style={{ color: 'var(--gold-light)', fontFamily: 'var(--font-heading)' }}>{num}</span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+
       </section>
 
       {/* ── MARQUEE ── */}
@@ -363,46 +344,6 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </div>
         </section>
       )}
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="py-10 md:py-16" style={{ background: 'var(--cream)' }}>
-        <div className="page-container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
-            <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)' }}>What Our Customers Say</p>
-            <h2 className="section-heading">Loved by Thousands</h2>
-            <div className="flex items-center justify-center gap-1 mt-3">
-              {[...Array(5)].map((_, i) => <span key={i} style={{ color: 'var(--gold)', fontSize: 18 }}>★</span>)}
-              <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>4.9/5 from 2,400+ reviews</span>
-            </div>
-          </motion.div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {TESTIMONIALS.map((t, i) => (
-              <motion.div key={i} variants={fadeUp}
-                className="p-6 rounded-lg relative"
-                style={{ background: 'white', border: '1px solid var(--border)', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(t.rating)].map((_, j) => <span key={j} style={{ color: 'var(--gold)', fontSize: 13 }}>★</span>)}
-                </div>
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                    style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)' }}>
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t.city}</p>
-                  </div>
-                </div>
-                {/* Quote mark */}
-                <div className="absolute top-4 right-5 text-5xl font-serif leading-none opacity-5"
-                  style={{ color: 'var(--crimson)' }}>"</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
 
       {/* ── ABOUT STRIP ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
