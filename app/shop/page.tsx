@@ -12,7 +12,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.ve
 
 export async function generateMetadata({ searchParams }: { searchParams: any }): Promise<Metadata> {
   const config = await getSiteConfig().catch(() => ({} as any))
-  const brandName = config.brand_name || 'Sai Krishna Silks & Sarees'
+  const brandName = config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
   const category = searchParams?.category
   const filter = searchParams?.filter
   const q = searchParams?.q
@@ -103,7 +103,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
   const collectionSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: `${config.brand_name || 'Sai Krishna Silks & Sarees'} — Saree Collection`,
+    name: `${config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'} — Saree Collection`,
     description: 'Premium silk sarees collection',
     url: `${SITE_URL}/shop`,
     numberOfItems: products.length,

@@ -30,7 +30,6 @@ export default function OrderDetailPage() {
         .from('order_items')
         .select('*')
         .eq('order_id', id)
-      if (itemsError) console.error('Order items error:', itemsError.message)
       setItems(oi || [])
       setLoading(false)
     }

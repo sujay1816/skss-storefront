@@ -135,10 +135,10 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             </button>
 
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "Sai Krishna Silks and Sarees"} width={44} height={44} className="object-contain" />
+              <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'} width={44} height={44} className="object-contain" />
               {/* Issue 2 fix — removed 'hidden sm:block' so brand name shows on mobile too */}
               <div>
-                <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || 'Sai Krishna'}</p>
+                <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}</p>
                 <p className="text-xs tracking-widest hidden sm:block" style={{ color: 'var(--gold)', letterSpacing: '0.15em' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
               </div>
             </Link>
@@ -302,7 +302,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                 <div className="flex items-center gap-3">
                   <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "SKSS"} width={36} height={36} className="object-contain" />
                   <div>
-                    <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || 'Sai Krishna'}</p>
+                    <p className="text-sm font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}</p>
                     <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', fontSize: '9px' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
                   </div>
                 </div>

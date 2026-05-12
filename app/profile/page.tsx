@@ -50,7 +50,6 @@ export default function ProfilePage() {
     const { error } = await supabase.from('profiles').upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
     if (error) {
       toast.error('Could not save profile. Please try again.')
-      console.error('Profile save error:', error.message)
     } else {
       toast.success('Profile updated!')
     }
