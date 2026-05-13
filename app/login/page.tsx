@@ -39,8 +39,29 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { toast.error(error.message); setLoading(false); return }
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      // UI/UX: friendlier error messages
+      if (error.message.toLowerCase().includes('invalid login') || error.message.toLowerCase().includes('invalid credentials')) {
+        toast.error('Incorrect email or password. Please try again.')
+      } else if (error.message.toLowerCase().includes('email not confirmed')) {
+        toast.error('Please verify your email address before signing in. Check your inbox.')
+      } else {
+        toast.error(error.message)
+      }
+      setLoading(false)
+      return
+    }
+    // UI/UX: check if account is blocked after login
+    if (data.user) {
+      const { data: profile } = await supabase.from('profiles').select('is_blocked').eq('id', data.user.id).single()
+      if (profile?.is_blocked) {
+        await supabase.auth.signOut()
+        toast.error('Your account has been suspended. Please contact support.')
+        setLoading(false)
+        return
+      }
+    }
     toast.success('Welcome back!')
     router.push(redirect)
     router.refresh()

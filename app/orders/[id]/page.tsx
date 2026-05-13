@@ -72,14 +72,22 @@ export default function OrderDetailPage() {
   if (!order) return null
   const addr = order.address_snapshot || order.shipping_address || {}
 
-  // FIX #11: compute GST label dynamically from stored gst_rate if available
-  // Falls back to "GST" without a rate if no rate is stored (older orders)
+  // UI/UX: dynamic GST label
   const gstLabel = order.gst_rate ? `GST (${order.gst_rate}%)` : 'GST (5%)'
 
-  // FIX #8: determine if return can be requested
-  // Only show return button for delivered orders that haven't already been requested
+  // UI/UX: return logic
   const canRequestReturn = order.status === 'delivered'
   const returnAlreadyRequested = ['return_requested', 'return_approved', 'return_rejected', 'refunded'].includes(order.status)
+
+  // UI/UX: order progress stepper
+  const STEPS = [
+    { key: 'confirmed',  label: 'Confirmed',  icon: '✅' },
+    { key: 'shipped',    label: 'Shipped',    icon: '📦' },
+    { key: 'delivered',  label: 'Delivered',  icon: '🎉' },
+  ]
+  const stepOrder = ['confirmed', 'processing', 'shipped', 'delivered']
+  const currentStepIdx = stepOrder.indexOf(order.status)
+  const isCancelledOrReturn = ['cancelled', 'return_requested', 'return_approved', 'return_rejected', 'refunded'].includes(order.status)
 
   return (
     <div className="page-container py-8 max-w-2xl">
@@ -108,6 +116,39 @@ export default function OrderDetailPage() {
           </div>
         )
       })()}
+
+      {/* UI/UX: order progress stepper */}
+      {!isCancelledOrReturn && (
+        <div className="card p-5 mb-4">
+          <div className="flex items-center justify-between relative">
+            {/* connector line */}
+            <div className="absolute left-0 right-0 top-4 h-0.5 mx-8" style={{ background: 'var(--border)', zIndex: 0 }} />
+            <div className="absolute left-0 top-4 h-0.5 mx-8" style={{
+              background: 'var(--crimson)',
+              zIndex: 1,
+              right: currentStepIdx >= 2 ? '0' : currentStepIdx >= 1 ? '50%' : '100%',
+              transition: 'right 0.4s ease',
+            }} />
+            {STEPS.map((step, i) => {
+              const done = currentStepIdx >= stepOrder.indexOf(step.key)
+              const active = stepOrder.indexOf(step.key) === currentStepIdx
+              return (
+                <div key={step.key} className="flex flex-col items-center gap-1 relative z-10" style={{ flex: 1 }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all"
+                    style={{
+                      background: done ? 'var(--crimson)' : 'white',
+                      border: `2px solid ${done ? 'var(--crimson)' : 'var(--border)'}`,
+                      boxShadow: active ? '0 0 0 3px rgba(139,26,43,0.2)' : 'none',
+                    }}>
+                    {done ? <span style={{ fontSize: 13 }}>{step.icon}</span> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)', display: 'block' }} />}
+                  </div>
+                  <p className="text-xs font-medium text-center" style={{ color: done ? 'var(--crimson)' : 'var(--text-secondary)', fontSize: 10 }}>{step.label}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="card p-5 mb-4">
         <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>

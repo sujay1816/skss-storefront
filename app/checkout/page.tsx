@@ -30,6 +30,9 @@ export default function CheckoutPage() {
     city: '', state: 'Karnataka', pincode: '', saveAddress: true,
   })
   const [phoneError, setPhoneError] = useState('')
+  // UI/UX: saved address selector
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [showAddressPicker, setShowAddressPicker] = useState(false)
 
   // FIX #3: read shipping threshold and GST rate from site_config instead of hardcoding
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1999)
@@ -48,6 +51,9 @@ export default function CheckoutPage() {
       if (profile) setForm(f => ({ ...f, fullName: profile.full_name || '', phone: profile.phone || '' }))
       const { data: addr } = await supabase.from('addresses').select('*').eq('user_id', user.id).eq('is_default', true).single()
       if (addr) setForm(f => ({ ...f, fullName: addr.full_name || f.fullName, phone: addr.phone || f.phone, addressLine1: addr.address_line1, addressLine2: addr.address_line2 || '', city: addr.city, state: addr.state, pincode: addr.pincode }))
+      // UI/UX: load all saved addresses for the picker
+      const { data: allAddrs } = await supabase.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false })
+      setSavedAddresses(allAddrs || [])
 
       // FIX #3: fetch config values
       const { data: cfg } = await supabase
@@ -263,6 +269,38 @@ export default function CheckoutPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-5">
             <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Delivery Address</h2>
+            {/* UI/UX: saved address picker */}
+            {savedAddresses.length > 0 && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddressPicker(!showAddressPicker)}
+                  className="text-xs font-medium flex items-center gap-1"
+                  style={{ color: 'var(--crimson)' }}>
+                  {showAddressPicker ? '▲' : '▼'} {savedAddresses.length === 1 ? 'Use saved address' : `Choose from ${savedAddresses.length} saved addresses`}
+                </button>
+                {showAddressPicker && (
+                  <div className="mt-2 border rounded space-y-0 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+                    {savedAddresses.map((a, i) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          setForm(f => ({ ...f, fullName: a.full_name, phone: a.phone, addressLine1: a.address_line1, addressLine2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }))
+                          setShowAddressPicker(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-50 border-b last:border-0"
+                        style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                        <span className="font-medium">{a.full_name}</span>
+                        {a.is_default && <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--cream)', color: 'var(--gold-dark)' }}>Default</span>}
+                        <br />
+                        <span style={{ color: 'var(--text-secondary)' }}>{a.address_line1}, {a.city} – {a.pincode}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <F label="Full Name" required>
                 <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" />

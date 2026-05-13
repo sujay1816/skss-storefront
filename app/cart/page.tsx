@@ -127,7 +127,17 @@ export default function CartPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link href={`/product/${item.productSlug}`}><h3 className="font-light mb-1 hover:underline" style={{ fontFamily: 'var(--font-heading)', fontSize: '16px' }}>{item.productName}</h3></Link>
-                      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Colour: <span style={{ color: 'var(--text-primary)' }}>{item.colour}</span></p>
+                      <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Colour: <span style={{ color: 'var(--text-primary)' }}>{item.colour}</span></p>
+                      {/* UI/UX: low stock warning */}
+                      {item.stock <= 3 && item.stock > 0 && (
+                        <p className="text-xs mb-2 font-medium" style={{ color: '#D97706' }}>⚠ Only {item.stock} left in stock</p>
+                      )}
+                      {item.stock === 0 && (
+                        <p className="text-xs mb-2 font-medium" style={{ color: 'var(--crimson)' }}>✕ Out of stock — please remove</p>
+                      )}
+                      {item.quantity >= item.stock && item.stock > 0 && (
+                        <p className="text-xs mb-2" style={{ color: '#D97706' }}>Max quantity reached</p>
+                      )}
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
                           <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined)} className="w-8 h-8 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={12} /></button>

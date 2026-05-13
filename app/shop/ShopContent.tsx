@@ -126,13 +126,23 @@ export default function ShopContent({ products, categories, config, userId, init
           <input
             type="range" min={0} max={50000} step={500}
             value={priceMin || 0}
-            onChange={e => { setPriceMin(e.target.value === '0' ? '' : e.target.value); setPage(1) }}
+            onChange={e => {
+              const val = Number(e.target.value)
+              const max = Number(priceMax || 50000)
+              // UI/UX: prevent min from exceeding max
+              if (val <= max - 500) { setPriceMin(val === 0 ? '' : String(val)); setPage(1) }
+            }}
             className="price-slider w-full"
           />
           <input
             type="range" min={0} max={50000} step={500}
             value={priceMax || 50000}
-            onChange={e => { setPriceMax(e.target.value === '50000' ? '' : e.target.value); setPage(1) }}
+            onChange={e => {
+              const val = Number(e.target.value)
+              const min = Number(priceMin || 0)
+              // UI/UX: prevent max from going below min
+              if (val >= min + 500) { setPriceMax(val === 50000 ? '' : String(val)); setPage(1) }
+            }}
             className="price-slider w-full"
           />
           <div className="flex gap-2 mt-1">
