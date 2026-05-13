@@ -87,6 +87,30 @@ const ZoomImage = memo(function ZoomImage({
   )
 })
 
+// Accordion defined OUTSIDE ProductDetailClient so it isn't recreated on every
+// state change (e.g. when openSection changes). Defining it inside caused all
+// accordions to unmount/remount on every render, losing animation state.
+function Accordion({ id, title, children, openSection, setOpenSection }: {
+  id: string; title: string; children: React.ReactNode
+  openSection: string | null; setOpenSection: (v: string | null) => void
+}) {
+  return (
+    <div className="border-t" style={{ borderColor: 'var(--border)' }}>
+      <button className="w-full flex items-center justify-between py-4" onClick={() => setOpenSection(openSection === id ? null : id)}>
+        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
+        {openSection === id ? <ChevronUp size={16} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />}
+      </button>
+      <AnimatePresence>
+        {openSection === id && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="pb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId }: {
   product: Product; reviews: Review[]; relatedProducts: Product[]; config: SiteConfig; userId?: string
 }) {
@@ -244,21 +268,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     setReviewSubmitting(false)
   }
 
-  const Accordion = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
-    <div className="border-t" style={{ borderColor: 'var(--border)' }}>
-      <button className="w-full flex items-center justify-between py-4" onClick={() => setOpenSection(openSection === id ? null : id)}>
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
-        {openSection === id ? <ChevronUp size={16} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />}
-      </button>
-      <AnimatePresence>
-        {openSection === id && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="pb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
+  // Accordion is defined above as a module-level component (see above export default)
 
   return (
     <div className="page-container py-8 animate-fadeIn">
@@ -483,16 +493,16 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           </div>
 
           <div>
-            <Accordion id="details" title="Product Details">
+            <Accordion id="details" title="Product Details" openSection={openSection} setOpenSection={setOpenSection}>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {[['Fabric', product.fabric], ['Weave Type', product.weaveType], ['Origin', product.originRegion], ['Length', `${product.length} meters`], ['Weight', product.weightGrams ? `${product.weightGrams}g` : ''], ['Blouse Piece', product.blouseIncluded ? 'Included' : 'Not Included'], ['Occasion', product.occasion.join(', ')], ...Object.entries(product.customFields)].filter(([,v]) => v).map(([k,v]) => (
                   <><span key={`k-${k}`} style={{ color: 'var(--text-secondary)' }}>{k}</span><span key={`v-${k}`} style={{ color: 'var(--text-primary)' }}>{v}</span></>
                 ))}
               </div>
             </Accordion>
-            <Accordion id="description" title="Description"><p>{product.description}</p></Accordion>
-            <Accordion id="care" title="Care Instructions"><p>{product.careInstructions}</p></Accordion>
-            <Accordion id="shipping" title={`Shipping & Returns (${config.return_window_days} days)`}>
+            <Accordion id="description" title="Description" openSection={openSection} setOpenSection={setOpenSection}><p>{product.description}</p></Accordion>
+            <Accordion id="care" title="Care Instructions" openSection={openSection} setOpenSection={setOpenSection}><p>{product.careInstructions}</p></Accordion>
+            <Accordion id="shipping" title={`Shipping & Returns (${config.return_window_days} days)`} openSection={openSection} setOpenSection={setOpenSection}>
               <p>Free shipping on orders above ₹{Number(config.free_shipping_above).toLocaleString('en-IN')}. Standard delivery in {config.estimated_delivery_days} business days.</p>
               <p className="mt-2">Returns accepted within {config.return_window_days} days for <strong>unused and damaged goods only</strong>. Raise a return request from your orders page with a photo of the item.</p>
             </Accordion>

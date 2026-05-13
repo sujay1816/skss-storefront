@@ -43,6 +43,88 @@ const FilterChip = ({ label, active, onClick }: { label: string; active: boolean
   </button>
 )
 
+// FiltersContent defined OUTSIDE ShopContent so it isn't recreated on every
+// filter state change. Defining it inside caused the entire filter UI to
+// unmount/remount on every state update (category, fabric, price, etc).
+interface FiltersProps {
+  activeCount: number
+  categories: Category[]
+  fabrics: string[]
+  selectedCategory: string
+  selectedFabrics: string[]
+  selectedOccasions: string[]
+  priceMin: string
+  priceMax: string
+  onlyNew: boolean
+  onlyInStock: boolean
+  setSelectedCategory: (v: string) => void
+  setSelectedFabrics: (v: string[]) => void
+  setSelectedOccasions: (v: string[]) => void
+  setPriceMin: (v: string) => void
+  setPriceMax: (v: string) => void
+  setOnlyNew: (v: boolean) => void
+  setOnlyInStock: (v: boolean) => void
+  setPage: (v: number) => void
+  clearAll: () => void
+  toggleFilter: (arr: string[], val: string, set: (v: string[]) => void) => void
+}
+function FiltersContent({ activeCount, categories, fabrics, selectedCategory, selectedFabrics,
+  selectedOccasions, priceMin, priceMax, onlyNew, onlyInStock,
+  setSelectedCategory, setSelectedFabrics, setSelectedOccasions,
+  setPriceMin, setPriceMax, setOnlyNew, setOnlyInStock, setPage, clearAll, toggleFilter
+}: FiltersProps) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>Filters {activeCount > 0 && `(${activeCount})`}</h3>
+        {activeCount > 0 && <button onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear All</button>}
+      </div>
+      <FilterSection title="Category">
+        <div className="flex flex-wrap gap-2">
+          <FilterChip label="All" active={!selectedCategory} onClick={() => { setSelectedCategory(''); setPage(1) }} />
+          {categories.map(c => <FilterChip key={c.id} label={c.name} active={selectedCategory === c.slug} onClick={() => { setSelectedCategory(selectedCategory === c.slug ? '' : c.slug); setPage(1) }} />)}
+        </div>
+      </FilterSection>
+      <FilterSection title="Fabric">
+        <div className="flex flex-wrap gap-2">{fabrics.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics)} />)}</div>
+      </FilterSection>
+      <FilterSection title="Occasion">
+        <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions)} />)}</div>
+      </FilterSection>
+      <FilterSection title="Price Range">
+        <div className="space-y-3">
+          <div className="flex justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <span>₹{Number(priceMin || 0).toLocaleString('en-IN')}</span>
+            <span>₹{Number(priceMax || 50000).toLocaleString('en-IN')}</span>
+          </div>
+          <input type="range" min={0} max={50000} step={500} value={priceMin || 0}
+            onChange={e => { const v = Number(e.target.value); if (v <= Number(priceMax || 50000) - 500) { setPriceMin(v === 0 ? '' : String(v)); setPage(1) } }}
+            className="price-slider w-full" />
+          <input type="range" min={0} max={50000} step={500} value={priceMax || 50000}
+            onChange={e => { const v = Number(e.target.value); if (v >= Number(priceMin || 0) + 500) { setPriceMax(v === 50000 ? '' : String(v)); setPage(1) } }}
+            className="price-slider w-full" />
+          <div className="flex gap-2 mt-1">
+            <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+          </div>
+        </div>
+      </FilterSection>
+      <FilterSection title="Quick Filters">
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={onlyNew} onChange={e => { setOnlyNew(e.target.checked); setPage(1) }} style={{ accentColor: 'var(--crimson)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>New Arrivals</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={onlyInStock} onChange={e => { setOnlyInStock(e.target.checked); setPage(1) }} style={{ accentColor: 'var(--crimson)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>In Stock Only</span>
+          </label>
+        </div>
+      </FilterSection>
+    </div>
+  )
+}
+
 export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading, fabrics: fabricsProp }: {
   products: Product[]; categories: Category[]; config: SiteConfig; userId?: string;
   initialCategory?: string; initialSearch?: string; isLoading?: boolean; fabrics?: string[]
@@ -104,56 +186,7 @@ export default function ShopContent({ products, categories, config, userId, init
     return [1, '...', page - 1, page, page + 1, '...', totalPages]
   }
 
-  const FiltersContent = () => (
-    <div>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>Filters {activeCount > 0 && `(${activeCount})`}</h3>
-        {activeCount > 0 && <button onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear All</button>}
-      </div>
-      <FilterSection title="Category">
-        <div className="flex flex-wrap gap-2">
-          <FilterChip label="All" active={!selectedCategory} onClick={() => { setSelectedCategory(''); setPage(1) }} />
-          {categories.map(c => <FilterChip key={c.id} label={c.name} active={selectedCategory === c.slug} onClick={() => { setSelectedCategory(selectedCategory === c.slug ? '' : c.slug); setPage(1) }} />)}
-        </div>
-      </FilterSection>
-      <FilterSection title="Fabric">
-        <div className="flex flex-wrap gap-2">{fabrics.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics)} />)}</div>
-      </FilterSection>
-      <FilterSection title="Occasion">
-        <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions)} />)}</div>
-      </FilterSection>
-      <FilterSection title="Price Range">
-        <div className="space-y-3">
-          <div className="flex justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
-            <span>₹{Number(priceMin || 0).toLocaleString('en-IN')}</span>
-            <span>₹{Number(priceMax || 50000).toLocaleString('en-IN')}</span>
-          </div>
-          <input type="range" min={0} max={50000} step={500} value={priceMin || 0}
-            onChange={e => { const v = Number(e.target.value); if (v <= Number(priceMax || 50000) - 500) { setPriceMin(v === 0 ? '' : String(v)); setPage(1) } }}
-            className="price-slider w-full" />
-          <input type="range" min={0} max={50000} step={500} value={priceMax || 50000}
-            onChange={e => { const v = Number(e.target.value); if (v >= Number(priceMin || 0) + 500) { setPriceMax(v === 50000 ? '' : String(v)); setPage(1) } }}
-            className="price-slider w-full" />
-          <div className="flex gap-2 mt-1">
-            <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
-            <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
-          </div>
-        </div>
-      </FilterSection>
-      <FilterSection title="Quick Filters">
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={onlyNew} onChange={e => { setOnlyNew(e.target.checked); setPage(1) }} style={{ accentColor: 'var(--crimson)' }} />
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>New Arrivals</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={onlyInStock} onChange={e => { setOnlyInStock(e.target.checked); setPage(1) }} style={{ accentColor: 'var(--crimson)' }} />
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>In Stock Only</span>
-          </label>
-        </div>
-      </FilterSection>
-    </div>
-  )
+  // FiltersContent is defined above as a module-level component
 
   return (
     <div className="page-container py-8">
@@ -212,7 +245,14 @@ export default function ShopContent({ products, categories, config, userId, init
           {filtersOpen && (
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="hidden lg:block w-56 flex-shrink-0">
-              <FiltersContent />
+              <FiltersContent activeCount={activeCount} categories={categories} fabrics={fabrics}
+              selectedCategory={selectedCategory} selectedFabrics={selectedFabrics}
+              selectedOccasions={selectedOccasions} priceMin={priceMin} priceMax={priceMax}
+              onlyNew={onlyNew} onlyInStock={onlyInStock}
+              setSelectedCategory={setSelectedCategory} setSelectedFabrics={setSelectedFabrics}
+              setSelectedOccasions={setSelectedOccasions} setPriceMin={setPriceMin}
+              setPriceMax={setPriceMax} setOnlyNew={setOnlyNew} setOnlyInStock={setOnlyInStock}
+              setPage={setPage} clearAll={clearAll} toggleFilter={toggleFilter} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -303,7 +343,14 @@ export default function ShopContent({ products, categories, config, userId, init
               </div>
               {/* Scrollable content */}
               <div className="overflow-y-auto flex-1 px-5 pt-4">
-                <FiltersContent />
+                <FiltersContent activeCount={activeCount} categories={categories} fabrics={fabrics}
+              selectedCategory={selectedCategory} selectedFabrics={selectedFabrics}
+              selectedOccasions={selectedOccasions} priceMin={priceMin} priceMax={priceMax}
+              onlyNew={onlyNew} onlyInStock={onlyInStock}
+              setSelectedCategory={setSelectedCategory} setSelectedFabrics={setSelectedFabrics}
+              setSelectedOccasions={setSelectedOccasions} setPriceMin={setPriceMin}
+              setPriceMax={setPriceMax} setOnlyNew={setOnlyNew} setOnlyInStock={setOnlyInStock}
+              setPage={setPage} clearAll={clearAll} toggleFilter={toggleFilter} />
               </div>
               {/* Apply button */}
               <div className="px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>

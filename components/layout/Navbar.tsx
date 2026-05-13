@@ -20,7 +20,11 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [lastScrollY, setLastScrollY] = useState(0)
+  // FIX: useRef instead of useState for lastScrollY
+  // useState caused the scroll useEffect to re-register its listener on every
+  // scroll event (lastScrollY was in the deps array), making every scroll
+  // remove + re-add the event handler — an expensive cycle
+  const lastScrollY = useRef(0)
   const [profileOpen, setProfileOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -72,13 +76,13 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
     const handleScroll = () => {
       const currentY = window.scrollY
       setScrolled(currentY > 20)
-      if (currentY < 60) { setVisible(true); setLastScrollY(currentY); return }
-      setVisible(currentY < lastScrollY)
-      setLastScrollY(currentY)
+      if (currentY < 60) { setVisible(true); lastScrollY.current = currentY; return }
+      setVisible(currentY < lastScrollY.current)
+      lastScrollY.current = currentY
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [lastScrollY])
+  }, []) // empty deps — handler registered once, reads ref value directly
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
