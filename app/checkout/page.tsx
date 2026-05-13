@@ -38,6 +38,8 @@ export default function CheckoutPage() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1999)
   const [defaultShippingCharge, setDefaultShippingCharge] = useState(99)
   const [defaultGstRate, setDefaultGstRate] = useState(5)
+  // FIX: order number prefix from site_config — falls back to NEXT_PUBLIC_BRAND_SHORT_NAME then 'ORD'
+  const [orderPrefix, setOrderPrefix] = useState(process.env.NEXT_PUBLIC_BRAND_SHORT_NAME || 'ORD')
 
   useEffect(() => {
     const load = async () => {
@@ -59,12 +61,14 @@ export default function CheckoutPage() {
       const { data: cfg } = await supabase
         .from('site_config')
         .select('key, value')
-        .in('key', ['free_shipping_above', 'default_shipping_charge', 'default_gst_rate'])
+        .in('key', ['free_shipping_above', 'default_shipping_charge', 'default_gst_rate', 'brand_short_name'])
       if (cfg) {
         cfg.forEach((r: any) => {
           if (r.key === 'free_shipping_above') setFreeShippingThreshold(Number(r.value) || 1999)
           if (r.key === 'default_shipping_charge') setDefaultShippingCharge(Number(r.value) || 99)
           if (r.key === 'default_gst_rate') setDefaultGstRate(Number(r.value) || 5)
+          // FIX: read brand_short_name to use as order number prefix
+          if (r.key === 'brand_short_name' && r.value?.trim()) setOrderPrefix(r.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))
         })
       }
     }
@@ -216,6 +220,9 @@ export default function CheckoutPage() {
         user_id: userId, status: 'confirmed',
         payment_status: paymentMethod === 'cod' ? 'pending' : 'paid',
         payment_method: paymentMethod === 'cod' ? 'cod' : 'razorpay',
+        // FIX: generate order_number at creation using brand prefix from site_config
+        // Format: {PREFIX}-{YYYYMMDD}-{4-char random hex} e.g. SKSS-20240315-A3F2
+        order_number: `${orderPrefix}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.random().toString(16).slice(2,6).toUpperCase()}`,
         razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId,
         subtotal: sub, shipping_charge: shipping, total_gst: gst, gst_amount: gst,
         total_amount: total, coupon_code: appliedCoupon?.code || null,
