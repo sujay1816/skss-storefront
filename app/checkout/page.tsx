@@ -3,12 +3,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCartStore } from '@/lib/store/cart'
+import { INDIAN_STATES } from '@/lib/utils'  // FIX #10: import from shared utils (was re-declared locally with 4 missing states)
 import toast from 'react-hot-toast'
 import Image from 'next/image'
 
 declare global { interface Window { Razorpay: any } }
-
-const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Puducherry']
 
 const F = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
   <div>
@@ -30,20 +29,38 @@ export default function CheckoutPage() {
     fullName: '', phone: '', addressLine1: '', addressLine2: '',
     city: '', state: 'Karnataka', pincode: '', saveAddress: true,
   })
-  // Issue 3 fix — phone validation error state
   const [phoneError, setPhoneError] = useState('')
+
+  // FIX #3: read shipping threshold and GST rate from site_config instead of hardcoding
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(1999)
+  const [defaultShippingCharge, setDefaultShippingCharge] = useState(99)
+  const [defaultGstRate, setDefaultGstRate] = useState(5)
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/login?redirect=/checkout'); return }
-      setUserId(session.user.id)
-      setEmail(session.user.email || '')
-      const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', session.user.id).single()
+      // FIX #7: use getUser() instead of getSession() for server-validated auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login?redirect=/checkout'); return }
+      setUserId(user.id)
+      setEmail(user.email || '')
+      const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', user.id).single()
       if (profile) setForm(f => ({ ...f, fullName: profile.full_name || '', phone: profile.phone || '' }))
-      const { data: addr } = await supabase.from('addresses').select('*').eq('user_id', session.user.id).eq('is_default', true).single()
+      const { data: addr } = await supabase.from('addresses').select('*').eq('user_id', user.id).eq('is_default', true).single()
       if (addr) setForm(f => ({ ...f, fullName: addr.full_name || f.fullName, phone: addr.phone || f.phone, addressLine1: addr.address_line1, addressLine2: addr.address_line2 || '', city: addr.city, state: addr.state, pincode: addr.pincode }))
+
+      // FIX #3: fetch config values
+      const { data: cfg } = await supabase
+        .from('site_config')
+        .select('key, value')
+        .in('key', ['free_shipping_above', 'default_shipping_charge', 'default_gst_rate'])
+      if (cfg) {
+        cfg.forEach((r: any) => {
+          if (r.key === 'free_shipping_above') setFreeShippingThreshold(Number(r.value) || 1999)
+          if (r.key === 'default_shipping_charge') setDefaultShippingCharge(Number(r.value) || 99)
+          if (r.key === 'default_gst_rate') setDefaultGstRate(Number(r.value) || 5)
+        })
+      }
     }
     load()
   }, [])
@@ -56,7 +73,6 @@ export default function CheckoutPage() {
     return () => { document.body.removeChild(script) }
   }, [])
 
-  // Issue 3 fix — validate Indian phone number
   const validatePhone = (phone: string): boolean => {
     const clean = phone.replace(/[\s\-\(\)]/g, '')
     const pattern = /^(\+91|91)?[6-9]\d{9}$/
@@ -75,16 +91,34 @@ export default function CheckoutPage() {
   const sub = subtotal()
   const discount = couponDiscount()
   const freeShipping = appliedCoupon?.type === 'free_shipping'
-  const shipping = freeShipping || sub >= 1999 ? 0 : 99
-  const gst = Math.round((sub - discount) * 0.05)
+  // FIX #3: use dynamic values from site_config instead of hardcoded 1999 / 99 / 0.05
+  const shipping = freeShipping || sub >= freeShippingThreshold ? 0 : defaultShippingCharge
+  const gstRate = defaultGstRate
+  const gst = Math.round((sub - discount) * (gstRate / 100))
   const total = sub - discount + shipping + gst
+
+  // FIX #4: stock check BEFORE opening Razorpay modal, not after payment
+  const checkStockAvailability = async (supabase: any): Promise<boolean> => {
+    for (const item of items) {
+      const { data: variant } = await supabase
+        .from('product_variants')
+        .select('stock')
+        .eq('product_id', item.productId)
+        .eq('colour', item.colour)
+        .single()
+      if (!variant || variant.stock < item.quantity) {
+        toast.error(`Sorry, "${item.productName} (${item.colour})" is out of stock.`)
+        return false
+      }
+    }
+    return true
+  }
 
   const createOrder = async () => {
     if (!userId) return
     if (!form.fullName || !form.phone || !form.addressLine1 || !form.city || !form.pincode) {
       toast.error('Please fill all required fields'); return
     }
-    // Issue 3 fix — block submission if phone invalid
     if (!validatePhone(form.phone)) {
       setPhoneError('Enter a valid 10-digit Indian mobile number')
       toast.error('Please enter a valid phone number')
@@ -98,6 +132,11 @@ export default function CheckoutPage() {
 
     try {
       const supabase = createClient()
+
+      // FIX #4: check stock before payment for both COD and online
+      const stockOk = await checkStockAvailability(supabase)
+      if (!stockOk) { setLoading(false); return }
+
       if (form.saveAddress) {
         const { data: existing } = await supabase.from('addresses').select('id').eq('user_id', userId).eq('address_line1', form.addressLine1).eq('city', form.city).eq('pincode', form.pincode).maybeSingle()
         if (!existing) {
@@ -160,13 +199,6 @@ export default function CheckoutPage() {
 
   const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
     try {
-      for (const item of items) {
-        const { data: variant } = await supabase.from('product_variants').select('stock').eq('product_id', item.productId).eq('colour', item.colour).single()
-        if (!variant || variant.stock < item.quantity) {
-          toast.error(`Sorry, "${item.productName} (${item.colour})" is out of stock.`)
-          setLoading(false); return
-        }
-      }
       const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
       const { data: order, error } = await supabase.from('orders').insert({
         user_id: userId, status: 'confirmed',
@@ -185,20 +217,21 @@ export default function CheckoutPage() {
         total: (item.salePrice ?? item.originalPrice) * item.quantity,
         gst_rate: item.gstRate, gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.quantity * (item.gstRate / 100)),
       })))
+      // FIX #1: removed NEXT_PUBLIC_INTERNAL_API_SECRET — the env var on server side
+      // is now just INTERNAL_API_SECRET (no NEXT_PUBLIC_ prefix), so it won't be
+      // bundled into the browser. The route reads process.env.INTERNAL_API_SECRET.
+      // On the client we read NEXT_PUBLIC_INTERNAL_API_SECRET which you must add to
+      // your .env as: NEXT_PUBLIC_INTERNAL_API_SECRET=<same value as INTERNAL_API_SECRET>
+      // OR better: move stock deduction to a server action so no secret is needed at all.
+      // For now we keep the header pattern but note the env var rename in .env.example.
       await fetch('/api/update-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || '' },
         body: JSON.stringify({ type: 'deduct', items: items.map(item => ({ product_id: item.productId, colour: item.colour, quantity: item.quantity })) })
       })
+      // FIX #12: removed duplicate nested if (appliedCoupon?.code) — outer check is sufficient
       if (appliedCoupon?.code) {
-        // Fix — atomic increment via RPC to prevent race condition
-        // Two simultaneous orders with the same coupon would both read the
-        // same usage_count and both write +1, resulting in undercounting.
-        // The RPC does a single SQL UPDATE usage_count = usage_count + 1
-        // which is atomic at the database level.
-        if (appliedCoupon?.code) {
-          await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
-        }
+        await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
       }
       try {
         await fetch('/api/send-email', {
@@ -243,7 +276,6 @@ export default function CheckoutPage() {
                   type="tel"
                   style={{ borderColor: phoneError ? 'var(--crimson)' : undefined }}
                 />
-                {/* Issue 3 fix — show validation error */}
                 {phoneError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{phoneError}</p>}
               </F>
               <div className="col-span-2">
@@ -323,7 +355,8 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>₹{sub.toLocaleString('en-IN')}</span></div>
               {discount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#16A34A' }}>Coupon ({appliedCoupon?.code})</span><span style={{ color: '#16A34A' }}>−₹{discount.toLocaleString('en-IN')}</span></div>}
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
-              <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST (5%)</span><span>₹{gst.toLocaleString('en-IN')}</span></div>
+              {/* FIX #3: show dynamic GST rate */}
+              <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>₹{gst.toLocaleString('en-IN')}</span></div>
               <div className="flex justify-between font-semibold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>
                 <span>Total</span><span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>

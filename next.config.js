@@ -15,7 +15,7 @@ const nextConfig = {
   // Compression
   compress: true,
 
-  // Headers for SEO and performance
+  // Headers for SEO, performance, and security
   async headers() {
     return [
       {
@@ -25,10 +25,34 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          // FIX #14: Content-Security-Policy header
+          // Allows Razorpay checkout script, Supabase API, and Google OAuth
+          // Adjust 'img-src' if you serve product images from additional CDNs
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // Next.js inline scripts + Razorpay checkout JS
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
+              // Supabase realtime, auth, and storage; Google OAuth; Razorpay API
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://apiv2.shiprocket.in https://www.fast2sms.com",
+              // Google fonts and self
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              // Product images from Cloudinary, Supabase storage, and Google avatars
+              "img-src 'self' data: blob: https://res.cloudinary.com https://*.supabase.co https://lh3.googleusercontent.com",
+              // Razorpay payment iframe
+              "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+              // form-action self only
+              "form-action 'self'",
+              // base-uri self
+              "base-uri 'self'",
+            ].join('; '),
+          },
         ],
       },
       {
-        source: '/(.*)\\.(jpg|jpeg|png|webp|avif|svg|ico)',
+        source: '/(.*)\\.(?:jpg|jpeg|png|webp|avif|svg|ico)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],

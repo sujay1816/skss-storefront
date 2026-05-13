@@ -27,21 +27,51 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [qty, setQty] = useState(1)
-  // #10 — lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(0)
-  // #3 — sticky bar visibility (show after scrolling past CTAs)
   const [showStickyBar, setShowStickyBar] = useState(false)
+  // FIX #9: track whether user has a verified purchase of this product
+  const [hasVerifiedPurchase, setHasVerifiedPurchase] = useState(false)
+  const [purchaseCheckDone, setPurchaseCheckDone] = useState(false)
+
   const addItem = useCartStore(s => s.addItem)
   const { toggle, isWishlisted } = useWishlistStore()
   const wishlisted = isWishlisted(product.id)
 
-  // #3 — sticky bar
   useEffect(() => {
     const onScroll = () => setShowStickyBar(window.scrollY > 500)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // FIX #9: check if logged-in user has purchased this product
+  useEffect(() => {
+    if (!userId) { setPurchaseCheckDone(true); return }
+    const checkPurchase = async () => {
+      const supabase = createClient()
+      // Step 1: get this user's order IDs
+      const { data: userOrders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('user_id', userId)
+        .in('status', ['delivered', 'shipped', 'confirmed'])
+      const orderIds = (userOrders || []).map((o: any) => o.id)
+      if (orderIds.length === 0) {
+        setHasVerifiedPurchase(false)
+        setPurchaseCheckDone(true)
+        return
+      }
+      // Step 2: check if any order_item for this product exists in those orders
+      const { count } = await supabase
+        .from('order_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('product_id', product.id)
+        .in('order_id', orderIds)
+      setHasVerifiedPurchase((count || 0) > 0)
+      setPurchaseCheckDone(true)
+    }
+    checkPurchase()
+  }, [userId, product.id])
 
   const effectivePrice = getEffectivePrice(product)
   const isOnSale = effectivePrice < product.originalPrice
@@ -52,7 +82,8 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     if (pincode.length !== 6) return
     setCheckingPincode(true)
     try {
-      const res = await fetch(`/api/shiprocket/pincode?pincode=${pincode}`)
+      // FIX #2: corrected path from /api/shiprocket/pincode to /api/shiprocket
+      const res = await fetch(`/api/shiprocket?pincode=${pincode}`)
       const data = await res.json()
       setPincodeResult(data)
     } catch {
@@ -89,7 +120,15 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     if (!reviewText.trim()) return
     setReviewSubmitting(true)
     const supabase = createClient()
-    const { error } = await supabase.from('reviews').insert({ product_id: product.id, user_id: userId, rating: reviewRating, comment: reviewText, is_approved: false })
+    // FIX #9: pass is_verified_purchase based on actual purchase history
+    const { error } = await supabase.from('reviews').insert({
+      product_id: product.id,
+      user_id: userId,
+      rating: reviewRating,
+      comment: reviewText,
+      is_approved: false,
+      is_verified_purchase: hasVerifiedPurchase,
+    })
     if (error) { toast.error('Could not submit review. You may have already reviewed this product.'); setReviewSubmitting(false); return }
     setReviewSubmitted(true)
     toast.success('Review submitted! Thank you.')
@@ -128,8 +167,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
       <div className="flex flex-col lg:flex-row gap-10">
         {/* Images + Video */}
         <div className="lg:w-1/2">
-          {/* Main display — shows active image or video */}
-          {/* #10 — lightbox */}
           {lightboxOpen && (
             <div className="lightbox-overlay" onClick={() => setLightboxOpen(false)}>
               <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
@@ -150,14 +187,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             onClick={() => { if (activeImage !== -1) { setLightboxIdx(activeImage); setLightboxOpen(true) } }}
             whileHover={{ scale: activeImage === -1 ? 1 : 1.02 }} transition={{ duration: 0.3 }}>
             {activeImage === -1 && product.videoUrl ? (
-              /* Video view */
-              <video
-                className="w-full h-full"
-                style={{ objectFit: 'cover' }}
-                controls
-                playsInline
-                preload="metadata"
-              >
+              <video className="w-full h-full" style={{ objectFit: 'cover' }} controls playsInline preload="metadata">
                 <source src={product.videoUrl} type="video/mp4" />
               </video>
             ) : primaryImage?.url ? (
@@ -174,7 +204,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           </motion.div>
 
-          {/* Thumbnails — images + optional video thumbnail */}
           {(product.images.length > 1 || product.videoUrl) && (
             <div className="flex gap-2">
               {product.images.map((img, i) => (
@@ -184,7 +213,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
-              {/* Video thumbnail — shows play icon */}
               {product.videoUrl && (
                 <button onClick={() => setActiveImage(-1)}
                   className="relative flex-1 border-2 overflow-hidden transition-all flex items-center justify-center"
@@ -216,14 +244,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           )}
 
-          {/* Price */}
           <div className="flex items-baseline gap-3 mb-2">
             <span className="text-3xl font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{formatPrice(effectivePrice)}</span>
             {isOnSale && <><span className="text-lg line-through" style={{ color: 'var(--text-secondary)' }}>{formatPrice(product.originalPrice)}</span><span className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{product.discountPercent}% off</span></>}
           </div>
           <p className="text-xs mb-6" style={{ color: 'var(--text-secondary)' }}>Inclusive of GST ({product.gstRate}% = {formatPrice(gstAmount)})</p>
 
-          {/* Variants */}
           {product.variants.length > 0 && (
             <div className="mb-6">
               <p className="text-xs font-medium tracking-wide uppercase mb-3" style={{ color: 'var(--text-primary)' }}>Colour: <span style={{ color: 'var(--crimson)' }}>{selectedVariant?.colour}</span></p>
@@ -242,7 +268,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           )}
 
-          {/* Quantity */}
           <div className="flex items-center gap-4 mb-6">
             <p className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--text-primary)' }}>Quantity</p>
             <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
@@ -252,7 +277,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           </div>
 
-          {/* Pincode */}
           <div className="mb-6 p-4 border" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
             <div className="flex items-center gap-2 mb-2">
               <MapPin size={14} style={{ color: 'var(--crimson)' }} />
@@ -275,7 +299,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </AnimatePresence>
           </div>
 
-          {/* CTAs */}
           <div className="flex gap-3 mb-6">
             <motion.button className="btn-primary flex-1 justify-center" whileTap={{ scale: 0.98 }} onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stock === 0} style={{ opacity: !selectedVariant || selectedVariant.stock === 0 ? 0.5 : 1 }}>
@@ -286,7 +309,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </motion.button>
           </div>
 
-          {/* Trust badges */}
           <div className="grid grid-cols-3 gap-2 mb-6">
             {[{ icon: <Truck size={16} />, text: `Free Shipping above ₹${Number(config.free_shipping_above).toLocaleString('en-IN')}` }, { icon: <RotateCcw size={16} />, text: `${config.return_window_days}-Day Returns` }, { icon: <Shield size={16} />, text: '100% Authentic' }].map((b, i) => (
               <div key={i} className="flex flex-col items-center gap-1 p-3 text-center border" style={{ borderColor: 'var(--border)' }}>
@@ -296,7 +318,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             ))}
           </div>
 
-          {/* Accordion */}
           <div>
             <Accordion id="details" title="Product Details">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -346,25 +367,35 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               </motion.div>
             ))}
 
-            {!reviewSubmitted ? (
+            {/* FIX #9: only show review form to logged-in users; show verified badge hint if purchased */}
+            {userId && purchaseCheckDone && !reviewSubmitted ? (
               <div className="pt-2">
-                <h3 className="text-lg font-light mb-4" style={{ fontFamily: 'var(--font-heading)' }}>Write a Review</h3>
+                <h3 className="text-lg font-light mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Write a Review</h3>
+                {hasVerifiedPurchase && (
+                  <p className="text-xs mb-4" style={{ color: '#1B7A3E' }}>✔ You purchased this product — your review will be marked as verified.</p>
+                )}
                 <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, i) => <button key={i} onClick={() => setReviewRating(i + 1)}><Star size={22} fill={i < reviewRating ? 'var(--gold)' : 'none'} stroke="var(--gold)" /></button>)}</div>
                 <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Share your experience with this saree..." className="input-base w-full mb-3" style={{ height: 100, padding: '12px 14px', resize: 'none' }} />
                 <button className="btn-primary" onClick={submitReview} disabled={reviewSubmitting || !reviewText.trim()}>
                   {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
                 </button>
               </div>
-            ) : (
+            ) : !userId && purchaseCheckDone ? (
+              <div className="pt-2">
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <Link href={`/login?redirect=/product/${product.slug}`} style={{ color: 'var(--crimson)' }}>Sign in</Link> to leave a review.
+                </p>
+              </div>
+            ) : reviewSubmitted ? (
               <div className="p-4 text-center border" style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-primary)' }}>✔ Thank you for your review!</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
 
-      {/* #3 — Sticky mobile Add to Cart bar */}
+      {/* Sticky mobile Add to Cart bar */}
       <div className={`sticky-product-bar ${showStickyBar ? 'visible' : ''}`}>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>{product.name}</p>
@@ -382,7 +413,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         </button>
       </div>
 
-      {/* Related */}
       {relatedProducts.length > 0 && (
         <section className="mt-16">
           <h2 className="section-heading mb-8">You May Also Like</h2>
