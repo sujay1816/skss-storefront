@@ -101,7 +101,8 @@ export default function CheckoutPage() {
   const shipping = freeShipping || sub >= freeShippingThreshold ? 0 : defaultShippingCharge
   const gstRate = defaultGstRate
   const gst = Math.round((sub - discount) * (gstRate / 100))
-  const total = sub - discount + shipping + gst
+  // FIX #5: cap total at 0 — a large flat coupon could make total negative
+  const total = Math.max(0, sub - discount + shipping + gst)
 
   // FIX #4: stock check BEFORE opening Razorpay modal, not after payment
   const checkStockAvailability = async (supabase: any): Promise<boolean> => {

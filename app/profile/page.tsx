@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// FIX #9: reuse the same phone validation as checkout
+const validatePhone = (phone: string): boolean => {
+  if (!phone) return true // empty is allowed (optional field)
+  const clean = phone.replace(/[\s\-\(\)]/g, '')
+  return /^(\+91|91)?[6-9]\d{9}$/.test(clean)
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -14,17 +21,19 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState('')
   const [whatsapp, setWhatsapp] = useState(true)
   const [addresses, setAddresses] = useState<any[]>([])
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { window.location.href = '/login'; return }
-      const uid = session.user.id
-      const userEmail = session.user.email || ''
-      const metaName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || ''
+      // FIX #4: use getUser() instead of getSession() for server-validated auth
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/login'; return }
+      const uid = user.id
+      const userEmail = user.email || ''
+      const metaName = user.user_metadata?.full_name || user.user_metadata?.name || ''
       setUserId(uid); setEmail(userEmail)
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', uid).single()
       if (profile) {
@@ -42,11 +51,26 @@ export default function ProfilePage() {
     load()
   }, [])
 
+  const handlePhoneChange = (val: string) => {
+    setPhone(val)
+    // FIX #9: validate phone on change
+    if (val && !validatePhone(val)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number')
+    } else {
+      setPhoneError('')
+    }
+  }
+
   const save = async () => {
     if (!userId) return
+    // FIX #9: block save if phone is invalid
+    if (phone && !validatePhone(phone)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number')
+      toast.error('Please enter a valid phone number')
+      return
+    }
     setSaving(true)
     const supabase = createClient()
-    // Fix #7 — check for errors instead of always showing success
     const { error } = await supabase.from('profiles').upsert({ id: userId, email, full_name: name, phone, whatsapp_opted_in: whatsapp })
     if (error) {
       toast.error('Could not save profile. Please try again.')
@@ -58,15 +82,11 @@ export default function ProfilePage() {
 
   const setDefault = async (id: string) => {
     const supabase = createClient()
-    // Fix #8 — use atomic RPC to prevent race condition
-    // Old: two sequential updates (if second fails, all addresses have is_default=false)
-    // New: single SQL function that does both updates atomically
     const { error } = await supabase.rpc('set_default_address', {
       p_user_id: userId,
       p_address_id: id,
     })
     if (error) {
-      // Fallback to sequential if RPC not yet created
       await supabase.from('addresses').update({ is_default: false }).eq('user_id', userId)
       await supabase.from('addresses').update({ is_default: true }).eq('id', id)
     }
@@ -91,7 +111,6 @@ export default function ProfilePage() {
 
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
-      {/* Issue 8 fix — back navigation */}
       <button onClick={() => router.back()}
         className="flex items-center gap-2 text-sm mb-6 transition-colors"
         style={{ color: 'var(--text-secondary)' }}
@@ -123,13 +142,23 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
-            <input className="input-base" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" type="tel" />
+            <input
+              className="input-base"
+              value={phone}
+              onChange={e => handlePhoneChange(e.target.value)}
+              placeholder="+91 XXXXX XXXXX"
+              type="tel"
+              style={{ borderColor: phoneError ? 'var(--crimson)' : undefined }}
+            />
+            {/* FIX #9: show validation error */}
+            {phoneError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{phoneError}</p>}
           </div>
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)} className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates</span>
           </label>
-          <button onClick={save} disabled={saving} className="btn-primary">
+          <button onClick={save} disabled={saving || !!phoneError} className="btn-primary"
+            style={{ opacity: saving || phoneError ? 0.6 : 1 }}>
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>

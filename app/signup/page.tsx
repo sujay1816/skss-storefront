@@ -9,7 +9,6 @@ import toast from 'react-hot-toast'
 
 export default function SignupPage() {
   const router = useRouter()
-  // Issue G fix — read redirect param so user lands back on the right page after signup
   const redirect = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('redirect') || '/'
     : '/'
@@ -19,6 +18,8 @@ export default function SignupPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  // FIX #2: show email-sent screen instead of redirecting immediately
+  const [emailSent, setEmailSent] = useState(false)
   const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
   const [logoUrl, setLogoUrl] = useState('/images/logo.png')
@@ -42,13 +43,35 @@ export default function SignupPage() {
     if (password.length < 6) { toast.error('Password must be at least 6 characters'); return }
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: name } }
     })
-    if (error) { toast.error(error.message); setLoading(false); return }
-    toast.success(`Account created! Welcome to ${brandName}.`)
-    // Issue G fix — redirect to intended page instead of always going to /
+    if (error) {
+      // FIX #7: friendly error messages for common signup errors
+      if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
+        toast.error('An account with this email already exists. Try signing in.')
+      } else if (error.message.toLowerCase().includes('password')) {
+        toast.error('Password is too weak. Use at least 6 characters.')
+      } else if (error.message.toLowerCase().includes('valid email') || error.message.toLowerCase().includes('invalid email')) {
+        toast.error('Please enter a valid email address.')
+      } else {
+        toast.error(error.message)
+      }
+      setLoading(false)
+      return
+    }
+    // FIX #2: Supabase signUp succeeds but user is NOT logged in yet —
+    // they must confirm their email first. Show confirmation screen instead
+    // of redirecting to a protected page where they'd be unauthenticated.
+    if (data.user && !data.session) {
+      // Email confirmation required (default Supabase behaviour)
+      setEmailSent(true)
+      setLoading(false)
+      return
+    }
+    // If email confirmation is disabled in Supabase (session is returned immediately)
+    toast.success(`Welcome to ${brandName}!`)
     router.push(redirect)
     router.refresh()
   }
@@ -58,9 +81,39 @@ export default function SignupPage() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      // Issue G fix — pass redirect param through Google OAuth callback
       options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` }
     })
+  }
+
+  // FIX #2: email sent confirmation screen
+  if (emailSent) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111111', fontFamily: 'DM Sans, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: 400, textAlign: 'center', padding: 32 }}>
+          <div style={{ fontSize: 56, marginBottom: 20 }}>📧</div>
+          <h2 style={{ fontSize: 28, fontWeight: 300, color: 'white', marginBottom: 12, fontFamily: 'Cormorant Garamond, serif' }}>
+            Check your inbox
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+            We sent a confirmation link to
+          </p>
+          <p style={{ color: '#C9A84C', fontSize: 15, fontWeight: 500, marginBottom: 24 }}>{email}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 32 }}>
+            Click the link in the email to activate your account. Check your spam folder if you don't see it.
+          </p>
+          <Link href="/login"
+            style={{ display: 'inline-block', padding: '13px 32px', background: 'linear-gradient(135deg, #8B1A2B 0%, #6B1220 100%)', color: 'white', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
+            Go to Login
+          </Link>
+          <p style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+            Wrong email?{' '}
+            <button onClick={() => setEmailSent(false)} style={{ background: 'none', border: 'none', color: '#C9A84C', cursor: 'pointer', fontSize: 12 }}>
+              Go back
+            </button>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

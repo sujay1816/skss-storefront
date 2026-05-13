@@ -22,8 +22,9 @@ export default function CartPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id || null)
+    // FIX #4: use getUser() instead of getSession() for server-validated auth
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null)
     })
     supabase.from('site_config')
       .select('key, value')
@@ -37,26 +38,32 @@ export default function CartPage() {
         })
       })
   }, [])
+
   const applyCoupon = async () => {
     if (!coupon.trim()) return
     setCouponLoading(true); setCouponError('')
     const supabase = createClient()
 
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession()
+    // FIX #4: use getUser() for per-user limit check
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // Fetch coupon
     const { data } = await supabase.from('coupons').select('*').eq('code', coupon.toUpperCase()).eq('is_active', true).single()
     if (!data) { setCouponError('Invalid or expired coupon code'); setCouponLoading(false); return }
     if (data.expiry_date && new Date(data.expiry_date) < new Date()) { setCouponError('This coupon has expired'); setCouponLoading(false); return }
     if (data.usage_count >= data.max_usage_count) { setCouponError('This coupon has reached its usage limit'); setCouponLoading(false); return }
 
+    // FIX #3: check minimum order value before applying coupon
+    if (data.min_order_value && subtotal < data.min_order_value) {
+      setCouponError(`Minimum order of ${formatPrice(data.min_order_value)} required for this coupon`)
+      setCouponLoading(false); return
+    }
+
     // Check per-user usage limit
-    if (session?.user && data.per_user_limit) {
+    if (user && data.per_user_limit) {
       const { count } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .eq('coupon_code', data.code)
       if ((count || 0) >= data.per_user_limit) {
         setCouponError('You have already used this coupon the maximum number of times')
@@ -70,6 +77,7 @@ export default function CartPage() {
     toast.success(`Coupon applied! You save ${data.type === 'percentage' ? data.value + '%' : '₹' + data.value}`)
     setCoupon(''); setCouponLoading(false)
   }
+
   const subtotal = items.reduce((s, i) => s + (i.salePrice ?? i.originalPrice) * i.quantity, 0)
   const couponDiscount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? Math.round(subtotal * appliedCoupon.discount / 100) : appliedCoupon.type === 'free_shipping' ? 0 : appliedCoupon.discount) : 0
   const isFreeShipping = appliedCoupon?.type === 'free_shipping'
@@ -128,7 +136,6 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0">
                       <Link href={`/product/${item.productSlug}`}><h3 className="font-light mb-1 hover:underline" style={{ fontFamily: 'var(--font-heading)', fontSize: '16px' }}>{item.productName}</h3></Link>
                       <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Colour: <span style={{ color: 'var(--text-primary)' }}>{item.colour}</span></p>
-                      {/* UI/UX: low stock warning */}
                       {item.stock <= 3 && item.stock > 0 && (
                         <p className="text-xs mb-2 font-medium" style={{ color: '#D97706' }}>⚠ Only {item.stock} left in stock</p>
                       )}
@@ -162,12 +169,11 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* Summary — receipt style */}
+          {/* Summary */}
           <div className="lg:w-80 flex-shrink-0">
             <div className="cart-receipt p-6 sticky top-24">
               <h2 className="text-xl font-light mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h2>
               <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>{totalItems} item{totalItems !== 1 ? 's' : ''}</p>
-              {/* Coupon */}
               <div className="mb-5">
                 <p className="text-xs font-medium tracking-wide uppercase mb-2" style={{ color: 'var(--text-primary)' }}>Coupon Code</p>
                 {appliedCoupon ? (
@@ -183,7 +189,6 @@ export default function CartPage() {
                 )}
                 {couponError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{couponError}</p>}
               </div>
-              {/* Price */}
               <div className="space-y-3 mb-5 pb-5 border-b" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                 {couponDiscount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#1B7A3E' }}>Coupon Discount</span><span style={{ color: '#1B7A3E' }}>−{formatPrice(couponDiscount)}</span></div>}

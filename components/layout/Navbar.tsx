@@ -53,9 +53,9 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
       } catch { setUser(null) }
     }
 
-    // Check session immediately on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) loadUser(session.user.id)
+    // FIX #10: use getUser() instead of getSession() for consistency
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) loadUser(user.id)
       else setUser(null)
     })
 

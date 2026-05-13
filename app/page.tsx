@@ -15,7 +15,8 @@ export default async function HomePage() {
     getCategories().catch(() => []),
     getProducts({ featured: true, limit: 4 }).catch(() => []),
     getProducts({ bestseller: true, limit: 4 }).catch(() => []),
-    getProducts({ limit: 4 }).catch(() => []),
+    // FIX #1: was getProducts({ limit: 4 }) — fetched random products instead of new arrivals
+    getProducts({ newArrivals: true, limit: 4 }).catch(() => []),
     getBanners().catch(() => []),
     getUser().catch(() => null),
   ])
