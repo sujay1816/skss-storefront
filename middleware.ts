@@ -24,6 +24,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
+  // FIX: redirect already-logged-in users away from auth pages
+  if (user && (path === '/login' || path === '/signup')) {
+    const redirect = request.nextUrl.searchParams.get('redirect') || '/'
+    const safe = redirect.startsWith('/') ? redirect : '/'
+    return NextResponse.redirect(new URL(safe, request.url))
+  }
+
   // Only protect pages that need login — never redirect away from login/signup
   if (PROTECTED.some(r => path.startsWith(r)) && !user) {
     return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(path)}`, request.url))

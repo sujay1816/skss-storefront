@@ -72,8 +72,8 @@ function SignupForm() {
     }
     // If email confirmation is disabled in Supabase (session is returned immediately)
     toast.success(`Welcome to ${brandName}!`)
+    // FIX: remove router.refresh() — same race condition as login page
     router.push(redirect)
-    router.refresh()
   }
 
   const handleGoogle = async () => {

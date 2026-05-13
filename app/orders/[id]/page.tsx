@@ -21,7 +21,8 @@ export default function OrderDetailPage() {
       const supabase = createClient()
       // FIX #7: use getUser() instead of getSession() for server-validated auth
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      // FIX: include redirect param so user returns to their order after login
+      if (!user) { router.push(`/login?redirect=/orders/${id}`); return }
 
       const { data: o } = await supabase
         .from('orders').select('*').eq('id', id).eq('user_id', user.id).single()

@@ -1,34 +1,48 @@
-# skss-storefront — Zoom Fix + Loading States
+# skss-storefront — Complete Fix Package
 
-## Files to replace
+All fixes from every batch combined into one zip.
+TypeScript: 0 errors verified.
 
+## Copy instructions — replace files at these exact paths
+
+### Root
 | File | What changed |
 |------|-------------|
-| `app/globals.css` | Lightbox: touch-action for pinch-zoom, swipe hint on mobile, nav arrows hidden on mobile |
-| `app/product/[slug]/ProductDetailClient.tsx` | Swipe to navigate in lightbox; dot indicators; image load skeleton; reset skeleton on image switch |
-| `app/wishlist/page.tsx` | Skeleton card grid replaces plain "Loading..." text |
-| `app/contact/ContactClient.tsx` | Added full contact form with spinner, success state, and Supabase save |
-| `components/product/ProductCard.tsx` | Skeleton overlay on each product card image until loaded |
+| `middleware.ts` | Redirects logged-in users away from /login and /signup; open redirect validation |
+| `next.config.js` | Regex fix that was causing Vercel build errors |
 
-## Zoom — what was wrong and what's fixed
+### app/
+| File | What changed |
+|------|-------------|
+| `app/page.tsx` | New Arrivals now uses `newArrivals:true` filter |
+| `app/globals.css` | Mobile: newsletter stacks, lightbox pinch-zoom, announcement bar fix, skeleton shimmer |
+| `app/login/page.tsx` | useSearchParams(); removed router.refresh() race condition; Suspense wrapper |
+| `app/signup/page.tsx` | useSearchParams(); email confirmation screen; friendly errors; removed router.refresh() |
+| `app/forgot-password/page.tsx` | Uses NEXT_PUBLIC_SITE_URL for reset link domain |
+| `app/reset-password/page.tsx` | Confirm password field added |
+| `app/cart/page.tsx` | getUser(); coupon min_order_value check; 44px touch targets on qty buttons |
+| `app/checkout/page.tsx` | total capped at ₹0; address form grid-cols-1 on mobile |
+| `app/orders/page.tsx` | getUser() instead of getSession() |
+| `app/orders/[id]/page.tsx` | Redirect to /login?redirect=/orders/:id so user returns after login |
+| `app/profile/page.tsx` | router.push() not window.location.href; redirect param; phone validation; safe back() |
+| `app/wishlist/page.tsx` | Skeleton card grid replaces plain "Loading..." |
+| `app/contact/ContactClient.tsx` | Full contact form with spinner and success state |
+| `app/shop/ShopContent.tsx` | Mobile filter bottom drawer; responsive toolbar; smart pagination |
+| `app/product/[slug]/ProductDetailClient.tsx` | Lightbox swipe+pinch zoom; image loading skeleton; thumbnail scroll |
+| `app/auth/callback/route.ts` | Validates redirect param starts with / (prevents open redirect) |
 
-The issue was `touch-action` on the lightbox overlay was set to `manipulation`
-which blocks multi-touch gestures like pinch-to-zoom. The fix:
+### components/
+| File | What changed |
+|------|-------------|
+| `components/layout/Navbar.tsx` | getUser() on mount; announcement-bar CSS class |
+| `components/layout/Footer.tsx` | Social icons 44px touch targets |
+| `components/layout/WhatsAppButton.tsx` | Raised to bottom:5rem on mobile to clear sticky bars |
+| `components/product/ProductCard.tsx` | Image loading skeleton until loaded |
+| `components/product/RecentlyViewed.tsx` | NEW FILE — recently viewed products using localStorage |
 
-- `.lightbox-overlay` — `touch-action: manipulation` (prevents accidental
-  double-tap zoom on the black background, which is correct)
-- `.lightbox-img` — `touch-action: pinch-zoom pan-x pan-y` (explicitly
-  ALLOWS native browser pinch-to-zoom on the image itself)
-- On mobile the lightbox now shows: "Swipe to browse · Pinch to zoom" hint
-- Nav arrows hidden on mobile (use swipe instead)
-- Swiping left/right navigates between images (50px threshold)
-- Dot indicators show which image you're on
+## Supabase SQL needed (run once)
 
-## Contact form — Supabase table needed
-
-The contact form saves messages to a `contact_messages` table.
-Create it in Supabase SQL Editor:
-
+### 1. Contact messages table
 ```sql
 create table contact_messages (
   id uuid primary key default gen_random_uuid(),
@@ -39,19 +53,29 @@ create table contact_messages (
   is_read boolean default false
 );
 alter table contact_messages enable row level security;
--- Allow inserts from anyone (public contact form)
-create policy "Anyone can submit contact" on contact_messages
-  for insert with check (true);
--- Only admins can read
-create policy "Service role reads contact" on contact_messages
-  for select using (false);
+create policy "Anyone can submit" on contact_messages for insert with check (true);
 ```
 
-## Copy paths
+### 2. Backfill profiles for existing users
+```sql
+insert into profiles (id, email, full_name, role, whatsapp_opted_in, created_at)
+select
+  id,
+  email,
+  coalesce(raw_user_meta_data->>'full_name', raw_user_meta_data->>'name', split_part(email,'@',1)),
+  'customer',
+  false,
+  created_at
+from auth.users
+where id not in (select id from profiles);
 ```
-loadingfixes/app/globals.css                             → app/globals.css
-loadingfixes/app/wishlist/page.tsx                       → app/wishlist/page.tsx
-loadingfixes/app/contact/ContactClient.tsx               → app/contact/ContactClient.tsx
-loadingfixes/app/product/[slug]/ProductDetailClient.tsx  → app/product/[slug]/
-loadingfixes/components/product/ProductCard.tsx          → components/product/
-```
+
+## Key fix — why redirect was broken after login
+
+`router.refresh()` was called immediately after `router.push(redirect)`.
+This caused a race: refresh() re-ran the middleware server-side before the
+auth cookie was fully written, so middleware still saw the user as logged out
+and redirected them back to /login.
+
+Fix: removed `router.refresh()` from both login and signup. The @supabase/ssr
+browser client handles cookie propagation automatically.

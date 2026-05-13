@@ -65,8 +65,11 @@ function LoginForm() {
       }
     }
     toast.success('Welcome back!')
+    // FIX: remove router.refresh() — it races with router.push() and can
+    // interrupt the navigation or trigger middleware before the auth cookie
+    // is fully written, sending the user back to /login in a loop.
+    // @supabase/ssr handles cookie propagation automatically.
     router.push(redirect)
-    router.refresh()
   }
 
   const handleGoogle = async () => {

@@ -13,7 +13,10 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset-password` })
+    // FIX: use NEXT_PUBLIC_SITE_URL env var so reset link always points to your
+    // real domain — not a Vercel preview URL if triggered from one
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl}/reset-password` })
     if (error) { toast.error(error.message); setLoading(false); return }
     setSent(true)
   }

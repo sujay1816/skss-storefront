@@ -30,7 +30,9 @@ export default function ProfilePage() {
       const supabase = createClient()
       // FIX #4: use getUser() instead of getSession() for server-validated auth
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/login'; return }
+      // FIX: use router.push() not window.location.href (avoids hard reload that wipes cart state)
+      // FIX: include redirect param so user returns to profile after login
+      if (!user) { router.push('/login?redirect=/profile'); return }
       const uid = user.id
       const userEmail = user.email || ''
       const metaName = user.user_metadata?.full_name || user.user_metadata?.name || ''
@@ -111,7 +113,9 @@ export default function ProfilePage() {
 
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
-      <button onClick={() => router.back()}
+      {/* FIX: safe back — if user opened profile directly (bookmark/email), back() goes
+          to external sites. Check history length first, fall back to homepage. */}
+      <button onClick={() => window.history.length > 1 ? router.back() : router.push('/')}
         className="flex items-center gap-2 text-sm mb-6 transition-colors"
         style={{ color: 'var(--text-secondary)' }}
         onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}

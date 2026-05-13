@@ -5,7 +5,10 @@ import { cookies } from 'next/headers'
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
-  const redirect = url.searchParams.get('redirect') || '/'
+  const redirectParam = url.searchParams.get('redirect') || '/'
+  // FIX: validate redirect param — only allow relative paths to prevent open redirect
+  // e.g. someone crafting /auth/callback?redirect=https://evil.com after Google OAuth
+  const redirect = redirectParam.startsWith('/') ? redirectParam : '/'
 
   if (code) {
     const cookieStore = cookies()
