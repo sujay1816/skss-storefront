@@ -15,6 +15,14 @@ export default function OrderDetailPage() {
   const [returnReason, setReturnReason] = useState('')
   const [returnSubmitting, setReturnSubmitting] = useState(false)
   const [showReturnForm, setShowReturnForm] = useState(false)
+  // Return instructions — loaded from site_config
+  const [returnConfig, setReturnConfig] = useState<{
+    businessAddress: string
+    whatsappNumber: string
+    supportEmail: string
+    returnWindowDays: string
+    brandName: string
+  }>({ businessAddress: '', whatsappNumber: '', supportEmail: '', returnWindowDays: '7', brandName: 'SKSS' })
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +42,22 @@ export default function OrderDetailPage() {
         .select('*')
         .eq('order_id', id)
       setItems(oi || [])
+      // Load return instructions from site_config
+      const { data: cfg } = await supabase
+        .from('site_config')
+        .select('key, value')
+        .in('key', ['business_address', 'whatsapp_number', 'support_email', 'return_window_days', 'brand_name'])
+      if (cfg) {
+        const c: Record<string, string> = {}
+        cfg.forEach((r: any) => { c[r.key] = r.value })
+        setReturnConfig({
+          businessAddress: c.business_address || '',
+          whatsappNumber: c.whatsapp_number || '',
+          supportEmail: c.support_email || '',
+          returnWindowDays: c.return_window_days || '7',
+          brandName: c.brand_name || 'SKSS',
+        })
+      }
       setLoading(false)
     }
     load()
@@ -76,9 +100,38 @@ export default function OrderDetailPage() {
   // UI/UX: dynamic GST label
   const gstLabel = order.gst_rate ? `GST (${order.gst_rate}%)` : 'GST (5%)'
 
-  // UI/UX: return logic
-  const canRequestReturn = order.status === 'delivered'
+  // FIX: Return window enforcement — compare delivery time to return_window_days from site_config
+  const returnWindowDays = Number(returnConfig.returnWindowDays) || 7
+  const deliveredAt = order.updated_at ? new Date(order.updated_at) : null
+  const daysSinceDelivery = deliveredAt ? Math.floor((Date.now() - deliveredAt.getTime()) / 86400000) : 999
+  const withinReturnWindow = daysSinceDelivery <= returnWindowDays
+  const canRequestReturn = order.status === 'delivered' && withinReturnWindow
+  const returnWindowExpired = order.status === 'delivered' && !withinReturnWindow
   const returnAlreadyRequested = ['return_requested', 'return_approved', 'return_rejected', 'refunded'].includes(order.status)
+
+  // FIX: Customer cancellation — only allowed when status is confirmed (not yet shipped)
+  const canCancel = order.status === 'confirmed'
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelForm, setShowCancelForm] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+
+  const submitCancellation = async () => {
+    if (!cancelReason.trim()) return
+    setCancelling(true)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled', notes: `Customer cancelled: ${cancelReason}` })
+      .eq('id', id)
+    if (error) {
+      alert('Could not cancel order. Please contact support.')
+      setCancelling(false)
+      return
+    }
+    setOrder((o: any) => ({ ...o, status: 'cancelled' }))
+    setShowCancelForm(false)
+    setCancelling(false)
+  }
 
   // UI/UX: order progress stepper
   const STEPS = [
@@ -90,6 +143,29 @@ export default function OrderDetailPage() {
   const currentStepIdx = stepOrder.indexOf(order.status)
   const isCancelledOrReturn = ['cancelled', 'return_requested', 'return_approved', 'return_rejected', 'refunded'].includes(order.status)
 
+
+  // FIX: Courier tracking links — maps courier name to tracking URL
+  const COURIER_URLS: Record<string, string> = {
+    delhivery:    'https://www.delhivery.com/track/package/{id}',
+    bluedart:     'https://www.bluedart.com/tracking?trackFor=0&trackNum={id}',
+    'blue dart':  'https://www.bluedart.com/tracking?trackFor=0&trackNum={id}',
+    dtdc:         'https://www.dtdc.in/tracking.asp?awbno={id}',
+    ekart:        'https://ekart.com/tracking?awb={id}',
+    xpressbees:   'https://www.xpressbees.com/shipment/tracking/?awb={id}',
+    shadowfax:    'https://tracker.shadowfax.in/?waybill={id}',
+    speedpost:    'https://www.indiapost.gov.in/VAS/Pages/trackconsignment.aspx',
+    'india post': 'https://www.indiapost.gov.in/VAS/Pages/trackconsignment.aspx',
+    ecom:         'https://ecomexpress.in/tracking/?awb_field={id}',
+    'ecom express': 'https://ecomexpress.in/tracking/?awb_field={id}',
+    amazon:       'https://track.amazon.in/tracking/{id}',
+  }
+
+  const getTrackingUrl = (courier: string, trackingId: string) => {
+    const key = courier.toLowerCase().trim()
+    const template = Object.entries(COURIER_URLS).find(([k]) => key.includes(k))?.[1]
+    return template ? template.replace('{id}', encodeURIComponent(trackingId)) : null
+  }
+
   return (
     <div className="page-container py-8 max-w-2xl">
       {(() => {
@@ -100,7 +176,7 @@ export default function OrderDetailPage() {
           delivered:        { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '🎉', title: 'Order Delivered!',         subtitle: 'We hope you love your saree!',             color: '#15803D' },
           cancelled:        { bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', border: '#FECDD3', icon: '❌', title: 'Order Cancelled',          subtitle: 'This order has been cancelled.',           color: '#BE123C' },
           return_requested: { bg: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', border: '#FDE68A', icon: '↩️', title: 'Return Requested',        subtitle: 'We are reviewing your return request.',   color: '#92400E' },
-          return_approved:  { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '✅', title: 'Return Approved',          subtitle: 'Please ship the item back to us.',        color: '#15803D' },
+          return_approved:  { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '✅', title: 'Return Approved',          subtitle: 'Your return has been approved! See instructions below.',        color: '#15803D' },
           return_rejected:  { bg: 'linear-gradient(135deg, #FFF1F2, #FFE4E6)', border: '#FECDD3', icon: '❌', title: 'Return Rejected',          subtitle: 'Your return request was not approved.',   color: '#BE123C' },
           refunded:         { bg: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '#BBF7D0', icon: '💰', title: 'Refund Processed',         subtitle: 'Your refund has been processed.',          color: '#15803D' },
         }
@@ -110,13 +186,111 @@ export default function OrderDetailPage() {
             <div className="text-5xl mb-3">{s.icon}</div>
             <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: 'var(--font-heading)', color: s.color }}>{s.title}</h1>
             <p className="text-sm" style={{ color: s.color }}>{s.subtitle}</p>
-            {order.tracking_id && (
-              <p className="text-xs mt-2 font-mono" style={{ color: s.color }}>Tracking: {order.tracking_id}</p>
-            )}
+            {order.tracking_id && (() => {
+              const trackUrl = order.courier_name ? getTrackingUrl(order.courier_name, order.tracking_id) : null
+              return trackUrl ? (
+                <a href={trackUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs mt-2 font-mono underline block" style={{ color: s.color }}>
+                  Track: {order.tracking_id} ({order.courier_name}) →
+                </a>
+              ) : (
+                <p className="text-xs mt-2 font-mono" style={{ color: s.color }}>
+                  Tracking: {order.tracking_id}{order.courier_name ? ` (${order.courier_name})` : ''}
+                </p>
+              )
+            })()}
             <p className="text-xs mt-2 font-mono" style={{ color: s.color }}>Order ID: {String(id).slice(0, 8).toUpperCase()}</p>
           </div>
         )
       })()}
+
+      {/* Return approved — step-by-step instructions card */}
+      {order.status === 'return_approved' && (
+        <div className="card p-5 mb-4" style={{ borderLeft: '4px solid #15803D' }}>
+          <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: '#15803D' }}>
+            📦 How to send your item back
+          </h2>
+
+          {/* Steps */}
+          <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <li style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#15803D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>1</span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Pack the item securely</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  Use the original packaging if possible. The item must be unused, unwashed, and with all tags attached.
+                  Include a note with your Order ID: <strong>{String(id).slice(0, 8).toUpperCase()}</strong>
+                </p>
+              </div>
+            </li>
+
+            <li style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#15803D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>2</span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Ship to our address</p>
+                {returnConfig.businessAddress ? (
+                  <p className="text-xs mt-1 p-2 rounded" style={{ color: 'var(--text-primary)', background: 'var(--cream)', fontFamily: 'monospace', lineHeight: 1.8 }}>
+                    {returnConfig.businessAddress}
+                  </p>
+                ) : (
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    Please contact us for the return address.
+                  </p>
+                )}
+                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  Use any courier of your choice — Speed Post, DTDC, or Delhivery work well. Keep the receipt.
+                </p>
+              </div>
+            </li>
+
+            <li style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#15803D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>3</span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Share the tracking details</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  Once shipped, send us the courier name and tracking ID so we can watch for your parcel.
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {returnConfig.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${returnConfig.whatsappNumber.replace(/[^0-9]/g, '')}?text=Hi! I've shipped back my return for Order ${String(id).slice(0, 8).toUpperCase()}. Courier: [name], Tracking: [ID]`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="btn-primary text-xs flex items-center gap-1.5"
+                      style={{ background: '#25D366', borderColor: '#25D366', padding: '6px 12px', borderRadius: 6, color: 'white', textDecoration: 'none', fontSize: 12 }}>
+                      WhatsApp us
+                    </a>
+                  )}
+                  {returnConfig.supportEmail && (
+                    <a
+                      href={`mailto:${returnConfig.supportEmail}?subject=Return tracking — Order ${String(id).slice(0, 8).toUpperCase()}&body=Hi, I have shipped back my return. Order ID: ${String(id).slice(0, 8).toUpperCase()}%0ACourier: %0ATracking ID: `}
+                      className="btn-outline text-xs"
+                      style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, color: 'var(--crimson)', borderColor: 'var(--crimson)', textDecoration: 'none' }}>
+                      Email us
+                    </a>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            <li style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ minWidth: 28, height: 28, borderRadius: '50%', background: '#15803D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>4</span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Refund processed after we receive it</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  Once we verify the returned item, your refund will be initiated to the original payment method within 5–7 business days.
+                  COD orders are refunded via bank transfer — we will contact you for details.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          {/* Important note */}
+          <div className="mt-4 p-3 rounded text-xs" style={{ background: '#FEF9C3', color: '#713F12', border: '1px solid #FDE68A' }}>
+            ⚠️ <strong>Important:</strong> Return shipping cost is borne by the customer unless the item received was damaged or incorrect.
+            Refund will not be processed if the item shows signs of use or is missing original tags.
+          </div>
+        </div>
+      )}
 
       {/* UI/UX: order progress stepper */}
       {!isCancelledOrReturn && (
@@ -296,6 +470,61 @@ export default function OrderDetailPage() {
             <strong style={{ color: 'var(--text-primary)' }}>Return status:</strong> {order.status.replace(/_/g, ' ')}
             {order.return_reason && <span> — {order.return_reason}</span>}
           </p>
+        </div>
+      )}
+
+      {/* FIX: Return window expired notice */}
+      {returnWindowExpired && (
+        <div className="card p-4 mb-4 text-sm" style={{ borderColor: '#FDE68A', background: '#FFFBEB' }}>
+          <p style={{ color: '#92400E' }}>
+            The {returnWindowDays}-day return window for this order has closed (delivered {daysSinceDelivery} days ago).
+            If you have an issue with this order, please contact us.
+          </p>
+          <div className="flex gap-2 mt-2">
+            {returnConfig.whatsappNumber && (
+              <a href={`https://wa.me/${returnConfig.whatsappNumber.replace(/[^0-9]/g,'')}?text=Hi, I have an issue with order ${String(id).slice(0,8).toUpperCase()} (return window expired)`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs font-medium" style={{ color: '#15803D' }}>WhatsApp us →</a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FIX: Customer cancellation — shown only for confirmed orders */}
+      {canCancel && (
+        <div className="card p-5 mb-4" style={{ borderLeft: '4px solid #DC2626' }}>
+          <h2 className="font-semibold mb-2" style={{ fontFamily: 'var(--font-heading)', color: '#DC2626' }}>
+            Cancel Order
+          </h2>
+          {!showCancelForm ? (
+            <div>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                You can cancel this order as it hasn't been shipped yet. Once shipped, cancellation is not possible.
+              </p>
+              <button onClick={() => setShowCancelForm(true)} className="btn-outline text-sm"
+                style={{ color: '#DC2626', borderColor: '#DC2626' }}>
+                Cancel Order
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Please tell us why you'd like to cancel:</p>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="e.g. Ordered by mistake, found a better price..."
+                className="input-base w-full mb-3"
+                style={{ height: 72, padding: '10px 12px', resize: 'none', fontSize: 13 }}
+              />
+              <div className="flex gap-2">
+                <button onClick={submitCancellation} disabled={cancelling || !cancelReason.trim()}
+                  className="btn-primary text-sm" style={{ background: '#DC2626', borderColor: '#DC2626', opacity: cancelling || !cancelReason.trim() ? 0.6 : 1 }}>
+                  {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+                <button onClick={() => setShowCancelForm(false)} className="btn-outline text-sm">Keep Order</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
