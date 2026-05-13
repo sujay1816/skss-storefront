@@ -83,7 +83,9 @@ export default function CartPage() {
   const isFreeShipping = appliedCoupon?.type === 'free_shipping'
   const shipping = isFreeShipping || subtotal >= freeShippingThreshold ? 0 : shippingCharge
   const gst = Math.round((subtotal - couponDiscount) * gstRate / 100)
-  const total = subtotal - couponDiscount + shipping + gst
+  // FIX: cap coupon discount at subtotal (flat coupon > subtotal makes total negative)
+  const effectiveDiscount = Math.min(couponDiscount, subtotal)
+  const total = Math.max(0, subtotal - effectiveDiscount + shipping + gst)
   const totalItems = items.reduce((s, i) => s + i.quantity, 0)
 
   if (items.length === 0) return (
@@ -192,15 +194,14 @@ export default function CartPage() {
               </div>
               <div className="space-y-3 mb-5 pb-5 border-b" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                {couponDiscount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#1B7A3E' }}>Coupon Discount</span><span style={{ color: '#1B7A3E' }}>−{formatPrice(couponDiscount)}</span></div>}
+                {effectiveDiscount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#1B7A3E' }}>Coupon Discount</span><span style={{ color: '#1B7A3E' }}>−{formatPrice(effectiveDiscount)}</span></div>}
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#1B7A3E' : 'inherit' }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span></div>
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>{formatPrice(gst)}</span></div>
               </div>
               <div className="cart-total-row" style={{ margin: '0 -24px', padding: '14px 24px' }}>
                 <span className="text-sm font-medium tracking-wide uppercase" style={{ letterSpacing: '0.08em' }}>Total</span>
                 <span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 300 }}>
-                  <span style={{ fontSize: '0.65em', verticalAlign: 'super', opacity: 0.8 }}>₹</span>
-                  {total.toLocaleString('en-IN')}
+                  {formatPrice(total)}
                 </span>
               </div>
               <Link href="/checkout" className="btn-primary w-full justify-center block text-center mt-4">Proceed to Checkout <ArrowRight size={14} /></Link>
