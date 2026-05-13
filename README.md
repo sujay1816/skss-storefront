@@ -1,29 +1,31 @@
-# skss-storefront — Bug Fix Batch 3
+# skss-storefront — Mobile UI/UX Fixes
 
-## Files to replace
+## Files changed
 
 | File | Issues fixed |
 |------|-------------|
-| `app/page.tsx` | #1 — New Arrivals now uses `newArrivals: true` filter |
-| `app/signup/page.tsx` | #2 — Shows email confirmation screen instead of redirecting; #7 — friendly error messages |
-| `app/cart/page.tsx` | #3 — Coupon min order value validated; #4 — `getUser()` |
-| `app/checkout/page.tsx` | #5 — Total capped at ₹0 with `Math.max(0, ...)` |
-| `app/orders/page.tsx` | #4 — `getUser()` instead of `getSession()` |
-| `app/profile/page.tsx` | #4 — `getUser()`; #9 — phone validation before save |
-| `app/reset-password/page.tsx` | #6 — Added confirm password field with mismatch error |
-| `components/layout/Navbar.tsx` | #10 — `getUser()` on mount |
+| `app/globals.css` | #2 Newsletter stacks on mobile; #11 Announcement bar letter-spacing reduced |
+| `app/shop/ShopContent.tsx` | #1 Mobile filter bottom drawer; #4 Responsive toolbar; #7 Smart pagination |
+| `app/cart/page.tsx` | #3 Qty buttons 44px touch target on mobile |
+| `app/checkout/page.tsx` | #5 Address form full-width on mobile (grid-cols-1 → sm:grid-cols-2) |
+| `app/product/[slug]/ProductDetailClient.tsx` | #8 Colour swatches 44px on mobile; #9 Thumbnail horizontal scroll; Zoom hint on mobile |
+| `app/orders/[id]/page.tsx` | #12 Stepper connector % margins (works on 320px) |
+| `components/layout/Footer.tsx` | #6 Social icons 44px touch target |
+| `components/layout/Navbar.tsx` | #11 Added announcement-bar CSS class |
+| `components/layout/WhatsAppButton.tsx` | #10 Raised to bottom:5rem on mobile, clears sticky bars |
 
-Issue #11 (`/api/razorpay` dead route) intentionally left — safe to delete manually when ready.
+## Re: zoom on mobile
+Hover-zoom (mouse-track magnification) only works on desktop — touch screens don't fire mouseEnter/mouseMove. On mobile, **tapping the product image opens the full-screen lightbox** which serves as the zoom equivalent. A "Tap image to zoom" hint is now shown below the thumbnails on mobile only.
 
 ## Copy paths
-
 ```
-fixes2/app/page.tsx                        → app/page.tsx
-fixes2/app/signup/page.tsx                 → app/signup/page.tsx
-fixes2/app/cart/page.tsx                   → app/cart/page.tsx
-fixes2/app/checkout/page.tsx               → app/checkout/page.tsx
-fixes2/app/orders/page.tsx                 → app/orders/page.tsx
-fixes2/app/profile/page.tsx                → app/profile/page.tsx
-fixes2/app/reset-password/page.tsx         → app/reset-password/page.tsx
-fixes2/components/layout/Navbar.tsx        → components/layout/Navbar.tsx
+mobilefixes/app/globals.css                              → app/globals.css
+mobilefixes/app/shop/ShopContent.tsx                     → app/shop/ShopContent.tsx
+mobilefixes/app/cart/page.tsx                            → app/cart/page.tsx
+mobilefixes/app/checkout/page.tsx                        → app/checkout/page.tsx
+mobilefixes/app/product/[slug]/ProductDetailClient.tsx   → app/product/[slug]/
+mobilefixes/app/orders/[id]/page.tsx                     → app/orders/[id]/
+mobilefixes/components/layout/Footer.tsx                 → components/layout/
+mobilefixes/components/layout/Navbar.tsx                 → components/layout/
+mobilefixes/components/layout/WhatsAppButton.tsx         → components/layout/
 ```

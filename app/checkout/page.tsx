@@ -302,7 +302,8 @@ export default function CheckoutPage() {
                 )}
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            {/* FIX #5: grid-cols-1 on mobile, grid-cols-2 on sm+ so fields aren't squished */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <F label="Full Name" required>
                 <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" />
               </F>

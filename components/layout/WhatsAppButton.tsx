@@ -12,13 +12,14 @@ export default function WhatsAppButton({ number, message }: { number: string; me
   const hideOnPaths = ['/checkout', '/cart']
   if (!clean || clean === '919999999999' || hideOnPaths.some(p => pathname?.startsWith(p))) return null
   return (
-    // Issue 17 fix — moved to bottom-24 on mobile (above checkout button) via responsive class
+    // FIX #10: on mobile raise to bottom-20 (80px) to clear any sticky product/checkout bars
+    // On desktop stays at bottom-6 (24px)
     <motion.a href={url} target="_blank" rel="noopener noreferrer"
       className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
       style={{
         background: '#25D366',
-        bottom: '1.5rem',
-        right: '1.5rem',
+        bottom: '5rem',    // 80px — clears sticky product bar on mobile
+        right: '1rem',
       }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
@@ -26,7 +27,6 @@ export default function WhatsAppButton({ number, message }: { number: string; me
       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       aria-label="Chat on WhatsApp">
       <MessageCircle size={26} className="text-white" fill="white" />
-      {/* Tooltip on hover */}
       <span className="absolute right-16 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 hover:opacity-100 pointer-events-none transition-opacity"
         style={{ top: '50%', transform: 'translateY(-50%)' }}>
         Chat on WhatsApp

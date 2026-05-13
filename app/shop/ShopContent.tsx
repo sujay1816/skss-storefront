@@ -1,9 +1,9 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SlidersHorizontal, X, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
-import { getEffectivePrice } from '@/lib/utils'  // FIX #6: import getEffectivePrice
+import { getEffectivePrice } from '@/lib/utils'
 import type { Product, Category, SiteConfig } from '@/types'
 
 const DEFAULT_FABRICS = ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
@@ -72,9 +72,6 @@ export default function ShopContent({ products, categories, config, userId, init
     if (selectedCategory) p = p.filter(x => x.categorySlug === selectedCategory)
     if (selectedFabrics.length) p = p.filter(x => selectedFabrics.includes(x.fabric))
     if (selectedOccasions.length) p = p.filter(x => x.occasion.some(o => selectedOccasions.includes(o)))
-    // FIX #6: use getEffectivePrice() for price range filtering and sorting
-    // Previously used originalPrice, so a product on sale for ₹2000 (originally ₹4000)
-    // would be excluded from a "Max ₹2500" filter even though the customer pays ₹2000.
     if (priceMin) p = p.filter(x => getEffectivePrice(x) >= Number(priceMin))
     if (priceMax) p = p.filter(x => getEffectivePrice(x) <= Number(priceMax))
     if (onlyNew) p = p.filter(x => x.isNew)
@@ -99,7 +96,15 @@ export default function ShopContent({ products, categories, config, userId, init
     setPage(1)
   }
 
-  const Filters = () => (
+  // FIX #7: smart pagination — show at most 5 page buttons with ellipsis
+  const getPageNumbers = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    if (page <= 3) return [1, 2, 3, 4, '...', totalPages]
+    if (page >= totalPages - 2) return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    return [1, '...', page - 1, page, page + 1, '...', totalPages]
+  }
+
+  const FiltersContent = () => (
     <div>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>Filters {activeCount > 0 && `(${activeCount})`}</h3>
@@ -123,35 +128,15 @@ export default function ShopContent({ products, categories, config, userId, init
             <span>₹{Number(priceMin || 0).toLocaleString('en-IN')}</span>
             <span>₹{Number(priceMax || 50000).toLocaleString('en-IN')}</span>
           </div>
-          <input
-            type="range" min={0} max={50000} step={500}
-            value={priceMin || 0}
-            onChange={e => {
-              const val = Number(e.target.value)
-              const max = Number(priceMax || 50000)
-              // UI/UX: prevent min from exceeding max
-              if (val <= max - 500) { setPriceMin(val === 0 ? '' : String(val)); setPage(1) }
-            }}
-            className="price-slider w-full"
-          />
-          <input
-            type="range" min={0} max={50000} step={500}
-            value={priceMax || 50000}
-            onChange={e => {
-              const val = Number(e.target.value)
-              const min = Number(priceMin || 0)
-              // UI/UX: prevent max from going below min
-              if (val >= min + 500) { setPriceMax(val === 50000 ? '' : String(val)); setPage(1) }
-            }}
-            className="price-slider w-full"
-          />
+          <input type="range" min={0} max={50000} step={500} value={priceMin || 0}
+            onChange={e => { const v = Number(e.target.value); if (v <= Number(priceMax || 50000) - 500) { setPriceMin(v === 0 ? '' : String(v)); setPage(1) } }}
+            className="price-slider w-full" />
+          <input type="range" min={0} max={50000} step={500} value={priceMax || 50000}
+            onChange={e => { const v = Number(e.target.value); if (v >= Number(priceMin || 0) + 500) { setPriceMax(v === 50000 ? '' : String(v)); setPage(1) } }}
+            className="price-slider w-full" />
           <div className="flex gap-2 mt-1">
-            <input type="number" placeholder="Min ₹" value={priceMin}
-              onChange={e => { setPriceMin(e.target.value); setPage(1) }}
-              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
-            <input type="number" placeholder="Max ₹" value={priceMax}
-              onChange={e => { setPriceMax(e.target.value); setPage(1) }}
-              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
           </div>
         </div>
       </FilterSection>
@@ -172,39 +157,62 @@ export default function ShopContent({ products, categories, config, userId, init
 
   return (
     <div className="page-container py-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h1 className="section-heading">Our Collection</h1>
-        <div className="flex items-center gap-3">
+      {/* FIX #4: responsive toolbar — stacks on mobile */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+          <h1 className="section-heading">Our Collection</h1>
+          {/* Mobile: sort + filter buttons only */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
+              className="text-xs border px-2 outline-none flex-1" style={{ borderColor: 'var(--border)', height: 40, color: 'var(--text-primary)', background: 'white', minWidth: 130 }}>
+              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <button onClick={() => setFiltersOpen(true)}
+              className="flex items-center gap-2 text-xs border px-3 font-medium"
+              style={{ borderColor: activeCount > 0 ? 'var(--crimson)' : 'var(--border)', height: 40, color: activeCount > 0 ? 'var(--crimson)' : 'var(--text-primary)', background: activeCount > 0 ? 'var(--cream)' : 'white' }}>
+              <SlidersHorizontal size={14} />
+              Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+            </button>
+          </div>
+        </div>
+        {/* Mobile: full-width search bar */}
+        <div className="flex items-center gap-2 border px-3 lg:hidden" style={{ borderColor: 'var(--border)', height: 40 }}>
+          <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+          <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
+            placeholder="Search sarees..." className="text-sm outline-none bg-transparent flex-1"
+            style={{ color: 'var(--text-primary)' }} />
+          {searchInput && <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={14} /></button>}
+        </div>
+        {/* Desktop: original inline toolbar */}
+        <div className="hidden lg:flex items-center gap-3">
           <div className="flex items-center gap-2 border px-3" style={{ borderColor: 'var(--border)', height: 36 }}>
             <Search size={14} style={{ color: 'var(--text-secondary)' }} />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
+            <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
-              placeholder="Search sarees..."
-              className="text-xs outline-none bg-transparent"
-              style={{ width: 160, color: 'var(--text-primary)' }}
-            />
+              placeholder="Search sarees..." className="text-xs outline-none bg-transparent"
+              style={{ width: 160, color: 'var(--text-primary)' }} />
             {searchInput && <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={12} /></button>}
           </div>
           <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
             className="text-xs border px-2 outline-none" style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)', background: 'white' }}>
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <button onClick={() => setFiltersOpen(!filtersOpen)} className="flex items-center gap-2 text-xs border px-3" style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)' }}>
+          <button onClick={() => setFiltersOpen(!filtersOpen)} className="flex items-center gap-2 text-xs border px-3"
+            style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)' }}>
             <SlidersHorizontal size={14} />
             Filters {activeCount > 0 && `(${activeCount})`}
           </button>
         </div>
       </div>
 
+      {/* Desktop sidebar layout */}
       <div className="flex gap-8">
         <AnimatePresence>
           {filtersOpen && (
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="hidden lg:block w-56 flex-shrink-0">
-              <Filters />
+              <FiltersContent />
             </motion.div>
           )}
         </AnimatePresence>
@@ -229,27 +237,93 @@ export default function ShopContent({ products, categories, config, userId, init
             </div>
           )}
 
+          {/* FIX #7: smart pagination with ellipsis — no overflow on mobile */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-10">
+            <div className="flex items-center justify-center gap-1 mt-10">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center border disabled:opacity-30" style={{ borderColor: 'var(--border)' }}>
+                className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
+                style={{ borderColor: 'var(--border)' }}>
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)}
-                  className="w-8 h-8 text-xs border"
-                  style={{ borderColor: page === i + 1 ? 'var(--crimson)' : 'var(--border)', background: page === i + 1 ? 'var(--crimson)' : 'transparent', color: page === i + 1 ? 'white' : 'var(--text-secondary)' }}>
-                  {i + 1}
-                </button>
-              ))}
+              {getPageNumbers().map((p, i) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-xs"
+                    style={{ color: 'var(--text-secondary)' }}>…</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(Number(p))}
+                    className="w-9 h-9 text-xs border font-medium"
+                    style={{
+                      borderColor: page === p ? 'var(--crimson)' : 'var(--border)',
+                      background: page === p ? 'var(--crimson)' : 'transparent',
+                      color: page === p ? 'white' : 'var(--text-secondary)',
+                    }}>
+                    {p}
+                  </button>
+                )
+              )}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="w-8 h-8 flex items-center justify-center border disabled:opacity-30" style={{ borderColor: 'var(--border)' }}>
+                className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
+                style={{ borderColor: 'var(--border)' }}>
                 <ChevronRightIcon size={14} />
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* FIX #1: mobile filter bottom drawer */}
+      <AnimatePresence>
+        {filtersOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 lg:hidden"
+              style={{ background: 'rgba(0,0,0,0.5)' }}
+              onClick={() => setFiltersOpen(false)}
+            />
+            {/* Bottom sheet */}
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'tween', duration: 0.3 }}
+              className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white"
+              style={{ borderRadius: '16px 16px 0 0', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Handle */}
+              <div className="flex items-center justify-center pt-3 pb-2 flex-shrink-0">
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pb-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Filters {activeCount > 0 && `(${activeCount})`}
+                </span>
+                <button onClick={() => setFiltersOpen(false)} style={{ color: 'var(--text-secondary)' }}>
+                  <X size={20} />
+                </button>
+              </div>
+              {/* Scrollable content */}
+              <div className="overflow-y-auto flex-1 px-5 pt-4">
+                <FiltersContent />
+              </div>
+              {/* Apply button */}
+              <div className="px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex gap-3">
+                  {activeCount > 0 && (
+                    <button onClick={() => { clearAll(); setFiltersOpen(false) }}
+                      className="btn-outline flex-1 justify-center" style={{ height: 48 }}>
+                      Clear All
+                    </button>
+                  )}
+                  <button onClick={() => setFiltersOpen(false)}
+                    className="btn-primary flex-1 justify-center" style={{ height: 48 }}>
+                    Show {filtered.length} Results
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

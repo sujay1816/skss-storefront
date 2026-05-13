@@ -86,10 +86,11 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
               )}
             </div>
             {/* Social */}
+            {/* FIX #6: w-11 h-11 (44px) touch targets on social icons */}
             <div className="flex gap-3 mt-4">
-              {config.instagram_url && <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Instagram size={14} /></a>}
-              {config.facebook_url && <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Facebook size={14} /></a>}
-              {config.youtube_url && <a href={config.youtube_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Youtube size={14} /></a>}
+              {config.instagram_url && <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="w-11 h-11 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Instagram size={16} /></a>}
+              {config.facebook_url && <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" className="w-11 h-11 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Facebook size={16} /></a>}
+              {config.youtube_url && <a href={config.youtube_url} target="_blank" rel="noopener noreferrer" className="w-11 h-11 flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Youtube size={16} /></a>}
             </div>
           </div>
 

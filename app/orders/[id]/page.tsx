@@ -121,12 +121,13 @@ export default function OrderDetailPage() {
       {!isCancelledOrReturn && (
         <div className="card p-5 mb-4">
           <div className="flex items-center justify-between relative">
-            {/* connector line */}
-            <div className="absolute left-0 right-0 top-4 h-0.5 mx-8" style={{ background: 'var(--border)', zIndex: 0 }} />
-            <div className="absolute left-0 top-4 h-0.5 mx-8" style={{
+            {/* FIX #12: use percentage-based margins instead of fixed mx-8 for narrow screens */}
+            <div className="absolute left-0 right-0 top-4 h-0.5" style={{ margin: '0 12%', background: 'var(--border)', zIndex: 0 }} />
+            <div className="absolute left-0 top-4 h-0.5" style={{
+              margin: '0 12%',
               background: 'var(--crimson)',
               zIndex: 1,
-              right: currentStepIdx >= 2 ? '0' : currentStepIdx >= 1 ? '50%' : '100%',
+              right: currentStepIdx >= 2 ? '12%' : currentStepIdx >= 1 ? '56%' : '100%',
               transition: 'right 0.4s ease',
             }} />
             {STEPS.map((step, i) => {

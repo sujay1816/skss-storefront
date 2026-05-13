@@ -253,6 +253,12 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); }
   transition: opacity 0.2s, transform 0.2s;
 }
 .newsletter-btn:hover { opacity: 0.92; transform: translateX(1px); }
+/* FIX #2: stack newsletter on mobile */
+@media (max-width: 480px) {
+  .newsletter-input-group { flex-direction: column; }
+  .newsletter-input { border-right: 1px solid rgba(255,255,255,0.25); border-bottom: none; height: 48px; }
+  .newsletter-btn { height: 48px; width: 100%; }
+}
 
 /* ── IMAGE LIGHTBOX (#10) ── */
 .lightbox-overlay {
@@ -441,6 +447,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
 @media (max-width: 768px) {
   .section-heading { font-size: 24px !important; }
   .page-container { padding: 0 16px; }
+  /* FIX #11: reduce letter-spacing on announcement bar — too wide on 375px */
+  .announcement-bar { letter-spacing: 0.03em !important; font-size: 11px !important; }
 }
 @media (hover: none) {
   .group .add-to-cart-btn { transform: translateY(0) !important; }

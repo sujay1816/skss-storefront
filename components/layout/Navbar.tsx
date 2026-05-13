@@ -119,7 +119,8 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
 
   return (
     <>
-      <div className="text-center py-2 text-xs tracking-widest font-light text-white" style={{ background: 'var(--crimson)' }}>
+      {/* FIX #11: added announcement-bar class so globals.css can reduce tracking on mobile */}
+      <div className="announcement-bar text-center py-2 text-xs tracking-widest font-light text-white" style={{ background: 'var(--crimson)' }}>
         Free shipping on orders above ₹{Number(config.free_shipping_above || 1999).toLocaleString('en-IN')} &nbsp;·&nbsp; {config.brand_tagline}
       </div>
 

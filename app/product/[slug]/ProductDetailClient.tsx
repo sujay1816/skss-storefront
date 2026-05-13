@@ -235,18 +235,19 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           </motion.div>
 
           {(product.images.length > 1 || product.videoUrl) && (
-            <div className="flex gap-2">
+            // FIX #9: overflow-x-auto so thumbnails scroll horizontally on mobile instead of wrapping
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {product.images.map((img, i) => (
                 <button key={img.id} onClick={() => setActiveImage(i)}
-                  className="relative flex-1 border-2 overflow-hidden transition-all"
-                  style={{ aspectRatio: '1', borderRadius: 2, borderColor: activeImage === i ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
+                  className="relative flex-shrink-0 border-2 overflow-hidden transition-all"
+                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === i ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
               {product.videoUrl && (
                 <button onClick={() => setActiveImage(-1)}
-                  className="relative flex-1 border-2 overflow-hidden transition-all flex items-center justify-center"
-                  style={{ aspectRatio: '1', borderRadius: 2, borderColor: activeImage === -1 ? 'var(--crimson)' : 'var(--border)', background: '#1A0E0A' }}>
+                  className="relative flex-shrink-0 border-2 overflow-hidden transition-all flex items-center justify-center"
+                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === -1 ? 'var(--crimson)' : 'var(--border)', background: '#1A0E0A' }}>
                   <div className="flex flex-col items-center gap-1">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
                       <svg width="12" height="14" viewBox="0 0 12 14" fill="white"><path d="M1 1l10 6-10 6V1z"/></svg>
@@ -257,6 +258,10 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               )}
             </div>
           )}
+          {/* ZOOM: desktop shows hover-zoom, mobile tap opens lightbox — hint for mobile users */}
+          <p className="text-xs mt-1 lg:hidden text-center" style={{ color: 'var(--text-secondary)' }}>
+            Tap image to zoom
+          </p>
         </div>
 
         {/* Info */}
@@ -285,8 +290,9 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               <p className="text-xs font-medium tracking-wide uppercase mb-3" style={{ color: 'var(--text-primary)' }}>Colour: <span style={{ color: 'var(--crimson)' }}>{selectedVariant?.colour}</span></p>
               <div className="flex gap-2 flex-wrap">
                 {product.variants.map(v => (
+                  // FIX #8: w-11 h-11 on mobile (44px touch target), w-9 h-9 on sm+
                   <button key={v.id} onClick={() => v.stock > 0 && setSelectedVariant(v)} disabled={v.stock === 0} title={v.colour}
-                    className="relative w-9 h-9 rounded-full border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="relative w-11 h-11 sm:w-9 sm:h-9 rounded-full border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ background: v.colourHex, borderColor: selectedVariant?.id === v.id ? 'var(--text-primary)' : 'transparent', boxShadow: selectedVariant?.id === v.id ? '0 0 0 2px var(--text-primary)' : 'none' }}>
                     {v.stock === 0 && <span className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-white/70 rotate-45" /></span>}
                     {selectedVariant?.id === v.id && v.stock > 0 && <Check size={12} className="absolute inset-0 m-auto text-white" />}
