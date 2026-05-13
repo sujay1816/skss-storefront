@@ -1,31 +1,57 @@
-# skss-storefront — Mobile UI/UX Fixes
+# skss-storefront — Zoom Fix + Loading States
 
-## Files changed
+## Files to replace
 
-| File | Issues fixed |
+| File | What changed |
 |------|-------------|
-| `app/globals.css` | #2 Newsletter stacks on mobile; #11 Announcement bar letter-spacing reduced |
-| `app/shop/ShopContent.tsx` | #1 Mobile filter bottom drawer; #4 Responsive toolbar; #7 Smart pagination |
-| `app/cart/page.tsx` | #3 Qty buttons 44px touch target on mobile |
-| `app/checkout/page.tsx` | #5 Address form full-width on mobile (grid-cols-1 → sm:grid-cols-2) |
-| `app/product/[slug]/ProductDetailClient.tsx` | #8 Colour swatches 44px on mobile; #9 Thumbnail horizontal scroll; Zoom hint on mobile |
-| `app/orders/[id]/page.tsx` | #12 Stepper connector % margins (works on 320px) |
-| `components/layout/Footer.tsx` | #6 Social icons 44px touch target |
-| `components/layout/Navbar.tsx` | #11 Added announcement-bar CSS class |
-| `components/layout/WhatsAppButton.tsx` | #10 Raised to bottom:5rem on mobile, clears sticky bars |
+| `app/globals.css` | Lightbox: touch-action for pinch-zoom, swipe hint on mobile, nav arrows hidden on mobile |
+| `app/product/[slug]/ProductDetailClient.tsx` | Swipe to navigate in lightbox; dot indicators; image load skeleton; reset skeleton on image switch |
+| `app/wishlist/page.tsx` | Skeleton card grid replaces plain "Loading..." text |
+| `app/contact/ContactClient.tsx` | Added full contact form with spinner, success state, and Supabase save |
+| `components/product/ProductCard.tsx` | Skeleton overlay on each product card image until loaded |
 
-## Re: zoom on mobile
-Hover-zoom (mouse-track magnification) only works on desktop — touch screens don't fire mouseEnter/mouseMove. On mobile, **tapping the product image opens the full-screen lightbox** which serves as the zoom equivalent. A "Tap image to zoom" hint is now shown below the thumbnails on mobile only.
+## Zoom — what was wrong and what's fixed
+
+The issue was `touch-action` on the lightbox overlay was set to `manipulation`
+which blocks multi-touch gestures like pinch-to-zoom. The fix:
+
+- `.lightbox-overlay` — `touch-action: manipulation` (prevents accidental
+  double-tap zoom on the black background, which is correct)
+- `.lightbox-img` — `touch-action: pinch-zoom pan-x pan-y` (explicitly
+  ALLOWS native browser pinch-to-zoom on the image itself)
+- On mobile the lightbox now shows: "Swipe to browse · Pinch to zoom" hint
+- Nav arrows hidden on mobile (use swipe instead)
+- Swiping left/right navigates between images (50px threshold)
+- Dot indicators show which image you're on
+
+## Contact form — Supabase table needed
+
+The contact form saves messages to a `contact_messages` table.
+Create it in Supabase SQL Editor:
+
+```sql
+create table contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  message text not null,
+  created_at timestamptz default now(),
+  is_read boolean default false
+);
+alter table contact_messages enable row level security;
+-- Allow inserts from anyone (public contact form)
+create policy "Anyone can submit contact" on contact_messages
+  for insert with check (true);
+-- Only admins can read
+create policy "Service role reads contact" on contact_messages
+  for select using (false);
+```
 
 ## Copy paths
 ```
-mobilefixes/app/globals.css                              → app/globals.css
-mobilefixes/app/shop/ShopContent.tsx                     → app/shop/ShopContent.tsx
-mobilefixes/app/cart/page.tsx                            → app/cart/page.tsx
-mobilefixes/app/checkout/page.tsx                        → app/checkout/page.tsx
-mobilefixes/app/product/[slug]/ProductDetailClient.tsx   → app/product/[slug]/
-mobilefixes/app/orders/[id]/page.tsx                     → app/orders/[id]/
-mobilefixes/components/layout/Footer.tsx                 → components/layout/
-mobilefixes/components/layout/Navbar.tsx                 → components/layout/
-mobilefixes/components/layout/WhatsAppButton.tsx         → components/layout/
+loadingfixes/app/globals.css                             → app/globals.css
+loadingfixes/app/wishlist/page.tsx                       → app/wishlist/page.tsx
+loadingfixes/app/contact/ContactClient.tsx               → app/contact/ContactClient.tsx
+loadingfixes/app/product/[slug]/ProductDetailClient.tsx  → app/product/[slug]/
+loadingfixes/components/product/ProductCard.tsx          → components/product/
 ```

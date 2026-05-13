@@ -34,6 +34,10 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   // UI/UX: image zoom on desktop hover
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isZooming, setIsZooming] = useState(false)
+  // Loading state for main image
+  const [mainImageLoaded, setMainImageLoaded] = useState(false)
+  // Swipe support for lightbox
+  const [swipeStartX, setSwipeStartX] = useState<number | null>(null)
   // FIX #9: track whether user has a verified purchase of this product
   const [hasVerifiedPurchase, setHasVerifiedPurchase] = useState(false)
   const [purchaseCheckDone, setPurchaseCheckDone] = useState(false)
@@ -51,12 +55,29 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   // UI/UX: record this product as recently viewed on mount
   useEffect(() => { recordRecentlyViewed(product) }, [product.id])
 
+  // Reset loading state when switching product image
+  useEffect(() => { setMainImageLoaded(false) }, [activeImage])
+
   // UI/UX: image zoom handler
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
     setZoomPos({ x, y })
+  }
+
+  // Lightbox swipe navigation
+  const handleLightboxTouchStart = (e: React.TouchEvent) => {
+    setSwipeStartX(e.touches[0].clientX)
+  }
+  const handleLightboxTouchEnd = (e: React.TouchEvent) => {
+    if (swipeStartX === null) return
+    const diff = swipeStartX - e.changedTouches[0].clientX
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) setLightboxIdx(i => Math.min(product.images.length - 1, i + 1))
+      else setLightboxIdx(i => Math.max(0, i - 1))
+    }
+    setSwipeStartX(null)
   }
 
   // FIX #9: check if logged-in user has purchased this product
@@ -183,16 +204,48 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         {/* Images + Video */}
         <div className="lg:w-1/2">
           {lightboxOpen && (
-            <div className="lightbox-overlay" onClick={() => setLightboxOpen(false)}>
+            <div
+              className="lightbox-overlay"
+              onClick={() => setLightboxOpen(false)}
+              onTouchStart={handleLightboxTouchStart}
+              onTouchEnd={handleLightboxTouchEnd}>
               <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
+              {/* Desktop nav arrows */}
               {product.images.length > 1 && (
                 <>
                   <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(0, i-1)) }}>‹</button>
                   <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(product.images.length-1, i+1)) }}>›</button>
                 </>
               )}
+              {/* Image — stopPropagation so tapping image doesn't close lightbox */}
               {product.images[lightboxIdx]?.url && (
-                <img src={product.images[lightboxIdx].url} alt={product.name} className="lightbox-img" />
+                <img
+                  src={product.images[lightboxIdx].url}
+                  alt={product.name}
+                  className="lightbox-img"
+                  onClick={e => e.stopPropagation()}
+                />
+              )}
+              {/* Image counter + swipe hint on mobile */}
+              {product.images.length > 1 && (
+                <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2">
+                  {/* Dot indicators */}
+                  <div className="flex gap-1.5">
+                    {product.images.map((_, i) => (
+                      <div key={i} style={{
+                        width: i === lightboxIdx ? 20 : 6,
+                        height: 6,
+                        borderRadius: 3,
+                        background: i === lightboxIdx ? 'white' : 'rgba(255,255,255,0.4)',
+                        transition: 'width 0.2s, background 0.2s',
+                      }} />
+                    ))}
+                  </div>
+                  {/* Swipe hint — mobile only */}
+                  <p className="text-xs lg:hidden" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    Swipe to browse · Pinch to zoom
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -210,6 +263,10 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               </video>
             ) : primaryImage?.url ? (
               <div className="absolute inset-0 overflow-hidden">
+                {/* Loading skeleton shown until image loads */}
+                {!mainImageLoaded && (
+                  <div className="absolute inset-0 skeleton" />
+                )}
                 <Image
                   src={primaryImage.url}
                   alt={primaryImage.altText || product.name}
@@ -218,8 +275,11 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                   style={{
                     transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
                     transform: isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
+                    opacity: mainImageLoaded ? 1 : 0,
+                    transition: 'opacity 0.3s ease, transform 0.2s',
                   }}
                   priority
+                  onLoad={() => setMainImageLoaded(true)}
                 />
               </div>
             ) : (

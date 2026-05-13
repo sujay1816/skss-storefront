@@ -1,6 +1,9 @@
 'use client'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react'
+import { Phone, Mail, MapPin, Clock, MessageCircle, Send, CheckCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 
 export default function ContactClient({ cfg }: { cfg: Record<string, string> }) {
   const phone = cfg.whatsapp_number && cfg.whatsapp_number !== '+919999999999' ? cfg.whatsapp_number : ''
@@ -8,6 +11,37 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
   const address = cfg.business_address || ''
   const hours = cfg.contact_hours || 'Mon–Sat: 10:00 AM – 7:00 PM'
   const mapUrl = cfg.contact_map_url || ''
+
+  const [formName, setFormName] = useState('')
+  const [formEmail, setFormEmail] = useState('')
+  const [formMessage, setFormMessage] = useState('')
+  const [formSending, setFormSending] = useState(false)
+  const [formSent, setFormSent] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formName.trim() || !formEmail.trim() || !formMessage.trim()) return
+    setFormSending(true)
+    try {
+      const supabase = createClient()
+      await supabase.from('contact_messages').insert({
+        name: formName.trim(),
+        email: formEmail.trim(),
+        message: formMessage.trim(),
+        created_at: new Date().toISOString(),
+      })
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'contact_message', name: formName.trim(), email: formEmail.trim(), message: formMessage.trim() }),
+      }).catch(() => {})
+      setFormSent(true)
+    } catch {
+      toast.success("Message sent! We'll get back to you soon.")
+      setFormName(''); setFormEmail(''); setFormMessage('')
+    }
+    setFormSending(false)
+  }
 
   const contacts = [
     phone && { icon: <MessageCircle size={20} />, label: 'WhatsApp', value: phone, href: `https://wa.me/${phone.replace(/\D/g, '')}` },
@@ -28,22 +62,17 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12">
           {contacts.map((c: any, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-lg border flex items-start gap-4"
-              style={{ borderColor: 'var(--border)', background: 'white' }}>
-              <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--cream)', color: 'var(--crimson)' }}>
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+              className="p-6 rounded-lg border flex items-start gap-4" style={{ borderColor: 'var(--border)', background: 'white' }}>
+              <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--cream)', color: 'var(--crimson)' }}>
                 {c.icon}
               </div>
               <div>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{c.label}</p>
                 {c.href && c.href !== '#' ? (
-                  <a href={c.href} target={c.href.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer"
-                    className="text-sm font-medium transition-colors"
-                    style={{ color: 'var(--crimson)' }}>
+                  <a href={c.href} target={c.href.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer" className="text-sm font-medium transition-colors" style={{ color: 'var(--crimson)' }}>
                     {c.value}
                   </a>
                 ) : (
@@ -54,8 +83,45 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
           ))}
         </div>
 
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          className="card p-8 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Send Us a Message</h2>
+          {formSent ? (
+            <div className="text-center py-8">
+              <CheckCircle size={48} className="mx-auto mb-4" style={{ color: '#16A34A' }} />
+              <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Message Sent!</p>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>We'll get back to you within 24 hours.</p>
+              <button onClick={() => { setFormSent(false); setFormName(''); setFormEmail(''); setFormMessage('') }} className="btn-outline text-xs">Send Another Message</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Your Name *</label>
+                  <input className="input-base" value={formName} onChange={e => setFormName(e.target.value)} placeholder="Full name" required disabled={formSending} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email Address *</label>
+                  <input type="email" className="input-base" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="you@example.com" required disabled={formSending} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Message *</label>
+                <textarea className="input-base" value={formMessage} onChange={e => setFormMessage(e.target.value)} placeholder="How can we help you?" required disabled={formSending} style={{ height: 120, padding: '12px 14px', resize: 'none' }} />
+              </div>
+              <button type="submit" disabled={formSending || !formName.trim() || !formEmail.trim() || !formMessage.trim()} className="btn-primary" style={{ opacity: formSending ? 0.7 : 1 }}>
+                {formSending ? (
+                  <><span className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />Sending...</>
+                ) : (
+                  <><Send size={14} /> Send Message</>
+                )}
+              </button>
+            </form>
+          )}
+        </motion.div>
+
         {(!phone && !email && !address) && (
-          <div className="text-center py-12 rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
+          <div className="text-center py-12 rounded-lg border mt-8" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
             <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Contact details coming soon</p>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Update from Admin → Config → Store Settings</p>
           </div>

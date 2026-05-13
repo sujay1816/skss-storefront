@@ -30,6 +30,7 @@ const Price = ({ amount, className = '', style = {} }: { amount: number; classNa
 
 export default function ProductCard({ product, userId }: { product: Product; userId?: string }) {
   const [imgError, setImgError] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [wishlistLoading, setWishlistLoading] = useState(false)
   // #1 — selected variant for swatch interaction
@@ -115,15 +116,20 @@ export default function ProductCard({ product, userId }: { product: Product; use
               animate={{ scale: isHovered ? 1.06 : 1 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}>
               {primaryImage && !imgError ? (
-                <Image
-                  src={primaryImage.url}
-                  alt={primaryImage.altText || product.name}
-                  fill
-                  className="object-cover"
-                  onError={() => setImgError(true)}
-                  // #6 — priority on first 4 items for LCP
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
+                <>
+                  {/* Loading skeleton shown until image loads */}
+                  {!imgLoaded && <div className="absolute inset-0 skeleton" />}
+                  <Image
+                    src={primaryImage.url}
+                    alt={primaryImage.altText || product.name}
+                    fill
+                    className="object-cover"
+                    onError={() => setImgError(true)}
+                    onLoad={() => setImgLoaded(true)}
+                    style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                  />
+                </>
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-3"
                   style={{ background: 'linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%)' }}>
