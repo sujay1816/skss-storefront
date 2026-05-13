@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,6 +12,80 @@ import { useWishlistStore } from '@/lib/store/wishlist'
 import { createClient } from '@/lib/supabase/client'
 import type { Product, ProductVariant, Review, SiteConfig } from '@/types'
 import toast from 'react-hot-toast'
+
+// Isolated zoom component — memo prevents product detail re-renders on every mouse move.
+// Without this, zoomPos/isZooming state updates (fired on every mousemove event)
+// re-render the entire ProductDetailClient including all accordion sections.
+const ZoomImage = memo(function ZoomImage({
+  src, alt, isNew, isOnSale, calculatedDiscount, activeImage, videoUrl,
+  onOpen, onTouchStart, onTouchEnd
+}: {
+  src: string | null; alt: string; isNew: boolean; isOnSale: boolean
+  calculatedDiscount: number; activeImage: number; videoUrl?: string | null
+  onOpen: (idx: number) => void
+  onTouchStart?: React.TouchEventHandler
+  onTouchEnd?: React.TouchEventHandler
+}) {
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
+  const [isZooming, setIsZooming] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  // Reset loaded state when image src changes
+  useEffect(() => { setLoaded(false) }, [src])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setZoomPos({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    })
+  }
+
+  return (
+    <motion.div
+      className="relative w-full overflow-hidden mb-3"
+      style={{ aspectRatio: '3/4', background: 'var(--cream)', cursor: activeImage === -1 ? 'default' : isZooming ? 'zoom-out' : 'zoom-in' }}
+      onClick={() => { if (activeImage !== -1) onOpen(activeImage) }}
+      onMouseEnter={() => setIsZooming(true)}
+      onMouseLeave={() => setIsZooming(false)}
+      onMouseMove={handleMouseMove}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      whileHover={{ scale: 1.0 }}
+      transition={{ duration: 0.3 }}>
+      {activeImage === -1 && videoUrl ? (
+        <video className="w-full h-full" style={{ objectFit: 'cover' }} controls playsInline preload="metadata">
+          <source src={videoUrl} type="video/mp4" />
+        </video>
+      ) : src ? (
+        <div className="absolute inset-0 overflow-hidden">
+          {!loaded && <div className="absolute inset-0 skeleton" />}
+          <Image
+            src={src} alt={alt} fill
+            className="object-cover transition-transform duration-200"
+            style={{
+              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+              transform: isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
+              opacity: loaded ? 1 : 0,
+              transition: 'opacity 0.3s ease, transform 0.2s',
+            }}
+            priority
+            onLoad={() => setLoaded(true)}
+          />
+        </div>
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: 'var(--cream)' }}>
+          <span className="text-6xl">🥻</span>
+          <p className="text-sm mt-4 text-center px-8" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}>{alt}</p>
+        </div>
+      )}
+      <div className="absolute top-3 left-3 flex flex-col gap-1">
+        {isNew && <span className="badge-new">New</span>}
+        {isOnSale && <span className="badge-sale">{calculatedDiscount}% Off</span>}
+      </div>
+    </motion.div>
+  )
+})
 
 export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId }: {
   product: Product; reviews: Review[]; relatedProducts: Product[]; config: SiteConfig; userId?: string
@@ -31,11 +105,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(0)
   const [showStickyBar, setShowStickyBar] = useState(false)
-  // UI/UX: image zoom on desktop hover
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
-  const [isZooming, setIsZooming] = useState(false)
-  // Loading state for main image
-  const [mainImageLoaded, setMainImageLoaded] = useState(false)
   // Swipe support for lightbox
   const [swipeStartX, setSwipeStartX] = useState<number | null>(null)
   // FIX #9: track whether user has a verified purchase of this product
@@ -55,30 +124,28 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   // UI/UX: record this product as recently viewed on mount
   useEffect(() => { recordRecentlyViewed(product) }, [product.id])
 
-  // Reset loading state when switching product image
-  useEffect(() => { setMainImageLoaded(false) }, [activeImage])
+  // Stable callbacks passed to ZoomImage memo — useCallback prevents new references
+  // on every render which would defeat memo and still cause re-renders
+  const handleOpenLightbox = useCallback((idx: number) => {
+    setLightboxIdx(idx)
+    setLightboxOpen(true)
+  }, [])
 
-  // UI/UX: image zoom handler
-  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 100
-    const y = ((e.clientY - rect.top) / rect.height) * 100
-    setZoomPos({ x, y })
-  }
-
-  // Lightbox swipe navigation
-  const handleLightboxTouchStart = (e: React.TouchEvent) => {
+  // Lightbox swipe navigation (kept in parent so it can update lightboxIdx)
+  const handleLightboxTouchStart = useCallback((e: React.TouchEvent) => {
     setSwipeStartX(e.touches[0].clientX)
-  }
-  const handleLightboxTouchEnd = (e: React.TouchEvent) => {
-    if (swipeStartX === null) return
-    const diff = swipeStartX - e.changedTouches[0].clientX
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) setLightboxIdx(i => Math.min(product.images.length - 1, i + 1))
-      else setLightboxIdx(i => Math.max(0, i - 1))
-    }
-    setSwipeStartX(null)
-  }
+  }, [])
+  const handleLightboxTouchEnd = useCallback((e: React.TouchEvent) => {
+    setSwipeStartX(prev => {
+      if (prev === null) return null
+      const diff = prev - e.changedTouches[0].clientX
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) setLightboxIdx(i => Math.min(product.images.length - 1, i + 1))
+        else setLightboxIdx(i => Math.max(0, i - 1))
+      }
+      return null
+    })
+  }, [product.images.length])
 
   // FIX #9: check if logged-in user has purchased this product
   useEffect(() => {
@@ -255,50 +322,18 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               )}
             </div>
           )}
-          <motion.div
-            className="relative w-full overflow-hidden mb-3"
-            style={{ aspectRatio: '3/4', background: 'var(--cream)', cursor: activeImage === -1 ? 'default' : isZooming ? 'zoom-out' : 'zoom-in' }}
-            onClick={() => { if (activeImage !== -1) { setLightboxIdx(activeImage); setLightboxOpen(true) } }}
-            onMouseEnter={() => setIsZooming(true)}
-            onMouseLeave={() => setIsZooming(false)}
-            onMouseMove={handleImageMouseMove}
-            whileHover={{ scale: activeImage === -1 ? 1 : 1.0 }} transition={{ duration: 0.3 }}>
-            {activeImage === -1 && product.videoUrl ? (
-              <video className="w-full h-full" style={{ objectFit: 'cover' }} controls playsInline preload="metadata">
-                <source src={product.videoUrl} type="video/mp4" />
-              </video>
-            ) : primaryImage?.url ? (
-              <div className="absolute inset-0 overflow-hidden">
-                {/* Loading skeleton shown until image loads */}
-                {!mainImageLoaded && (
-                  <div className="absolute inset-0 skeleton" />
-                )}
-                <Image
-                  src={primaryImage.url}
-                  alt={primaryImage.altText || product.name}
-                  fill
-                  className="object-cover transition-transform duration-200"
-                  style={{
-                    transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                    transform: isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
-                    opacity: mainImageLoaded ? 1 : 0,
-                    transition: 'opacity 0.3s ease, transform 0.2s',
-                  }}
-                  priority
-                  onLoad={() => setMainImageLoaded(true)}
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: 'var(--cream)' }}>
-                <span className="text-6xl">🥻</span>
-                <p className="text-sm mt-4 text-center px-8" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}>{product.name}</p>
-              </div>
-            )}
-            <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && <span className="badge-new">New</span>}
-              {isOnSale && <span className="badge-sale">{calculatedDiscount}% Off</span>}
-            </div>
-          </motion.div>
+          {/* ZoomImage is memoised — mouse move events only re-render the image,
+              NOT the product details, accordions, or any other part of this page */}
+          <ZoomImage
+            src={primaryImage?.url ?? null}
+            alt={primaryImage?.altText || product.name}
+            isNew={product.isNew}
+            isOnSale={isOnSale}
+            calculatedDiscount={calculatedDiscount}
+            activeImage={activeImage}
+            videoUrl={product.videoUrl}
+            onOpen={handleOpenLightbox}
+          />
 
           {(product.images.length > 1 || product.videoUrl) && (
             // FIX #9: overflow-x-auto so thumbnails scroll horizontally on mobile instead of wrapping
