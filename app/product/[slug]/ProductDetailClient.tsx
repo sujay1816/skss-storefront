@@ -112,6 +112,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const effectivePrice = getEffectivePrice(product)
   const isOnSale = effectivePrice < product.originalPrice
   const gstAmount = Math.round((effectivePrice * product.gstRate) / 100)
+  // FIX: always calculate discount from actual prices — never rely on the DB field
+  // which can be null/wrong if admin forgot to fill it in
+  const calculatedDiscount = isOnSale
+    ? Math.round(((product.originalPrice - effectivePrice) / product.originalPrice) * 100)
+    : 0
+  const savingsAmount = product.originalPrice - effectivePrice
   const primaryImage = product.images?.[activeImage] || product.images?.[0]
 
   const checkPincode = async () => {
@@ -290,7 +296,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             )}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
               {product.isNew && <span className="badge-new">New</span>}
-              {isOnSale && <span className="badge-sale">{product.discountPercent}% Off</span>}
+              {isOnSale && <span className="badge-sale">{calculatedDiscount}% Off</span>}
             </div>
           </motion.div>
 
@@ -339,11 +345,34 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           )}
 
-          <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-3xl font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{formatPrice(effectivePrice)}</span>
-            {isOnSale && <><span className="text-lg line-through" style={{ color: 'var(--text-secondary)' }}>{formatPrice(product.originalPrice)}</span><span className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{product.discountPercent}% off</span></>}
+          <div className="mb-1">
+            {/* Sale price / current price */}
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-3xl font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>
+                {formatPrice(effectivePrice)}
+              </span>
+              {isOnSale && (
+                <>
+                  <span className="text-base line-through" style={{ color: 'var(--text-secondary)' }}>
+                    MRP {formatPrice(product.originalPrice)}
+                  </span>
+                  <span className="text-sm font-semibold px-2 py-0.5 rounded"
+                    style={{ background: '#FEF3C7', color: '#92400E' }}>
+                    {calculatedDiscount}% off
+                  </span>
+                </>
+              )}
+            </div>
+            {/* Savings line — high trust signal */}
+            {isOnSale && (
+              <p className="text-xs mt-1 font-medium" style={{ color: '#16A34A' }}>
+                You save {formatPrice(savingsAmount)}
+              </p>
+            )}
           </div>
-          <p className="text-xs mb-6" style={{ color: 'var(--text-secondary)' }}>Inclusive of GST ({product.gstRate}% = {formatPrice(gstAmount)})</p>
+          <p className="text-xs mb-6" style={{ color: 'var(--text-secondary)' }}>
+            Inclusive of GST ({product.gstRate}% = {formatPrice(gstAmount)})
+          </p>
 
           {product.variants.length > 0 && (
             <div className="mb-6">
