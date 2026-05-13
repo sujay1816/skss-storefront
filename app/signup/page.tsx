@@ -1,17 +1,17 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
-  const redirect = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('redirect') || '/'
-    : '/'
+  const searchParams = useSearchParams()
+  // FIX: same bug as login — useSearchParams() reads correctly, window.location.search does not
+  const redirect = searchParams.get('redirect') || '/'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -212,5 +212,14 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// useSearchParams() requires a Suspense boundary in Next.js App Router
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#111111' }} />}>
+      <SignupForm />
+    </Suspense>
   )
 }

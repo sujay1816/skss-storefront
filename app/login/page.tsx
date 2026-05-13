@@ -1,13 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  // FIX: use useSearchParams() instead of window.location.search
+  // window.location.search is read before hydration in App Router so the
+  // redirect param is always empty — user gets stuck on the login page after signing in
+  const redirect = searchParams.get('redirect') || '/'
   const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
   const [logoUrl, setLogoUrl] = useState('/images/logo.png')
@@ -25,10 +31,6 @@ export default function LoginPage() {
         if (cfg.logo_url) setLogoUrl(cfg.logo_url)
       })
   }, [])
-  const router = useRouter()
-  const redirect = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('redirect') || '/'
-    : '/'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -151,5 +153,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// useSearchParams() requires a Suspense boundary in Next.js App Router
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#111111' }} />}>
+      <LoginForm />
+    </Suspense>
   )
 }
