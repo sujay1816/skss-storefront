@@ -348,8 +348,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           <div className="mb-1">
             {/* Sale price / current price */}
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>
-                {formatPrice(effectivePrice)}
+              <span style={{ color: 'var(--crimson)' }}>
+                {/* ₹ in body font so it renders cleanly — Cormorant Garamond doesn't have the glyph */}
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: '1.1rem', fontWeight: 500, verticalAlign: 'middle', marginRight: 1 }}>₹</span>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 500 }}>
+                  {Number(effectivePrice).toLocaleString('en-IN')}
+                </span>
               </span>
               {isOnSale && (
                 <>
