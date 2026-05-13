@@ -2,13 +2,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   // FIX: use useSearchParams() instead of window.location.search
   // window.location.search is read before hydration in App Router so the
@@ -65,11 +64,13 @@ function LoginForm() {
       }
     }
     toast.success('Welcome back!')
-    // FIX: remove router.refresh() — it races with router.push() and can
-    // interrupt the navigation or trigger middleware before the auth cookie
-    // is fully written, sending the user back to /login in a loop.
-    // @supabase/ssr handles cookie propagation automatically.
-    router.push(redirect)
+    // FIX: use window.location.href instead of router.push()
+    // router.push() is a client-side navigation — the next server request fires
+    // immediately before the browser has committed the new auth cookie to the
+    // cookie jar. Middleware then sees no session and redirects back to /login.
+    // window.location.href forces a full page reload, which guarantees the
+    // browser sends the fresh Supabase session cookie in the new request.
+    window.location.href = redirect
   }
 
   const handleGoogle = async () => {

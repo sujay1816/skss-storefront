@@ -2,13 +2,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 function SignupForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   // FIX: same bug as login — useSearchParams() reads correctly, window.location.search does not
   const redirect = searchParams.get('redirect') || '/'
@@ -72,8 +71,8 @@ function SignupForm() {
     }
     // If email confirmation is disabled in Supabase (session is returned immediately)
     toast.success(`Welcome to ${brandName}!`)
-    // FIX: remove router.refresh() — same race condition as login page
-    router.push(redirect)
+    // FIX: same as login — window.location.href ensures fresh cookie is sent
+    window.location.href = redirect
   }
 
   const handleGoogle = async () => {
