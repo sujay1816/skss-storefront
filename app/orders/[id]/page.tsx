@@ -23,6 +23,10 @@ export default function OrderDetailPage() {
     returnWindowDays: string
     brandName: string
   }>({ businessAddress: '', whatsappNumber: '', supportEmail: '', returnWindowDays: '7', brandName: 'SKSS' })
+  // FIX: Moved here from after if(!order) guard — hooks must always be called unconditionally
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelForm, setShowCancelForm] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -111,9 +115,6 @@ export default function OrderDetailPage() {
 
   // FIX: Customer cancellation — only allowed when status is confirmed (not yet shipped)
   const canCancel = order.status === 'confirmed'
-  const [cancelling, setCancelling] = useState(false)
-  const [showCancelForm, setShowCancelForm] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
 
   const submitCancellation = async () => {
     if (!cancelReason.trim()) return
