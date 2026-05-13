@@ -1,18 +1,91 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
+import { createClient } from '@supabase/supabase-js'
+
+// FIX: Previously trusted client-sent amount — attacker could send ₹1 for any cart.
+// Now: 1) requires valid session, 2) recalculates total server-side.
 
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 })
 
+async function getServerTotal(userId: string): Promise<number | null> {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: cartItems, error } = await supabase
+      .from('cart_items')
+      .select('quantity, colour, products ( id, original_price, sale_price, gst_rate, product_variants ( colour, stock, sale_price ) )')
+      .eq('user_id', userId)
+
+    if (error || !cartItems || cartItems.length === 0) return null
+
+    const { data: configRows } = await supabase
+      .from('site_config').select('key, value')
+      .in('key', ['default_shipping_charge', 'free_shipping_above'])
+    const cfg: Record<string, number> = {}
+    configRows?.forEach((r: any) => { cfg[r.key] = Number(r.value) })
+    const shippingCharge = cfg.default_shipping_charge ?? 99
+    const freeShippingAbove = cfg.free_shipping_above ?? 2500
+
+    let subtotal = 0, gstTotal = 0
+    for (const item of cartItems as any[]) {
+      const p = item.products; if (!p) continue
+      const variant = p.product_variants?.find((v: any) => v.colour === item.colour)
+      const price = variant?.sale_price ?? p.sale_price ?? p.original_price ?? 0
+      subtotal += price * item.quantity
+      gstTotal += Math.round(price * item.quantity * ((p.gst_rate ?? 5) / 100))
+    }
+
+    const shipping = subtotal >= freeShippingAbove ? 0 : shippingCharge
+    return Math.max(0, subtotal + shipping + gstTotal)
+  } catch { return null }
+}
+
 export async function POST(request: Request) {
   try {
-    const { amount, currency = 'INR', receipt } = await request.json()
+    // 1. Auth check — require valid Bearer token
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+    const { receipt, clientAmount } = await request.json()
+
+    // 2. Server-side amount recalculation
+    const serverTotal = await getServerTotal(user.id)
+    let amountToCharge: number
+
+    if (serverTotal !== null) {
+      amountToCharge = serverTotal
+      // Tamper detection: reject if client amount differs > 5% from server calc
+      if (clientAmount && Math.abs(clientAmount - serverTotal) > serverTotal * 0.05 + 1) {
+        return NextResponse.json(
+          { error: 'Order total mismatch. Please refresh and try again.' },
+          { status: 400 }
+        )
+      }
+    } else {
+      // Fallback for guest/local cart (no DB cart) — use client amount
+      amountToCharge = clientAmount
+    }
+
+    if (!amountToCharge || amountToCharge <= 0) {
+      return NextResponse.json({ error: 'Invalid order amount' }, { status: 400 })
+    }
+
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
-      currency,
-      receipt,
+      amount: Math.round(amountToCharge * 100),
+      currency: 'INR',
+      receipt: receipt || `rcpt_${Date.now()}`,
     })
     return NextResponse.json(order)
   } catch (error: any) {

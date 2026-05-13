@@ -171,10 +171,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
       <body>
+        {/* A11y: Skip to main content link — first tab stop for keyboard/screen reader users */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:text-sm focus:font-medium"
+          style={{ background: 'var(--crimson)', color: 'white', borderRadius: 4 }}>
+          Skip to main content
+        </a>
         <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'var(--font-body)', fontSize: '13px' } }} />
         <Suspense fallback={null}><PageProgress /></Suspense>
         <AuthListener />
-        {children}
+        {/* GA4 / Meta Pixel: Add your tracking scripts here once you have your IDs.
+            Use next/script with strategy="afterInteractive" so they don't block render.
+            Example:
+            <Script src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX" strategy="afterInteractive" />
+            <Script id="ga-init" strategy="afterInteractive">{`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-XXXXXXXXXX');
+            `}</Script>
+        */}
+        <div id="main-content">{children}</div>
       </body>
     </html>
   )

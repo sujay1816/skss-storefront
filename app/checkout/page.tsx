@@ -158,10 +158,15 @@ export default function CheckoutPage() {
         await placeOrder(supabase, null, null); return
       }
       const receipt = `order_${Date.now()}`
+      // FIX: send Bearer token so server can verify session + recalculate amount
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
       const res = await fetch('/api/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total, receipt }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentSession?.access_token || ''}`,
+        },
+        body: JSON.stringify({ clientAmount: total, receipt }),
       })
       const razorpayOrder = await res.json()
       if (razorpayOrder.error) { toast.error(razorpayOrder.error); setLoading(false); return }

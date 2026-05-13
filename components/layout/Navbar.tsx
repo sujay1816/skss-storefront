@@ -135,7 +135,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
         style={{ borderColor: 'var(--border)', boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.08)' : 'none' }}>
         <div className="page-container">
           <div className="flex items-center justify-between h-16 gap-4">
-            <button className="md:hidden flex items-center justify-center w-10 h-10" onClick={() => setMenuOpen(true)}>
+            <button className="md:hidden flex items-center justify-center w-10 h-10" onClick={() => setMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={menuOpen}>
               <Menu size={22} style={{ color: 'var(--text-primary)' }} />
             </button>
 
@@ -162,20 +162,20 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             </nav>
 
             <div className="flex items-center gap-1">
-              <button onClick={() => setSearchOpen(!searchOpen)} className="flex items-center justify-center w-10 h-10" style={{ color: 'var(--text-primary)' }}>
+              <button onClick={() => setSearchOpen(!searchOpen)} className="flex items-center justify-center w-10 h-10" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} style={{ color: 'var(--text-primary)' }}>
                 <Search size={18} />
               </button>
-              <Link href="/wishlist" className="relative flex items-center justify-center w-10 h-10">
+              <Link href="/wishlist" className="relative flex items-center justify-center w-10 h-10" aria-label="Wishlist">
                 <Heart size={18} style={{ color: 'var(--text-primary)' }} />
                 {wishlistCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center font-semibold" style={{ background: 'var(--crimson)', fontSize: '9px' }}>{wishlistCount}</span>}
               </Link>
-              <Link href="/cart" className="relative flex items-center justify-center w-10 h-10">
+              <Link href="/cart" className="relative flex items-center justify-center w-10 h-10" aria-label="Shopping cart">
                 <ShoppingBag size={18} style={{ color: 'var(--text-primary)' }} />
                 {cartCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center font-semibold" style={{ background: 'var(--crimson)', fontSize: '9px' }}>{cartCount}</span>}
               </Link>
 
               <div className="relative" ref={profileRef}>
-                <button onClick={() => setProfileOpen(!profileOpen)}
+                <button onClick={() => setProfileOpen(!profileOpen)} aria-label={user ? `${user.fullName || "Account"} menu` : "Account menu"} aria-expanded={profileOpen}
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-all"
                   style={{ background: profileOpen ? 'var(--cream)' : 'transparent' }}>
                   {user ? (
@@ -287,7 +287,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                   <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
                   <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search sarees by name, fabric, occasion..." className="input-base pl-10" onKeyDown={handleSearch} />
-                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2"><X size={14} style={{ color: 'var(--text-secondary)' }} /></button>}
+                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2" aria-label="Clear search"><X size={14} style={{ color: 'var(--text-secondary)' }} /></button>}
                 </div>
               </div>
             </motion.div>
@@ -311,7 +311,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                     <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', fontSize: '9px' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
                   </div>
                 </div>
-                <button onClick={() => setMenuOpen(false)}><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
+                <button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
               </div>
 
               {user && (

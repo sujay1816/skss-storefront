@@ -474,3 +474,54 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
   .group .add-to-cart-btn { transform: translateY(0) !important; }
   .wishlist-btn { opacity: 1 !important; transform: translateX(0) !important; }
 }
+
+/* ── ACCESSIBILITY ────────────────────────────────────────────────────────── */
+
+/* Screen reader only — hidden visually but read by screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.focus\:not-sr-only:focus {
+  position: fixed;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Focus ring — gold outline on all interactive elements for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ── REDUCED MOTION ───────────────────────────────────────────────────────── */
+/* Disable all CSS transitions/animations when user prefers reduced motion.
+   Framer Motion also respects this via its own useReducedMotion hook.     */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Stop the announcement bar marquee animation */
+  .animate-marquee {
+    animation: none !important;
+    transform: translateX(0) !important;
+  }
+}
