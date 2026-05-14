@@ -29,11 +29,21 @@ const ZoomImage = memo(function ZoomImage({
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isZooming, setIsZooming] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  // RESPONSIVE FIX: detect touch/mobile device — disable hover zoom entirely
+  // on touchscreens. window.matchMedia('(hover: none)') returns true on any
+  // device whose primary input has no hover capability (phones, tablets).
+  // Falls back to false (zoom enabled) during SSR when window is not available.
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(hover: none)').matches)
+  }, [])
 
   // Reset loaded state when image src changes
   useEffect(() => { setLoaded(false) }, [src])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Never fire zoom on touch devices
+    if (isTouchDevice) return
     const rect = e.currentTarget.getBoundingClientRect()
     setZoomPos({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -44,10 +54,10 @@ const ZoomImage = memo(function ZoomImage({
   return (
     <motion.div
       className="relative w-full overflow-hidden mb-3"
-      style={{ aspectRatio: '3/4', background: 'var(--cream)', cursor: activeImage === -1 ? 'default' : isZooming ? 'zoom-out' : 'zoom-in' }}
+      style={{ aspectRatio: '3/4', background: 'var(--cream)', cursor: activeImage === -1 ? 'default' : isTouchDevice ? 'pointer' : isZooming ? 'zoom-out' : 'zoom-in' }}
       onClick={() => { if (activeImage !== -1) onOpen(activeImage) }}
-      onMouseEnter={() => setIsZooming(true)}
-      onMouseLeave={() => setIsZooming(false)}
+      onMouseEnter={() => { if (!isTouchDevice) setIsZooming(true) }}
+      onMouseLeave={() => { if (!isTouchDevice) setIsZooming(false) }}
       onMouseMove={handleMouseMove}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -65,7 +75,8 @@ const ZoomImage = memo(function ZoomImage({
             className="object-cover transition-transform duration-200"
             style={{
               transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-              transform: isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
+              // RESPONSIVE FIX: scale(1) always on touch devices — no zoom
+              transform: !isTouchDevice && isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
               opacity: loaded ? 1 : 0,
               transition: 'opacity 0.3s ease, transform 0.2s',
             }}
