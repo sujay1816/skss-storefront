@@ -21,7 +21,8 @@ const Price = ({ amount, className = '', style = {} }: { amount: number; classNa
   const formatted = amount.toLocaleString('en-IN')
   return (
     <span className={className} style={style}>
-      <span className="price-rupee">₹</span>
+      {/* FIX: plain ₹ inline — no superscript, no vertical-align tricks */}
+      <span style={{ fontSize: '0.85em', fontFamily: 'var(--font-body)', fontWeight: 400, marginRight: 1 }}>₹</span>
       <span className="price-amount">{formatted}</span>
     </span>
   )
@@ -88,7 +89,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
           style={{ border: '1px solid var(--border)', borderRadius: 4 }}>
 
           {/* Image area */}
-          <div className="relative overflow-hidden" style={{ aspectRatio: '3/4', background: 'var(--cream)' }}>
+          <div className="relative overflow-hidden" style={{ aspectRatio: '2/3', background: 'var(--cream)' }}>
 
             {/* Instant tap overlay — shows immediately before navigation */}
             {tapped && (
@@ -109,7 +110,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
                     src={primaryImage.url}
                     alt={primaryImage.altText || product.name}
                     fill
-                    className="object-cover"
+                    className="object-cover object-top"
                     onError={() => setImgError(true)}
                     onLoad={() => setImgLoaded(true)}
                     style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
@@ -131,17 +132,25 @@ export default function ProductCard({ product, userId }: { product: Product; use
             {/* Dark gradient at bottom */}
             <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none product-card-gradient" />
 
-            {/* Badges */}
+            {/* Badges — max 2 shown, priority order to avoid clutter on mobile */}
             <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-              {product.isNew && <span className="badge-new">New</span>}
-              {isOnSale && <span className="badge-sale">{discountPct}% Off</span>}
-              {product.isOutOfStock && <span className="badge-sold">Sold Out</span>}
-              {product.isBestseller && !product.isOutOfStock && <span className="badge-bestseller">Bestseller</span>}
-              {isLowStock && !product.isOutOfStock && (
-                <span className="flex items-center gap-1 text-white"
-                  style={{ background: '#F59E0B', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', padding: '3px 8px', textTransform: 'uppercase' }}>
-                  <Zap size={8} /> Only {selectedVariant.stock} left
-                </span>
+              {product.isOutOfStock
+                ? <span className="badge-sold">Sold Out</span>
+                : isLowStock
+                  ? <span className="flex items-center gap-1 text-white"
+                      style={{ background: '#F59E0B', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', padding: '3px 8px', textTransform: 'uppercase' }}>
+                      <Zap size={8} /> Only {selectedVariant?.stock} left
+                    </span>
+                  : null
+              }
+              {!product.isOutOfStock && isOnSale && (
+                <span className="badge-sale">{discountPct}% Off</span>
+              )}
+              {!product.isOutOfStock && !isOnSale && product.isNew && (
+                <span className="badge-new">New</span>
+              )}
+              {!product.isOutOfStock && !isOnSale && product.isBestseller && (
+                <span className="badge-bestseller">Bestseller</span>
               )}
             </div>
 
@@ -160,10 +169,12 @@ export default function ProductCard({ product, userId }: { product: Product; use
               </button>
             </div>
 
-            {/* Add to Cart — always visible on mobile, hover-reveal on desktop */}
+            {/* Add to Cart:
+                Desktop — slides up from bottom on hover (full bar)
+                Mobile — compact button below the image (not overlaying it) */}
             {!product.isOutOfStock && (
               <button
-                className="absolute bottom-0 left-0 right-0 py-3 text-xs font-medium tracking-widest uppercase text-white flex items-center justify-center gap-2 transition-all duration-300 md:translate-y-full md:group-hover:translate-y-0"
+                className="absolute bottom-0 left-0 right-0 py-2.5 text-xs font-medium tracking-widest uppercase text-white items-center justify-center gap-2 transition-all duration-300 hidden md:flex md:translate-y-full md:group-hover:translate-y-0"
                 style={{ background: 'var(--crimson)', zIndex: 10 }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--gold)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--crimson)')}
@@ -199,24 +210,36 @@ export default function ProductCard({ product, userId }: { product: Product; use
               </div>
             )}
 
-            {/* #11 — Refined price */}
-            <div className="flex items-baseline gap-2">
-              <Price
-                amount={effectivePrice}
-                className="font-semibold"
-                style={{ color: 'var(--crimson)', fontSize: '15px' }}
-              />
-              {isOnSale && (
-                <>
-                  <Price
-                    amount={product.originalPrice}
-                    className="line-through text-xs"
-                    style={{ color: 'var(--text-secondary)' }}
-                  />
-                  <span className="text-xs font-semibold" style={{ color: '#16A34A' }}>
-                    -{discountPct}%
-                  </span>
-                </>
+            {/* #11 — Price + mobile Add to Cart in same row */}
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <Price
+                  amount={effectivePrice}
+                  className="font-semibold"
+                  style={{ color: 'var(--crimson)', fontSize: '15px' }}
+                />
+                {isOnSale && (
+                  <>
+                    <Price
+                      amount={product.originalPrice}
+                      className="line-through"
+                      style={{ color: 'var(--text-secondary)', fontSize: '11px' }}
+                    />
+                    <span style={{ color: '#16A34A', fontSize: '10px', fontWeight: 600 }}>
+                      -{discountPct}%
+                    </span>
+                  </>
+                )}
+              </div>
+              {/* Mobile-only Add to Cart icon button */}
+              {!product.isOutOfStock && (
+                <button
+                  className="md:hidden flex-shrink-0 flex items-center justify-center rounded"
+                  style={{ width: 32, height: 32, background: 'var(--crimson)', color: 'white', border: 'none' }}
+                  onClick={handleAddToCart}
+                  aria-label="Add to cart">
+                  <ShoppingBag size={14} />
+                </button>
               )}
             </div>
           </div>
