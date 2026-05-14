@@ -39,7 +39,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
   return (
     <>
       {/* ── HERO ── */}
-      <section ref={heroRef} className="relative overflow-hidden" style={{ height: '95vh', minHeight: 640 }}>
+      <section ref={heroRef} className="hero-section relative overflow-hidden">
         <motion.div className="absolute inset-0" style={{ y: heroY }}>
           {heroBanner?.videoUrl ? (
             /* Background video — muted, autoplay, lazy loaded for performance */
@@ -100,7 +100,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
 
               {/* Heading */}
               <motion.h1 variants={fadeUp} className="font-light leading-none mb-6"
-                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)', fontSize: 'clamp(36px, 8vw, 96px)', letterSpacing: '-0.01em' }}>
+                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)', fontSize: 'var(--text-display)', letterSpacing: '-0.01em' }}>
                 {heroBanner?.heading || 'Draped in'}
                 {heroBanner?.headingItalic ? (
                   <><br /><em style={{ color: textCol.accent }}>{heroBanner.headingItalic}</em></>
@@ -121,9 +121,9 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </motion.p>
 
               {/* CTA Buttons */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 hero-cta-group">
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 hero-cta-group">
                 <Link href={heroBanner?.ctaUrl || '/shop'}
-                  className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all flex-1 sm:flex-none"
+                  className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all w-full sm:w-auto"
                   style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)', boxShadow: '0 4px 24px rgba(139,26,43,0.5)' }}>
                   {heroBanner?.ctaLabel || 'Shop Now'}
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -186,7 +186,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
       </section>
 
       {/* ── CATEGORIES ── */}
-      <section className="py-10 md:py-16" style={{ background: 'var(--ivory)' }}>
+      <section style={{ paddingTop: "var(--space-12)", paddingBottom: "var(--space-12)", background: "var(--ivory)" }}>
         <div className="page-container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)', fontFamily: 'var(--font-body)' }}>Browse By</p>
@@ -249,7 +249,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 View All <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "var(--space-4)" }}>
               {newArrivals.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
             </div>
             <div className="mt-8 text-center md:hidden">
@@ -261,8 +261,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
 
       {/* ── BRAND STATEMENT BANNER ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="py-16 md:py-24 text-center relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 40%, var(--crimson-dark) 70%, #1A0E0A 100%)' }}>
+        className="text-center relative overflow-hidden" style={{ paddingTop: "var(--space-16)", paddingBottom: "var(--space-16)", background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 40%, var(--crimson-dark) 70%, #1A0E0A 100%)' }}>
         <div className="absolute inset-0 opacity-5 flex items-center justify-center pointer-events-none">
           <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
         </div>
@@ -345,7 +344,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
 
       {/* ── ABOUT STRIP ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="py-12 md:py-20 border-t" style={{ borderColor: 'var(--border)', background: 'var(--ivory)' }}>
+        className="border-t" style={{ paddingTop: "var(--space-12)", paddingBottom: "var(--space-12)", borderColor: "var(--border)", background: "var(--ivory)" }}>
         <div className="page-container">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
             <div className="md:w-1/3 flex justify-center">
