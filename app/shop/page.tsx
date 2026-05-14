@@ -2,11 +2,14 @@ import type { Metadata } from 'next'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import WhatsAppButton from '@/components/layout/WhatsAppButton'
-import { getSiteConfig, getCategories, getProducts } from '@/lib/supabase/config'
-import { getUser } from '@/lib/supabase/get-user'
+import { getSiteConfig, getCategories, getProducts, type ProductFilters } from '@/lib/supabase/config'
 import ShopContent from './ShopContent'
 import BackToTop from '@/components/layout/BackToTop'
-export const dynamic = 'force-dynamic'
+// PERFORMANCE: ISR with 30s revalidate.
+// Key insight: shop URL params (category, filter, q) make each URL unique.
+// Next.js caches each URL separately, so /shop?category=kanjivaram is cached
+// independently from /shop?category=banarasi. All filtering now server-side.
+export const revalidate = 30
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 
@@ -63,31 +66,46 @@ export async function generateMetadata({ searchParams }: { searchParams: any }):
 }
 
 export default async function ShopPage({ searchParams }: { searchParams: any }) {
-  const [config, categories, user] = await Promise.all([
+  const [config, categories, fabricsData] = await Promise.all([
     getSiteConfig().catch(() => ({} as any)),
     getCategories().catch(() => []),
-    getUser().catch(() => null),
+    // Load fabric types
+    (async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/server')
+        const sb = createClient()
+        const { data } = await sb.from('site_config').select('value').eq('key', 'fabric_types').maybeSingle()
+        if (data?.value) return JSON.parse(data.value) as string[]
+      } catch {}
+      return ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
+    })(),
   ])
 
-  // Load fabric types from site_config for dynamic filter chips
-  const fabricsData = await (async () => {
-    try {
-      const { createClient } = await import('@/lib/supabase/server')
-      const sb = createClient()
-      const { data } = await sb.from('site_config').select('value').eq('key', 'fabric_types').maybeSingle()
-      if (data?.value) return JSON.parse(data.value) as string[]
-    } catch {}
-    return ['Silk','Cotton','Georgette','Chiffon','Linen','Organza','Net','Crepe','Tussar','Chanderi']
-  })()
+  // SCALABILITY: All filtering now server-side in Postgres.
+  // With 200+ sarees, only PAGE_SIZE products are fetched per request.
+  // URL params drive the filter — each unique URL is cached by ISR independently.
+  const PAGE_SIZE = 16
+  const currentPage = Math.max(1, parseInt(searchParams?.page || '1', 10))
 
-  const products = await getProducts({
-    category: searchParams?.category,
-    featured: searchParams?.filter === 'featured',
-    bestseller: searchParams?.filter === 'bestsellers',
+  const filters: ProductFilters = {
+    category:    searchParams?.category,
+    featured:    searchParams?.filter === 'featured',
+    bestseller:  searchParams?.filter === 'bestsellers',
     newArrivals: searchParams?.filter === 'new',
-    search: searchParams?.q,
-    limit: 48,
-  }).catch(() => [])
+    search:      searchParams?.q,
+    // Server-side filters from URL params
+    fabrics:    searchParams?.fabrics ? String(searchParams.fabrics).split(',') : undefined,
+    occasions:  searchParams?.occasions ? String(searchParams.occasions).split(',') : undefined,
+    priceMin:   searchParams?.priceMin ? Number(searchParams.priceMin) : undefined,
+    priceMax:   searchParams?.priceMax ? Number(searchParams.priceMax) : undefined,
+    sortBy:     (searchParams?.sort as ProductFilters['sortBy']) || 'newest',
+    limit:      PAGE_SIZE,
+    offset:     (currentPage - 1) * PAGE_SIZE,
+  }
+
+  const { products, total: totalProducts } = await getProducts(filters).catch(() => ({ products: [], total: 0 }))
+  // PERFORMANCE: user loaded client-side in Navbar
+  const user = null
 
   // BreadcrumbList schema
   const breadcrumbSchema = {
@@ -122,6 +140,17 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
         initialCategory={searchParams?.category}
         initialSearch={searchParams?.q}
         fabrics={fabricsData}
+        totalProducts={totalProducts}
+        currentPage={currentPage}
+        pageSize={16}
+        initialFilters={{
+          fabrics: filters.fabrics || [],
+          occasions: filters.occasions || [],
+          priceMin: String(filters.priceMin || ''),
+          priceMax: String(filters.priceMax || ''),
+          onlyNew: filters.newArrivals || false,
+          sortBy: filters.sortBy || 'newest',
+        }}
       />
       <Footer config={config} categories={categories} />
       <WhatsAppButton number={config.whatsapp_number || ''} />

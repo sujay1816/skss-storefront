@@ -1,5 +1,6 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useCallback, useTransition } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 // FIX: framer-motion removed from filter animations — replaced with CSS
 import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
@@ -66,7 +67,7 @@ interface FiltersProps {
   setOnlyInStock: (v: boolean) => void
   setPage: (v: number) => void
   clearAll: () => void
-  toggleFilter: (arr: string[], val: string, set: (v: string[]) => void) => void
+  toggleFilter: (arr: string[], val: string, set: (v: string[]) => void, key: string) => void
 }
 function FiltersContent({ activeCount, categories, fabrics, selectedCategory, selectedFabrics,
   selectedOccasions, priceMin, priceMax, onlyNew, onlyInStock,
@@ -86,10 +87,10 @@ function FiltersContent({ activeCount, categories, fabrics, selectedCategory, se
         </div>
       </FilterSection>
       <FilterSection title="Fabric">
-        <div className="flex flex-wrap gap-2">{fabrics.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics)} />)}</div>
+        <div className="flex flex-wrap gap-2">{fabrics.map(f => <FilterChip key={f} label={f} active={selectedFabrics.includes(f)} onClick={() => toggleFilter(selectedFabrics, f, setSelectedFabrics, 'fabrics')} />)}</div>
       </FilterSection>
       <FilterSection title="Occasion">
-        <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions)} />)}</div>
+        <div className="flex flex-wrap gap-2">{OCCASIONS.map(o => <FilterChip key={o} label={o} active={selectedOccasions.includes(o)} onClick={() => toggleFilter(selectedOccasions, o, setSelectedOccasions, 'occasions')} />)}</div>
       </FilterSection>
       <FilterSection title="Price Range">
         <div className="space-y-3">
@@ -125,53 +126,88 @@ function FiltersContent({ activeCount, categories, fabrics, selectedCategory, se
   )
 }
 
-export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch, isLoading, fabrics: fabricsProp }: {
-  products: Product[]; categories: Category[]; config: SiteConfig; userId?: string;
+interface InitialFilters {
+  fabrics: string[]; occasions: string[]; priceMin: string; priceMax: string
+  onlyNew: boolean; sortBy: string
+}
+
+export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch,
+  isLoading, fabrics: fabricsProp, totalProducts = 0, currentPage = 1, pageSize = 16, initialFilters
+}: {
+  products: Product[]; categories: Category[]; config: SiteConfig; userId?: string
   initialCategory?: string; initialSearch?: string; isLoading?: boolean; fabrics?: string[]
+  totalProducts?: number; currentPage?: number; pageSize?: number; initialFilters?: InitialFilters
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isPending, startTransition] = useTransition()
   const fabrics = fabricsProp && fabricsProp.length > 0 ? fabricsProp : DEFAULT_FABRICS
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [search, setSearch] = useState(initialSearch || '')
   const [searchInput, setSearchInput] = useState(initialSearch || '')
+  const [search, setSearch] = useState(initialSearch || '')
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || '')
-  const [selectedFabrics, setSelectedFabrics] = useState<string[]>([])
-  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([])
-  const [priceMin, setPriceMin] = useState('')
-  const [priceMax, setPriceMax] = useState('')
-  const [onlyNew, setOnlyNew] = useState(false)
+  const [selectedFabrics, setSelectedFabrics] = useState<string[]>(initialFilters?.fabrics || [])
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>(initialFilters?.occasions || [])
+  const [priceMin, setPriceMin] = useState(initialFilters?.priceMin || '')
+  const [priceMax, setPriceMax] = useState(initialFilters?.priceMax || '')
+  const [onlyNew, setOnlyNew] = useState(initialFilters?.onlyNew || false)
   const [onlyInStock, setOnlyInStock] = useState(false)
-  const [sortBy, setSortBy] = useState('newest')
-  const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState(initialFilters?.sortBy || 'newest')
 
-  const toggleFilter = (arr: string[], val: string, set: (v: string[]) => void) => {
-    set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
-    setPage(1)
+  // SCALABILITY: navigate to new URL when server-side filters change.
+  // Each unique URL is cached by ISR — zero DB queries for cached combos.
+  const applyServerFilters = useCallback((overrides: Record<string, any> = {}) => {
+    const params = new URLSearchParams()
+    const cat  = overrides.category  !== undefined ? overrides.category  : selectedCategory
+    const fabs = overrides.fabrics   !== undefined ? overrides.fabrics   : selectedFabrics
+    const occ  = overrides.occasions !== undefined ? overrides.occasions : selectedOccasions
+    const pMin = overrides.priceMin  !== undefined ? overrides.priceMin  : priceMin
+    const pMax = overrides.priceMax  !== undefined ? overrides.priceMax  : priceMax
+    const nw   = overrides.onlyNew   !== undefined ? overrides.onlyNew   : onlyNew
+    const sort = overrides.sortBy    !== undefined ? overrides.sortBy    : sortBy
+    const srch = overrides.search    !== undefined ? overrides.search    : search
+    if (cat)        params.set('category', cat)
+    if (fabs?.length) params.set('fabrics', fabs.join(','))
+    if (occ?.length)  params.set('occasions', occ.join(','))
+    if (pMin)       params.set('priceMin', pMin)
+    if (pMax)       params.set('priceMax', pMax)
+    if (nw)         params.set('filter', 'new')
+    if (sort && sort !== 'newest') params.set('sort', sort)
+    if (srch)       params.set('q', srch)
+    const url = `${pathname}?${params.toString()}`
+    startTransition(() => router.push(url, { scroll: false }))
+  }, [selectedCategory, selectedFabrics, selectedOccasions, priceMin, priceMax, onlyNew, sortBy, search, pathname, router])
+
+  const setSelectedCategoryAndNav = (v: string) => { setSelectedCategory(v); applyServerFilters({ category: v }) }
+  const setSortByAndNav = (v: string) => { setSortBy(v); applyServerFilters({ sortBy: v }) }
+
+  // Local-only filter (in-stock filtering stays client-side — it's per-variant)
+  const filtered = onlyInStock ? products.filter(p => !p.isOutOfStock) : products
+  const paginated = filtered  // products already paginated by server
+
+  const totalPages = Math.ceil(totalProducts / pageSize)
+  const page = currentPage
+
+  const setPage = (p: number) => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    params.set('page', String(p))
+    startTransition(() => router.push(`${pathname}?${params.toString()}`, { scroll: true }))
   }
 
-  const filtered = useMemo(() => {
-    let p = [...products]
-    if (search) p = p.filter(x => x.name.toLowerCase().includes(search.toLowerCase()) || x.fabric.toLowerCase().includes(search.toLowerCase()) || x.originRegion.toLowerCase().includes(search.toLowerCase()))
-    if (selectedCategory) p = p.filter(x => x.categorySlug === selectedCategory)
-    if (selectedFabrics.length) p = p.filter(x => selectedFabrics.includes(x.fabric))
-    if (selectedOccasions.length) p = p.filter(x => x.occasion.some(o => selectedOccasions.includes(o)))
-    if (priceMin) p = p.filter(x => getEffectivePrice(x) >= Number(priceMin))
-    if (priceMax) p = p.filter(x => getEffectivePrice(x) <= Number(priceMax))
-    if (onlyNew) p = p.filter(x => x.isNew)
-    if (onlyInStock) p = p.filter(x => !x.isOutOfStock)
-    switch (sortBy) {
-      case 'price_asc': return p.sort((a,b) => getEffectivePrice(a) - getEffectivePrice(b))
-      case 'price_desc': return p.sort((a,b) => getEffectivePrice(b) - getEffectivePrice(a))
-      case 'rating': return p.sort((a,b) => b.averageRating - a.averageRating)
-      case 'discount': return p.sort((a,b) => (b.discountPercent||0) - (a.discountPercent||0))
-      default: return p
-    }
-  }, [products, search, selectedCategory, selectedFabrics, selectedOccasions, priceMin, priceMax, onlyNew, onlyInStock, sortBy])
+  const toggleFilter = (arr: string[], val: string, set: (v: string[]) => void, key: string) => {
+    const next = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]
+    set(next)
+    applyServerFilters({ [key]: next })
+  }
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const activeCount = (selectedCategory ? 1 : 0) + selectedFabrics.length + selectedOccasions.length +
+    (priceMin || priceMax ? 1 : 0) + (onlyNew ? 1 : 0) + (onlyInStock ? 1 : 0)
 
-  const activeCount = (selectedCategory ? 1 : 0) + selectedFabrics.length + selectedOccasions.length + (priceMin || priceMax ? 1 : 0) + (onlyNew ? 1 : 0) + (onlyInStock ? 1 : 0)
-  const clearAll = () => { setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([]); setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false); setPage(1) }
+  const clearAll = () => {
+    setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([])
+    setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false)
+    startTransition(() => router.push(pathname, { scroll: false }))
+  }
 
   const handleSearchSubmit = () => {
     setSearch(searchInput.trim())
@@ -196,7 +232,7 @@ export default function ShopContent({ products, categories, config, userId, init
           <h1 className="section-heading">Our Collection</h1>
           {/* Mobile: sort + filter buttons only */}
           <div className="flex items-center gap-2 lg:hidden">
-            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
+            <select value={sortBy} onChange={e => setSortByAndNav(e.target.value)}
               className="text-xs border px-2 outline-none flex-1" style={{ borderColor: 'var(--border)', height: 40, color: 'var(--text-primary)', background: 'white', minWidth: 130 }}>
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -247,7 +283,7 @@ export default function ShopContent({ products, categories, config, userId, init
               selectedCategory={selectedCategory} selectedFabrics={selectedFabrics}
               selectedOccasions={selectedOccasions} priceMin={priceMin} priceMax={priceMax}
               onlyNew={onlyNew} onlyInStock={onlyInStock}
-              setSelectedCategory={setSelectedCategory} setSelectedFabrics={setSelectedFabrics}
+              setSelectedCategory={setSelectedCategoryAndNav} setSelectedFabrics={setSelectedFabrics}
               setSelectedOccasions={setSelectedOccasions} setPriceMin={setPriceMin}
               setPriceMax={setPriceMax} setOnlyNew={setOnlyNew} setOnlyInStock={setOnlyInStock}
               setPage={setPage} clearAll={clearAll} toggleFilter={toggleFilter} />
@@ -286,7 +322,7 @@ export default function ShopContent({ products, categories, config, userId, init
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid" style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               {paginated.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
             </div>
           )}
@@ -294,7 +330,7 @@ export default function ShopContent({ products, categories, config, userId, init
           {/* FIX #7: smart pagination with ellipsis — no overflow on mobile */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-1 mt-10">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
                 className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
                 style={{ borderColor: 'var(--border)' }}>
                 <ChevronLeft size={14} />
@@ -315,7 +351,7 @@ export default function ShopContent({ products, categories, config, userId, init
                   </button>
                 )
               )}
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
                 className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
                 style={{ borderColor: 'var(--border)' }}>
                 <ChevronRightIcon size={14} />

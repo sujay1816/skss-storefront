@@ -5,8 +5,10 @@ import Footer from '@/components/layout/Footer'
 import WhatsAppButton from '@/components/layout/WhatsAppButton'
 import ProductDetailClient from './ProductDetailClient'
 import { getSiteConfig, getCategories, getProductBySlug, getProductReviews, getRelatedProducts } from '@/lib/supabase/config'
-import { getUser } from '@/lib/supabase/get-user'
-export const dynamic = 'force-dynamic'
+// PERFORMANCE: ISR — revalidate every 60s.
+// Product pages rarely change (price/stock updates trigger on-demand revalidation via admin).
+// The user's wishlist/cart badge is loaded client-side in Navbar.
+export const revalidate = 60
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
@@ -82,7 +84,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     getSiteConfig().catch(() => ({} as any)),
     getCategories().catch(() => []),
     getProductBySlug(params.slug).catch(() => null),
-    getUser().catch(() => null),
+    Promise.resolve(null), // user loaded client-side
   ])
   if (!product) notFound()
 

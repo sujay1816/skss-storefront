@@ -47,25 +47,107 @@ function mapProduct(r: any): Product {
 
 const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)`
 
-export async function getProducts(filters?: { categorySlug?: string; category?: string; search?: string; featured?: boolean; bestseller?: boolean; newArrivals?: boolean; limit?: number }): Promise<Product[]> {
+// Server-side filter params — all filtering done in Postgres, not in JS
+export interface ProductFilters {
+  categorySlug?: string
+  category?: string
+  search?: string
+  featured?: boolean
+  bestseller?: boolean
+  newArrivals?: boolean
+  // Scalability filters — pushed to DB so 200+ sarees never slow the browser
+  fabrics?: string[]
+  occasions?: string[]
+  priceMin?: number
+  priceMax?: number
+  onlyInStock?: boolean
+  sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'discount'
+  limit?: number
+  offset?: number        // for server-side pagination
+}
+
+export async function getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
   const supabase = createClient()
-  let q = supabase.from('products').select(PRODUCT_SELECT).eq('is_active', true).order('created_at', { ascending: false })
-  if (filters?.featured) q = q.eq('is_featured', true)
-  if (filters?.bestseller) q = q.eq('is_bestseller', true)
-  if (filters?.limit) q = q.limit(filters.limit)
+
+  // Use count:'exact' so we can paginate without a second query
+  let q = supabase
+    .from('products')
+    .select(PRODUCT_SELECT, { count: 'exact' })
+    .eq('is_active', true)
+
+  // ── Category ──────────────────────────────────────────────────────────────
   const categorySlug = filters?.categorySlug || filters?.category
   if (categorySlug) {
     const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single()
     if (cat) q = q.eq('category_id', cat.id)
   }
+
+  // ── Boolean flags ─────────────────────────────────────────────────────────
+  if (filters?.featured)    q = q.eq('is_featured', true)
+  if (filters?.bestseller)  q = q.eq('is_bestseller', true)
   if (filters?.newArrivals) {
     const cutoff = new Date(Date.now() - 30 * 86400000).toISOString()
     q = q.gte('created_at', cutoff)
   }
-  if (filters?.search) q = q.ilike('name', `%${filters.search}%`)
-  const { data, error } = await q
-  if (error) { console.error('getProducts error:', error.message); return [] }
-  return (data || []).map(mapProduct)
+
+  // ── Search — name + fabric + origin (full text via ilike) ─────────────────
+  if (filters?.search) {
+    const s = `%${filters.search}%`
+    q = q.or(`name.ilike.${s},fabric.ilike.${s},origin_region.ilike.${s}`)
+  }
+
+  // ── Fabric filter (OR within fabrics, AND with everything else) ───────────
+  if (filters?.fabrics?.length) {
+    q = q.in('fabric', filters.fabrics)
+  }
+
+  // ── Occasion filter (array overlap) ───────────────────────────────────────
+  if (filters?.occasions?.length) {
+    q = q.overlaps('occasion', filters.occasions)
+  }
+
+  // ── Price range ───────────────────────────────────────────────────────────
+  // Uses sale_price when available, otherwise original_price
+  // Postgres: COALESCE(sale_price, original_price) with gte/lte
+  if (filters?.priceMin !== undefined) {
+    q = q.or(`sale_price.gte.${filters.priceMin},and(sale_price.is.null,original_price.gte.${filters.priceMin})`)
+  }
+  if (filters?.priceMax !== undefined) {
+    q = q.or(`sale_price.lte.${filters.priceMax},and(sale_price.is.null,original_price.lte.${filters.priceMax})`)
+  }
+
+  // ── Stock ─────────────────────────────────────────────────────────────────
+  // Note: is_out_of_stock is a computed column or we filter by total_stock > 0
+  // Keeping it simple: filter handled client-side for in-stock (no DB column)
+  // because stock is per-variant, not at product level in the DB.
+
+  // ── Sort ──────────────────────────────────────────────────────────────────
+  switch (filters?.sortBy) {
+    case 'price_asc':  q = q.order('original_price', { ascending: true });  break
+    case 'price_desc': q = q.order('original_price', { ascending: false }); break
+    case 'rating':     q = q.order('average_rating', { ascending: false });  break
+    case 'discount':   q = q.order('discount_percent', { ascending: false, nullsFirst: false }); break
+    default:           q = q.order('created_at', { ascending: false });      break
+  }
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+  const limit  = filters?.limit  ?? 16
+  const offset = filters?.offset ?? 0
+  q = q.range(offset, offset + limit - 1)
+
+  const { data, error, count } = await q
+  if (error) { console.error('getProducts error:', error.message); return { products: [], total: 0 } }
+  return { products: (data || []).map(mapProduct), total: count ?? 0 }
+}
+
+// Backwards-compatible wrapper for homepage sections (featured/bestsellers/new arrivals)
+// These don't need pagination or scalability fixes since they always fetch ≤8 items
+export async function getProductsSimple(filters?: {
+  categorySlug?: string; category?: string; search?: string
+  featured?: boolean; bestseller?: boolean; newArrivals?: boolean; limit?: number
+}): Promise<Product[]> {
+  const result = await getProducts({ ...filters, limit: filters?.limit ?? 8 })
+  return result.products
 }
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = createClient()
