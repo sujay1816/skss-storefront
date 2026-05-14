@@ -24,6 +24,9 @@ export default function ProfilePage() {
   const [phoneError, setPhoneError] = useState('')
   const [whatsapp, setWhatsapp] = useState(true)
   const [addresses, setAddresses] = useState<any[]>([])
+  // FIX: address editing
+  const [editingAddress, setEditingAddress] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Record<string,string>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +106,24 @@ export default function ProfilePage() {
     toast.success('Address removed')
   }
 
+  // FIX: Save edited address
+  const saveEditedAddress = async (id: string) => {
+    const supabase = createClient()
+    const { error } = await supabase.from('addresses').update({
+      full_name: editForm.full_name,
+      phone: editForm.phone,
+      address_line1: editForm.address_line1,
+      address_line2: editForm.address_line2 || null,
+      city: editForm.city,
+      state: editForm.state,
+      pincode: editForm.pincode,
+    }).eq('id', id)
+    if (error) { toast.error('Could not save address'); return }
+    setAddresses(prev => prev.map(a => a.id === id ? { ...a, ...editForm } : a))
+    setEditingAddress(null)
+    toast.success('Address updated!')
+  }
+
   if (loading) return (
     <div style={{ padding: '80px 24px', textAlign: 'center' }}>
       <div style={{ display: 'inline-block', width: 32, height: 32, border: '2px solid #8B1A2B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -124,7 +145,7 @@ export default function ProfilePage() {
       </button>
 
       <h1 className="section-heading mb-8">My Profile</h1>
-      <div className="flex gap-4 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex gap-4 mb-6 border-b profile-tabs" style={{ borderColor: 'var(--border)' }}>
         {(['profile', 'addresses'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="pb-3 text-xs font-semibold tracking-widest uppercase border-b-2 transition-all"
@@ -174,18 +195,62 @@ export default function ProfilePage() {
             <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>No saved addresses. Add one at checkout.</p>
           )}
           {addresses.map(a => (
-            <div key={a.id} className="p-4 border flex items-start justify-between"
-              style={{ borderColor: 'var(--border)', background: a.is_default ? 'var(--cream)' : 'white' }}>
-              <div className="text-sm">
-                <p className="font-medium">{a.full_name} · {a.phone}</p>
-                <p style={{ color: 'var(--text-secondary)' }}>{a.address_line1}{a.address_line2 ? `, ${a.address_line2}` : ''}</p>
-                <p style={{ color: 'var(--text-secondary)' }}>{a.city}, {a.state} – {a.pincode}</p>
-                {a.is_default && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>✓ Default</span>}
-              </div>
-              <div className="flex flex-col gap-2 ml-4">
-                {!a.is_default && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--crimson)' }}>Set Default</button>}
-                <button onClick={() => remove(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
-              </div>
+            <div key={a.id} className="border" style={{ borderColor: 'var(--border)', background: a.is_default ? 'var(--cream)' : 'white' }}>
+              {editingAddress === a.id ? (
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Full Name</label>
+                      <input className="input-base" value={editForm.full_name || ''} onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+                      <input className="input-base" value={editForm.phone || ''} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} type="tel" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Address Line 1</label>
+                    <input className="input-base" value={editForm.address_line1 || ''} onChange={e => setEditForm(f => ({ ...f, address_line1: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Address Line 2 (optional)</label>
+                    <input className="input-base" value={editForm.address_line2 || ''} onChange={e => setEditForm(f => ({ ...f, address_line2: e.target.value }))} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>City</label>
+                      <input className="input-base" value={editForm.city || ''} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>State</label>
+                      <input className="input-base" value={editForm.state || ''} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Pincode</label>
+                      <input className="input-base" maxLength={6} value={editForm.pincode || ''} onChange={e => setEditForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g,'') }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEditedAddress(a.id)} className="btn-primary text-sm">Save</button>
+                    <button onClick={() => setEditingAddress(null)} className="btn-outline text-sm">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 flex items-start justify-between">
+                  <div className="text-sm">
+                    <p className="font-medium">{a.full_name} · {a.phone}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>{a.address_line1}{a.address_line2 ? `, ${a.address_line2}` : ''}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>{a.city}, {a.state} – {a.pincode}</p>
+                    {a.is_default && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>✓ Default</span>}
+                  </div>
+                  <div className="flex flex-col gap-2 ml-4">
+                    {/* FIX: Edit button */}
+                    <button onClick={() => { setEditingAddress(a.id); setEditForm({ full_name: a.full_name, phone: a.phone, address_line1: a.address_line1, address_line2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Edit</button>
+                    {!a.is_default && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Set Default</button>}
+                    <button onClick={() => remove(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

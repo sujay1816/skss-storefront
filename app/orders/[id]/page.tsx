@@ -336,7 +336,7 @@ export default function OrderDetailPage() {
         ) : (
           <div className="space-y-3">
             {items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 last:pb-0" style={{ borderColor: 'var(--border)' }}>
+              <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 last:pb-0 order-item-row" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3">
                   {item.product_image ? (
                     <img src={item.product_image} alt={item.product_name}

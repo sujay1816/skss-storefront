@@ -190,12 +190,11 @@ export default function ProductCard({ product, userId }: { product: Product; use
 
           {/* Product info */}
           <div className="p-3 pb-2">
-            <p className="text-xs tracking-widest uppercase mb-1"
+            <p className="text-xs tracking-widest uppercase mb-1 product-card-fabric"
               style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>
               {product.fabric}{product.originRegion ? ` · ${product.originRegion}` : ''}
             </p>
-            <p className="font-light leading-snug mb-2 transition-colors"
-              style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)', fontSize: '15px' }}
+            <p className="font-light leading-snug mb-2 transition-colors product-card-name" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)', fontSize: '15px' }}
               onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--crimson)')}
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-primary)')}>
               {product.name}

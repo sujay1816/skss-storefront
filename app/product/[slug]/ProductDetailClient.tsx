@@ -119,6 +119,25 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const [pincode, setPincode] = useState('')
   const [pincodeResult, setPincodeResult] = useState<null | { available: boolean; message: string }>(null)
   const [checkingPincode, setCheckingPincode] = useState(false)
+  // FIX: Notify when back in stock
+  const [notifyEmail, setNotifyEmail] = useState('')
+  const [notifySubmitted, setNotifySubmitted] = useState(false)
+  const [notifyLoading, setNotifyLoading] = useState(false)
+
+  const submitRestockNotify = async () => {
+    if (!notifyEmail.trim() || !selectedVariant) return
+    setNotifyLoading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('restock_requests').upsert({
+      product_id: product.id,
+      colour: selectedVariant.colour,
+      email: notifyEmail.trim().toLowerCase(),
+      user_id: user?.id || null,
+    }, { onConflict: 'product_id,colour,email' })
+    setNotifySubmitted(true)
+    setNotifyLoading(false)
+  }
   const [addedToCart, setAddedToCart] = useState(false)
   const [openSection, setOpenSection] = useState<string | null>('details')
   const [reviewText, setReviewText] = useState('')
@@ -283,9 +302,9 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         <span style={{ color: 'var(--text-primary)' }}>{product.name}</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-10">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
         {/* Images + Video */}
-        <div className="lg:w-1/2">
+        <div className="lg:w-1/2 pdp-image-col">
           {lightboxOpen && (
             <div
               className="lightbox-overlay"
@@ -350,7 +369,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {product.images.map((img, i) => (
                 <button key={img.id} onClick={() => setActiveImage(i)}
-                  className="relative flex-shrink-0 border-2 overflow-hidden transition-all"
+                  className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === i ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
@@ -376,12 +395,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         </div>
 
         {/* Info */}
-        <div className="lg:w-1/2">
+        <div className="lg:w-1/2 pdp-info-col">
           <div className="flex items-start justify-between gap-4 mb-2">
             <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)' }}>{product.fabric}{product.weaveType ? ` · ${product.weaveType}` : ''}{product.originRegion ? ` · ${product.originRegion}` : ''}</p>
             <button onClick={handleShare} className="p-1.5" style={{ color: 'var(--text-secondary)' }}><Share2 size={16} /></button>
           </div>
-          <h1 className="text-3xl md:text-4xl font-light mb-3" style={{ fontFamily: 'var(--font-heading)' }}>{product.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-light mb-3 pdp-title" style={{ fontFamily: 'var(--font-heading)' }}>{product.name}</h1>
 
           {product.reviewCount > 0 && (
             <div className="flex items-center gap-2 mb-4">
@@ -396,7 +415,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               <span style={{ color: 'var(--crimson)' }}>
                 {/* ₹ in body font so it renders cleanly — Cormorant Garamond doesn't have the glyph */}
                 <span style={{ fontFamily: 'var(--font-body)', fontSize: '1.1rem', fontWeight: 500, verticalAlign: 'middle', marginRight: 1 }}>₹</span>
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 500 }}>
+                <span className="pdp-price" style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 500 }}>
                   {Number(effectivePrice).toLocaleString('en-IN')}
                 </span>
               </span>
@@ -438,7 +457,33 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 ))}
               </div>
               {selectedVariant?.stock > 0 && selectedVariant?.stock <= 5 && <p className="text-xs mt-2" style={{ color: 'var(--crimson)' }}>Only {selectedVariant.stock} left!</p>}
-              {selectedVariant?.stock === 0 && <p className="text-xs mt-2" style={{ color: 'var(--crimson)' }}>This colour is out of stock</p>}
+              {selectedVariant?.stock === 0 && (
+                <div className="mt-3 p-3 border rounded" style={{ borderColor: 'var(--crimson)', background: '#FFF5F5' }}>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--crimson)' }}>This colour is currently out of stock</p>
+                  {!notifySubmitted ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={notifyEmail}
+                        onChange={e => setNotifyEmail(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && submitRestockNotify()}
+                        placeholder="Your email — notify me when available"
+                        className="input-base flex-1"
+                        style={{ height: 34, fontSize: 12, padding: '0 10px' }}
+                      />
+                      <button onClick={submitRestockNotify} disabled={notifyLoading || !notifyEmail.trim()}
+                        className="btn-primary text-xs flex-shrink-0"
+                        style={{ height: 34, padding: '0 12px', opacity: notifyLoading || !notifyEmail.trim() ? 0.6 : 1 }}>
+                        {notifyLoading ? '...' : 'Notify me'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: '#15803D' }}>
+                      ✓ We'll email you when this colour is back in stock!
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

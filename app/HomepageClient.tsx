@@ -105,18 +105,18 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </motion.h1>
 
               {/* Subheading */}
-              <motion.p variants={fadeUp} className="text-base font-light mb-3 max-w-lg"
+              <motion.p variants={fadeUp} className="text-base font-light mb-3 max-w-lg hero-subtext"
                 style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
                 {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman. Each piece a masterpiece of Indian heritage.'}
               </motion.p>
 
-              <motion.p variants={fadeUp} className="text-sm mb-10 tracking-widest"
+              <motion.p variants={fadeUp} className="text-sm mb-10 tracking-widest hero-tagline"
                 style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
                 "{config.brand_tagline}"
               </motion.p>
 
               {/* CTA Buttons */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 hero-cta-group">
                 <Link href={heroBanner?.ctaUrl || '/shop'}
                   className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all flex-1 sm:flex-none"
                   style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)', boxShadow: '0 4px 24px rgba(139,26,43,0.5)' }}>
@@ -172,8 +172,8 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 <div className="w-11 h-11 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ background: 'var(--cream)', color: 'var(--crimson)' }}>{b.icon}</div>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{b.sub}</p>
+                  <p className="text-sm font-semibold trust-badge-text" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                  <p className="text-xs mt-0.5 trust-badge-sub" style={{ color: 'var(--text-secondary)' }}>{b.sub}</p>
                 </div>
               </motion.div>
             ))}

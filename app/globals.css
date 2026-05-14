@@ -525,3 +525,152 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
     transform: translateX(0) !important;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE FIXES — all mobile/tablet improvements
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Hero section — text and buttons on mobile ── */
+@media (max-width: 640px) {
+  .hero-subtext { display: none; }
+  .hero-tagline { display: none; }
+  .hero-cta-group { gap: 10px !important; }
+  .hero-cta-group a { flex: 1 !important; padding: 12px 16px !important; font-size: 10px !important; justify-content: center; }
+}
+
+/* ── 2. Section headings — smaller on mobile ── */
+@media (max-width: 480px) {
+  .section-heading { font-size: 22px !important; }
+  h1 { font-size: 24px !important; }
+}
+
+/* ── 3. Product grid — 2 columns on all mobile, proper gap ── */
+@media (max-width: 640px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+}
+
+/* ── 4. Product card — text and price on mobile ── */
+@media (max-width: 640px) {
+  .product-card-name { font-size: 13px !important; }
+  .product-card-price { font-size: 13px !important; }
+  .product-card-fabric { font-size: 9px !important; }
+  .colour-swatch-strip { padding: 6px 8px !important; gap: 3px !important; }
+  .colour-swatch { width: 14px !important; height: 14px !important; }
+}
+
+/* ── 5. Cart page — order summary stacks below items on mobile ── */
+@media (max-width: 1024px) {
+  .cart-summary-sticky { position: static !important; top: auto !important; }
+}
+
+/* ── 6. Cart item — image + details layout on small screens ── */
+@media (max-width: 480px) {
+  .cart-item-image { width: 72px !important; height: 88px !important; flex-shrink: 0; }
+  .cart-item-name { font-size: 13px !important; }
+}
+
+/* ── 7. Checkout — order summary sticky panel below form on mobile ── */
+@media (max-width: 1024px) {
+  .checkout-summary { border-left: none !important; border-top: 1px solid var(--border) !important; padding-top: 24px !important; }
+}
+
+/* ── 8. Product detail — full width image on mobile, info below ── */
+@media (max-width: 1024px) {
+  .pdp-image-col { width: 100% !important; }
+  .pdp-info-col  { width: 100% !important; }
+}
+@media (max-width: 480px) {
+  .pdp-title   { font-size: 24px !important; }
+  .pdp-price   { font-size: 28px !important; }
+  .pdp-thumb   { width: 52px !important; height: 64px !important; }
+}
+
+/* ── 9. Order detail — items and summary cards ── */
+@media (max-width: 640px) {
+  .order-item-row  { flex-direction: column !important; align-items: flex-start !important; }
+  .order-progress-label { font-size: 9px !important; }
+}
+
+/* ── 10. Profile — tabs scroll horizontally on narrow screens ── */
+@media (max-width: 480px) {
+  .profile-tabs { overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
+  .profile-tabs::-webkit-scrollbar { display: none; }
+  .profile-tab-btn { white-space: nowrap; }
+}
+
+/* ── 11. Footer — 2-column layout on tablet, 1-column on mobile ── */
+@media (max-width: 768px) {
+  .footer-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .footer-grid { grid-template-columns: 1fr !important; }
+  .footer-brand { grid-column: 1 !important; }
+}
+
+/* ── 12. Newsletter form — stack on mobile ── */
+@media (max-width: 480px) {
+  .newsletter-input-group { flex-direction: column !important; }
+  .newsletter-input { border-radius: 4px !important; }
+  .newsletter-btn   { border-radius: 4px !important; width: 100% !important; }
+}
+
+/* ── 13. Category grid — 2 cols on mobile ── */
+@media (max-width: 640px) {
+  .category-grid-3col { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+}
+
+/* ── 14. Trust badges — 2x2 on mobile, single row on desktop ── */
+@media (max-width: 640px) {
+  .trust-badge-text { font-size: 11px !important; }
+  .trust-badge-sub  { display: none !important; }
+}
+
+/* ── 15. Input and button sizing — 44px minimum touch target ── */
+@media (max-width: 768px) {
+  .input-base  { height: 44px !important; font-size: 16px !important; } /* 16px prevents iOS zoom */
+  .btn-primary { height: 44px !important; min-height: 44px; }
+  .btn-outline { height: 44px !important; min-height: 44px; }
+  select.input-base { height: 44px !important; }
+}
+
+/* ── 16. Prevent iOS input zoom — always 16px on mobile inputs ── */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
+/* ── 17. Announcement bar — no overflow on narrow screens ── */
+@media (max-width: 480px) {
+  .announcement-bar { font-size: 10px !important; letter-spacing: 0.05em !important; padding: 6px 12px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── 18. WhatsApp button — raised above mobile nav bar ── */
+@media (max-width: 768px) {
+  .whatsapp-float { bottom: 5rem !important; right: 1rem !important; }
+}
+
+/* ── 19. Page container — tighter padding on very narrow screens ── */
+@media (max-width: 375px) {
+  .page-container { padding: 0 12px !important; }
+}
+
+/* ── 20. Card component — no horizontal overflow ── */
+@media (max-width: 640px) {
+  .card { padding: 16px !important; }
+  .card-sm { padding: 12px !important; }
+}
+
+/* ── 21. Sticky checkout summary scrolls with page on mobile ── */
+@media (max-width: 1024px) {
+  .sticky-summary { position: static !important; }
+}
+
+/* ── 22. Modal and confirm dialogs — full width on mobile ── */
+@media (max-width: 480px) {
+  .modal-box { width: calc(100vw - 32px) !important; max-width: none !important; }
+}
+
+/* ── 23. Review cards — full width on mobile ── */
+@media (max-width: 640px) {
+  .review-grid { grid-template-columns: 1fr !important; }
+}

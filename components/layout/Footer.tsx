@@ -63,9 +63,9 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
 
       {/* Main footer */}
       <div className="page-container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 footer-grid">
           {/* Brand */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 footer-brand">
             <div className="flex items-center gap-3 mb-4">
               <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || "SKSS"} width={48} height={48} className="object-contain" />
               <div>

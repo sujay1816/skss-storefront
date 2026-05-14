@@ -272,7 +272,7 @@ export default function ShopContent({ products, categories, config, userId, init
               {activeCount > 0 && <button onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear filters</button>}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid">
               {paginated.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
             </div>
           )}

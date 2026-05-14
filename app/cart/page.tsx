@@ -128,7 +128,7 @@ export default function CartPage() {
                 return (
                   <motion.div key={`${item.productId}-${item.colour}`} layout exit={{ opacity: 0, x: -20, height: 0 }}
                     className="flex gap-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <div className="w-24 h-32 flex-shrink-0 border overflow-hidden" style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
+                    <div className="w-24 h-32 flex-shrink-0 border overflow-hidden cart-item-image" style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
                       {item.productImage ? (
                         <Image src={item.productImage} alt={item.productName} width={96} height={128} className="w-full h-full object-cover" />
                       ) : (
@@ -173,7 +173,7 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-80 flex-shrink-0 cart-summary-sticky">
             <div className="cart-receipt p-6 sticky top-24">
               <h2 className="text-xl font-light mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h2>
               <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>{totalItems} item{totalItems !== 1 ? 's' : ''}</p>
