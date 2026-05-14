@@ -75,7 +75,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
           ) : (
             <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }}>
               <div className="absolute inset-0 flex items-center justify-center opacity-5">
-                <Image src={config.logo_url || '/images/logo.png'} alt="" width={600} height={600} className="object-contain" />
+                <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
               </div>
               <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(201,168,76,0.03) 60px, rgba(201,168,76,0.03) 61px)', backgroundSize: '120px 120px' }} />
             </div>
@@ -267,7 +267,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
         className="py-16 md:py-24 text-center relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 40%, var(--crimson-dark) 70%, #1A0E0A 100%)' }}>
         <div className="absolute inset-0 opacity-5 flex items-center justify-center pointer-events-none">
-          <Image src={config.logo_url || '/images/logo.png'} alt="" width={700} height={700} className="object-contain" />
+          <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
         </div>
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(139,26,43,0.15) 0%, transparent 50%)' }} />
         <div className="page-container relative z-10">

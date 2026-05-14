@@ -179,19 +179,19 @@ function SignupForm() {
 
           <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              { label: 'Full Name', type: 'text', value: name, set: setName, placeholder: 'Your full name' },
-              { label: 'Email', type: 'email', value: email, set: setEmail, placeholder: 'you@example.com' },
+              { label: 'Full Name', type: 'text', value: name, set: setName, placeholder: 'Your full name', ac: 'name' },
+              { label: 'Email', type: 'email', value: email, set: setEmail, placeholder: 'you@example.com', ac: 'email' },
             ].map(f => (
               <div key={f.label}>
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}>{f.label}</label>
-                <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)} required placeholder={f.placeholder}
-                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 14, outline: 'none', fontFamily: 'DM Sans, sans-serif' }} />
+                <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)} required placeholder={f.placeholder} autoComplete={(f as any).ac}
+                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 16, outline: 'none', fontFamily: 'DM Sans, sans-serif' }} onFocus={e => e.currentTarget.style.boxShadow='0 0 0 2px #C9A84C'} onBlur={e => e.currentTarget.style.boxShadow='none'} />
               </div>
             ))}
             <div>
               <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min. 6 characters"
+                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min. 6 characters" autoComplete="new-password"
                   style={{ width: '100%', padding: '12px 44px 12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 14, outline: 'none', fontFamily: 'DM Sans, sans-serif' }} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)' }}>

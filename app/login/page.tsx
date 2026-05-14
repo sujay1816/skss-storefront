@@ -129,8 +129,8 @@ function LoginForm() {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
-                style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 14, outline: 'none' }} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" autoComplete="email"
+                style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 16, outline: 'none' }} onFocus={e => e.currentTarget.style.boxShadow='0 0 0 2px #C9A84C'} onBlur={e => e.currentTarget.style.boxShadow='none'} />
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -138,8 +138,8 @@ function LoginForm() {
                 <Link href="/forgot-password" style={{ fontSize: 12, color: '#C9A84C', textDecoration: 'none' }}>Forgot?</Link>
               </div>
               <div style={{ position: 'relative' }}>
-                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-                  style={{ width: '100%', padding: '12px 44px 12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 14, outline: 'none' }} />
+                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" autoComplete="current-password"
+                  style={{ width: '100%', padding: '12px 44px 12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 16, outline: 'none' }} onFocus={e => e.currentTarget.style.boxShadow='0 0 0 2px #C9A84C'} onBlur={e => e.currentTarget.style.boxShadow='none'} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)' }}>
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}

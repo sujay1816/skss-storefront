@@ -746,3 +746,83 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
   .address-edit-grid-3 { grid-template-columns: 1fr 1fr !important; }
   .address-edit-grid-3 .city-field { grid-column: 1 / -1 !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL FIX ROUND — CSS classes for all remaining issues
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── BackToTop — pure CSS fade + slide ── */
+.back-to-top-btn {
+  position: fixed;
+  z-index: 40;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s, color 0.2s;
+}
+.back-to-top-btn:hover { background: var(--crimson); color: white; border-color: var(--crimson); }
+
+/* ── FAQ accordion — CSS max-height transition ── */
+.faq-item { transition: border-color 0.2s; }
+.faq-body {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.faq-chevron {
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── btn-tap — CSS :active scale (replaces motion.button whileTap) ── */
+.btn-tap { transition: transform 0.1s ease; }
+.btn-tap:active { transform: scale(0.97); }
+
+/* ── Filter sidebar — CSS opacity fade-in ── */
+.filter-sidebar-css {
+  animation: filterSidebarIn 0.2s ease-out;
+}
+@keyframes filterSidebarIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Filter drawer backdrop — CSS fade ── */
+.filter-backdrop-css {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ── Filter drawer — CSS slide-up ── */
+.filter-drawer-css {
+  animation: filterDrawerIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+@keyframes filterDrawerIn {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── Trust badges — stack vertically on very narrow Android ── */
+@media (max-width: 380px) {
+  .trust-badges-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .trust-badges-grid > div {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    gap: 10px;
+  }
+}
+
+/* ── Pull-to-refresh spinner animation ── */
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Contact page — fade in without framer-motion ── */
+/* (already handled by .animate-fadeIn) */

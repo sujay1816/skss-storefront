@@ -530,16 +530,17 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           </div>
 
           <div className="flex gap-3 mb-6">
-            <motion.button className="btn-primary flex-1 justify-center" whileTap={{ scale: 0.98 }} onClick={handleAddToCart}
+            {/* FIX: CSS :active scale instead of motion.button whileTap */}
+            <button className="btn-primary flex-1 justify-center btn-tap" onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stock === 0} style={{ opacity: !selectedVariant || selectedVariant.stock === 0 ? 0.5 : 1 }}>
               {!selectedVariant || selectedVariant.stock === 0 ? 'Out of Stock' : addedToCart ? <><Check size={14} /> Added!</> : <><ShoppingBag size={14} /> Add to Cart</>}
-            </motion.button>
-            <motion.button className="btn-outline px-4" whileTap={{ scale: 0.98 }} onClick={handleWishlist}>
+            </button>
+            <button className="btn-outline px-4 btn-tap" onClick={handleWishlist}>
               <Heart size={16} fill={wishlisted ? 'var(--crimson)' : 'none'} stroke={wishlisted ? 'var(--crimson)' : 'currentColor'} style={{ color: wishlisted ? 'var(--crimson)' : 'inherit' }} />
-            </motion.button>
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-6 trust-badges-grid">
             {[{ icon: <Truck size={16} />, text: `Free Shipping above ₹${Number(config.free_shipping_above).toLocaleString('en-IN')}` }, { icon: <RotateCcw size={16} />, text: `${config.return_window_days}-Day Returns` }, { icon: <Shield size={16} />, text: '100% Authentic' }].map((b, i) => (
               <div key={i} className="flex flex-col items-center gap-1 p-3 text-center border" style={{ borderColor: 'var(--border)' }}>
                 <span style={{ color: 'var(--crimson)' }}>{b.icon}</span>

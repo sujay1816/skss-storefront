@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+// FIX: framer-motion removed from filter animations — replaced with CSS
 import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import { getEffectivePrice } from '@/lib/utils'
@@ -241,10 +241,8 @@ export default function ShopContent({ products, categories, config, userId, init
 
       {/* Desktop sidebar layout */}
       <div className="flex gap-8">
-        <AnimatePresence>
-          {filtersOpen && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-              className="hidden lg:block w-56 flex-shrink-0">
+        {filtersOpen && (
+            <div className="hidden lg:block w-56 flex-shrink-0 filter-sidebar-css">
               <FiltersContent activeCount={activeCount} categories={categories} fabrics={fabrics}
               selectedCategory={selectedCategory} selectedFabrics={selectedFabrics}
               selectedOccasions={selectedOccasions} priceMin={priceMin} priceMax={priceMax}
@@ -253,9 +251,8 @@ export default function ShopContent({ products, categories, config, userId, init
               setSelectedOccasions={setSelectedOccasions} setPriceMin={setPriceMin}
               setPriceMax={setPriceMax} setOnlyNew={setOnlyNew} setOnlyInStock={setOnlyInStock}
               setPage={setPage} clearAll={clearAll} toggleFilter={toggleFilter} />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
 
         <div className="flex-1">
           <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
@@ -312,21 +309,18 @@ export default function ShopContent({ products, categories, config, userId, init
       </div>
 
       {/* FIX #1: mobile filter bottom drawer */}
-      <AnimatePresence>
+      <>
         {filtersOpen && (
           <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 lg:hidden"
+            {/* Backdrop — CSS fade */}
+            <div
+              className="fixed inset-0 z-40 lg:hidden filter-backdrop-css"
               style={{ background: 'rgba(0,0,0,0.5)' }}
               onClick={() => setFiltersOpen(false)}
             />
-            {/* Bottom sheet */}
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white"
+            {/* Bottom sheet — CSS slide-up */}
+            <div
+              className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white filter-drawer-css"
               style={{ borderRadius: '16px 16px 0 0', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
               {/* Handle */}
               <div className="flex items-center justify-center pt-3 pb-2 flex-shrink-0">
@@ -367,10 +361,10 @@ export default function ShopContent({ products, categories, config, userId, init
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
+      </>
     </div>
   )
 }

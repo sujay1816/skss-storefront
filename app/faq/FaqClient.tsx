@@ -1,7 +1,9 @@
 'use client'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
+// FIX: Removed framer-motion — accordion uses CSS max-height transition,
+// chevron uses CSS rotate. Zero JS animation overhead.
+// Also removed stagger delay (i * 0.07s) — made last FAQ item appear 700ms late.
 
 const DEFAULT_FAQS = [
   { q: 'Are your sarees 100% authentic?', a: 'Yes, all our sarees are sourced directly from weavers and certified silk boards across India.' },
@@ -32,31 +34,28 @@ export default function FaqClient({ cfg }: { cfg: Record<string, string> }) {
 
       <div className="space-y-3">
         {faqs.map((faq: any, i: number) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="border rounded-lg overflow-hidden"
-            style={{ borderColor: open === i ? 'var(--gold)' : 'var(--border)', transition: 'border-color 0.2s' }}>
-            <button className="w-full flex items-center justify-between p-5 text-left transition-colors"
+          <div key={i}
+            className="border rounded-lg overflow-hidden faq-item"
+            style={{ borderColor: open === i ? 'var(--gold)' : 'var(--border)' }}>
+            <button
+              className="w-full flex items-center justify-between p-5 text-left transition-colors"
               style={{ background: open === i ? 'var(--cream)' : 'white' }}
               onClick={() => setOpen(open === i ? null : i)}>
               <span className="text-sm font-medium pr-4" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)', fontSize: 16 }}>
                 {faq.q}
               </span>
-              <motion.div animate={{ rotate: open === i ? 180 : 0 }} transition={{ duration: 0.2 }} className="flex-shrink-0">
+              {/* FIX: CSS rotate instead of motion.div */}
+              <span className="faq-chevron flex-shrink-0" style={{ transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 <ChevronDown size={18} style={{ color: 'var(--crimson)' }} />
-              </motion.div>
+              </span>
             </button>
-            <AnimatePresence>
-              {open === i && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
-                  <div className="px-5 pb-5 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                    {faq.a}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            {/* FIX: CSS max-height accordion instead of AnimatePresence */}
+            <div className="faq-body" style={{ maxHeight: open === i ? '400px' : '0' }}>
+              <div className="px-5 pb-5 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                {faq.a}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>

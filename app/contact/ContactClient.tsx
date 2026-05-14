@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { Phone, Mail, MapPin, Clock, MessageCircle, Send, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
@@ -44,7 +43,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
   }
 
   const contacts = [
-    phone && { icon: <MessageCircle size={20} />, label: 'WhatsApp', value: phone, href: `https://wa.me/${phone.replace(/\D/g, '')}` },
+    phone && { icon: <Phone size={20} />, label: 'Call / WhatsApp', value: phone, href: `tel:${phone.replace(/\D/g, '')}`, waHref: `https://wa.me/${phone.replace(/\D/g, '')}` },
     email && { icon: <Mail size={20} />, label: 'Email', value: email, href: `mailto:${email}` },
     address && { icon: <MapPin size={20} />, label: 'Address', value: address, href: mapUrl || '#' },
     { icon: <Clock size={20} />, label: 'Business Hours', value: hours, href: null },
@@ -52,7 +51,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
 
   return (
     <div className="page-container py-16 max-w-4xl">
-      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="animate-fadeIn">
         <div className="text-center mb-12">
           <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)' }}>Get In Touch</p>
           <h1 className="text-4xl font-light mb-4" style={{ fontFamily: 'var(--font-heading)' }}>Contact Us</h1>
@@ -64,7 +63,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12">
           {contacts.map((c: any, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            <div key={i}
               className="p-6 rounded-lg border flex items-start gap-4" style={{ borderColor: 'var(--border)', background: 'white' }}>
               <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--cream)', color: 'var(--crimson)' }}>
                 {c.icon}
@@ -72,19 +71,27 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
               <div>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{c.label}</p>
                 {c.href && c.href !== '#' ? (
-                  <a href={c.href} target={c.href.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer" className="text-sm font-medium transition-colors" style={{ color: 'var(--crimson)' }}>
-                    {c.value}
-                  </a>
+                  <div>
+                    <a href={c.href} className="text-sm font-medium transition-colors block" style={{ color: 'var(--crimson)' }}
+                      target={c.href.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer">
+                      {c.value}
+                    </a>
+                    {(c as any).waHref && (
+                      <a href={(c as any).waHref} target="_blank" rel="noopener noreferrer"
+                        className="text-xs mt-1 inline-block" style={{ color: 'var(--text-secondary)' }}>
+                        Also on WhatsApp →
+                      </a>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{c.value}</p>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="card p-8 max-w-2xl mx-auto">
+        <div className="card p-8 max-w-2xl mx-auto">
           <h2 className="text-2xl font-light mb-6" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Send Us a Message</h2>
           {formSent ? (
             <div className="text-center py-8">
@@ -118,7 +125,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
               </button>
             </form>
           )}
-        </motion.div>
+        </div>
 
         {(!phone && !email && !address) && (
           <div className="text-center py-12 rounded-lg border mt-8" style={{ borderColor: 'var(--border)', background: 'var(--cream)' }}>
@@ -126,7 +133,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Update from Admin → Config → Store Settings</p>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }

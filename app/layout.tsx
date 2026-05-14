@@ -3,6 +3,7 @@ import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import AuthListener from '@/components/AuthListener'
 import PageProgress from '@/components/layout/PageProgress'
+import PullToRefresh from '@/components/layout/PullToRefresh'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 
@@ -187,6 +188,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'var(--font-body)', fontSize: '13px' } }} />
         <Suspense fallback={null}><PageProgress /></Suspense>
+        <PullToRefresh />
         <AuthListener />
         {/* GA4 / Meta Pixel: Add your tracking scripts here once you have your IDs.
             Use next/script with strategy="afterInteractive" so they don't block render.

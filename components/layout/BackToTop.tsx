@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronUp } from 'lucide-react'
 
-// Issue 16 fix — back to top button
+// FIX: Removed framer-motion — replaced with CSS transition (GPU-accelerated, zero JS overhead)
+// Moved right:4.5rem so it no longer overlaps the WhatsApp button (which is at right:1rem)
 export default function BackToTop() {
   const [visible, setVisible] = useState(false)
 
@@ -14,26 +14,19 @@ export default function BackToTop() {
   }, [])
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.button
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed z-40 w-10 h-10 flex items-center justify-center border shadow-md transition-all"
-          style={{
-            bottom: '6rem',
-            right: '1.5rem',
-            background: 'white',
-            borderColor: 'var(--border)',
-            borderRadius: 4,
-          }}
-          whileHover={{ background: 'var(--crimson)', borderColor: 'var(--crimson)' }}
-          aria-label="Back to top">
-          <ChevronUp size={18} style={{ color: 'inherit' }} />
-        </motion.button>
-      )}
-    </AnimatePresence>
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Back to top"
+      className="back-to-top-btn"
+      style={{
+        // FIX: moved right to 4.5rem so it doesn't overlap WhatsApp button at right:1rem
+        bottom: '6rem',
+        right: '4.5rem',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(16px)',
+        pointerEvents: visible ? 'auto' : 'none',
+      }}>
+      <ChevronUp size={18} />
+    </button>
   )
 }

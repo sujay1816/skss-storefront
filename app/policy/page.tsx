@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     .in('key', ['brand_name'])
   const cfg: Record<string, string> = {}
   data?.forEach((r: any) => { cfg[r.key] = r.value })
-  const brandName = cfg.brand_name || 'RN Bros'
+  const brandName = cfg.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
 
   return {
     title: 'Return & Refund Policy',
