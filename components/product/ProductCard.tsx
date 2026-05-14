@@ -58,10 +58,10 @@ export default function ProductCard({ product, userId }: { product: Product; use
       colourHex: selectedVariant.colourHex, originalPrice: product.originalPrice,
       salePrice: product.salePrice, quantity: 1, stock: selectedVariant.stock, gstRate: product.gstRate
     })
-    toast.success(`Added to cart!`, {
-      className: 'toast-brand toast-success-brand',
-      icon: '🛍️',
-    })
+    toast.success(
+      <span>Added to cart! <a href="/cart" style={{ color: 'var(--crimson)', fontWeight: 600, marginLeft: 4 }}>View Cart →</a></span>,
+      { className: 'toast-brand toast-success-brand', icon: '🛍️', duration: 3500 }
+    )
   }
 
   const handleWishlist = async (e: React.MouseEvent) => {

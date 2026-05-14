@@ -391,7 +391,10 @@ export default function CheckoutPage() {
 
         <div className="space-y-4">
           <div className="card p-5 sticky top-24">
-            <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Order Summary</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Order Summary</h2>
+              <a href="/cart" className="text-xs" style={{ color: 'var(--crimson)' }}>Edit Cart →</a>
+            </div>
             <div className="space-y-3 mb-4">
               {items.map((item, i) => (
                 <div key={i} className="flex gap-3">

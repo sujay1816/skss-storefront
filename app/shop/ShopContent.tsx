@@ -265,8 +265,25 @@ export default function ShopContent({ products, categories, config, userId, init
             </div>
           ) : paginated.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>No products found.</p>
-              {activeCount > 0 && <button onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear filters</button>}
+              <div style={{ fontSize: 56, marginBottom: 16 }}>🛍️</div>
+              <h3 className="text-xl font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>
+                No sarees found
+              </h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                {activeCount > 0
+                  ? `Your current filters don't match any products. Try removing some filters.`
+                  : `No products available right now. Check back soon!`}
+              </p>
+              {activeCount > 0 && (
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button onClick={clearAll} className="btn-primary">
+                    Clear All Filters
+                  </button>
+                  <button onClick={() => setSelectedCategory('')} className="btn-outline">
+                    Browse All Categories
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid">

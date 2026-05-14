@@ -1,15 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Package, ChevronRight } from 'lucide-react'
+import { Package, ChevronRight, Search as SearchIcon } from 'lucide-react'
 
 export default function OrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +56,17 @@ export default function OrdersPage() {
     refunded:         'Refunded',
   }
 
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchStatus = !statusFilter || o.status === statusFilter
+      const q = search.toLowerCase()
+      const matchSearch = !q ||
+        (o.order_number || '').toLowerCase().includes(q) ||
+        (o.order_items || []).some((i: any) => (i.product_name || '').toLowerCase().includes(q))
+      return matchStatus && matchSearch
+    })
+  }, [orders, search, statusFilter])
+
   if (loading) return (
     <div className="page-container py-20 text-center">
       <div className="inline-block w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--crimson)', borderTopColor: 'transparent' }} />
@@ -62,7 +75,37 @@ export default function OrdersPage() {
 
   return (
     <div className="page-container py-8 max-w-2xl">
-      <h1 className="section-heading mb-8">My Orders</h1>
+      <h1 className="section-heading mb-6">My Orders</h1>
+      {/* Search + status filter */}
+      {orders.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by order number or product..."
+              className="input-base pl-9 w-full"
+              style={{ height: 40 }}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="input-base"
+            style={{ height: 40, minWidth: 160 }}>
+            <option value="">All Statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="return_requested">Return Requested</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+      )}
       {orders.length === 0 ? (
         <div className="text-center py-16">
           <Package size={48} className="mx-auto mb-4" style={{ color: 'var(--border)' }} />
@@ -71,7 +114,13 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map(order => {
+          {filteredOrders.length === 0 && orders.length > 0 && (
+            <div className="text-center py-12">
+              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>No orders match your search.</p>
+              <button onClick={() => { setSearch(''); setStatusFilter('') }} className="btn-outline text-xs">Clear filters</button>
+            </div>
+          )}
+          {filteredOrders.map(order => {
             const addr = order.address_snapshot || order.shipping_address || {}
             const orderItems = order.order_items || []
             const previewItems = orderItems.slice(0, 3)

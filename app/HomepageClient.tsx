@@ -147,15 +147,15 @@ export default function HomepageClient({ config, categories, featured, bestselle
       </section>
 
       {/* ── MARQUEE ── */}
+      {/* FIX: CSS marquee — no Framer Motion, only 2 copies needed for seamless loop */}
       <div className="overflow-hidden py-3 relative" style={{ background: 'var(--crimson-dark)', borderBottom: '1px solid rgba(201,168,76,0.3)' }}>
-        <motion.div className="flex gap-0 whitespace-nowrap"
-          animate={{ x: ['0%', '-50%'] }} transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}>
-          {[...Array(8)].map((_, i) => (
-            <span key={i} className="text-xs tracking-widest uppercase font-medium px-6" style={{ color: 'var(--gold-light)' }}>
+        <div className="marquee-track">
+          {[0, 1].map(copy => (
+            <span key={copy} className="marquee-item text-xs tracking-widest uppercase font-medium px-6" style={{ color: 'var(--gold-light)' }}>
               ✦ Pure Silk Sarees &nbsp;&nbsp;✦ Handloom Weaves &nbsp;&nbsp;✦ Kanjivaram &nbsp;&nbsp;✦ Banarasi &nbsp;&nbsp;✦ Free Shipping Above ₹{Number(config.free_shipping_above || 1999).toLocaleString('en-IN')} &nbsp;&nbsp;✦ Authentic Craftsmanship &nbsp;&nbsp;✦ {config.return_window_days || 7}-Day Easy Returns &nbsp;&nbsp;
             </span>
           ))}
-        </motion.div>
+        </div>
       </div>
 
       {/* ── TRUST BADGES ── */}
@@ -168,9 +168,8 @@ export default function HomepageClient({ config, categories, featured, bestselle
               { icon: <Shield size={22} />, title: '100% Authentic', sub: 'Pure silk, certified' },
               { icon: <Award size={22} />, title: 'Legacy Brand', sub: 'Trusted for generations' },
             ].map((b, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="flex items-center gap-3 p-3 md:p-4 rounded-lg transition-all cursor-default"
+              <div key={i}
+                className="flex items-center gap-3 p-3 md:p-4 rounded-lg transition-all cursor-default trust-badge-card"
                 style={{ border: '1px solid var(--border)' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--gold)'; (e.currentTarget as HTMLElement).style.background = 'var(--cream)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'white' }}>
@@ -180,7 +179,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
                   <p className="text-sm font-semibold trust-badge-text" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
                   <p className="text-xs mt-0.5 trust-badge-sub" style={{ color: 'var(--text-secondary)' }}>{b.sub}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -238,8 +237,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {newArrivals.length > 0 && (
         <section className="py-10 md:py-16" style={{ background: 'white' }}>
           <div className="page-container">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-              className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-10">
               <div>
                 <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Just Arrived</p>
                 <h2 className="section-heading">New Arrivals</h2>
@@ -250,11 +248,10 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)')}>
                 View All <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-            </motion.div>
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }} variants={stagger}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {newArrivals.map(p => <motion.div key={p.id} variants={fadeUp}><ProductCard product={p} userId={userId} /></motion.div>)}
-            </motion.div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {newArrivals.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+            </div>
             <div className="mt-8 text-center md:hidden">
               <Link href="/shop?filter=new" className="btn-outline">View All New Arrivals <ArrowRight size={13} /></Link>
             </div>
@@ -298,8 +295,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {bestsellers.length > 0 && (
         <section className="py-10 md:py-16" style={{ background: 'var(--ivory)' }}>
           <div className="page-container">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-              className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-10">
               <div>
                 <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Most Loved</p>
                 <h2 className="section-heading">Bestsellers</h2>
@@ -310,11 +306,13 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)')}>
                 View All <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-            </motion.div>
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }} variants={stagger}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {bestsellers.map(p => <motion.div key={p.id} variants={fadeUp}><ProductCard product={p} userId={userId} /></motion.div>)}
-            </motion.div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {bestsellers.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+            </div>
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/shop?filter=bestsellers" className="btn-outline">View All Bestsellers <ArrowRight size={13} /></Link>
+            </div>
           </div>
         </section>
       )}
@@ -323,8 +321,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {featured.length > 0 && (
         <section className="py-10 md:py-16" style={{ background: 'white' }}>
           <div className="page-container">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-              className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-10">
               <div>
                 <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Curated</p>
                 <h2 className="section-heading">Featured Collection</h2>
@@ -335,11 +332,13 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)')}>
                 View All <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-            </motion.div>
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {featured.map(p => <motion.div key={p.id} variants={fadeUp}><ProductCard product={p} userId={userId} /></motion.div>)}
-            </motion.div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {featured.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+            </div>
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/shop?filter=featured" className="btn-outline">View All Featured <ArrowRight size={13} /></Link>
+            </div>
           </div>
         </section>
       )}

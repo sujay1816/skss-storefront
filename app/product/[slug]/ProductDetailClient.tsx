@@ -111,13 +111,10 @@ function Accordion({ id, title, children, openSection, setOpenSection }: {
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
         {openSection === id ? <ChevronUp size={16} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />}
       </button>
-      <AnimatePresence>
-        {openSection === id && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="pb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* FIX: CSS max-height transition — no Framer Motion */}
+      <div className="faq-body" style={{ maxHeight: openSection === id ? '600px' : '0' }}>
+        <div className="pb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{children}</div>
+      </div>
     </div>
   )
 }
@@ -241,6 +238,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const savingsAmount = product.originalPrice - effectivePrice
   const primaryImage = product.images?.[activeImage] || product.images?.[0]
 
+  // FIX: auto-fire when 6 digits entered
+  useEffect(() => {
+    if (pincode.length === 6) checkPincode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pincode])
+
   const checkPincode = async () => {
     if (pincode.length !== 6) return
     setCheckingPincode(true)
@@ -260,7 +263,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     if (!selectedVariant || selectedVariant.stock === 0) return
     addItem({ productId: product.id, productName: product.name, productSlug: product.slug, productImage: primaryImage?.url || '', colour: selectedVariant.colour, colourHex: selectedVariant.colourHex, originalPrice: product.originalPrice, salePrice: product.salePrice, quantity: qty, stock: selectedVariant.stock, gstRate: product.gstRate })
     setAddedToCart(true)
-    toast.success(`${product.name} added to cart!`)
+    toast.success(<span>{product.name} added to cart! <a href="/cart" style={{ color: 'var(--crimson)', fontWeight: 600, marginLeft: 4 }}>View Cart →</a></span>, { duration: 3500 })
     setTimeout(() => setAddedToCart(false), 2500)
   }
 
@@ -581,7 +584,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           <div className="flex-1 space-y-6">
             {reviews.length === 0 && <p className="text-sm py-6" style={{ color: 'var(--text-secondary)' }}>No reviews yet. Be the first to review this product!</p>}
             {reviews.map(r => (
-              <motion.div key={r.id} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              <div key={r.id}
                 className="pb-6 border-b" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -595,7 +598,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 </div>
                 <div className="flex gap-1 mb-2">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={12} fill={i < r.rating ? 'var(--gold)' : 'none'} stroke="var(--gold)" />)}</div>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{r.comment}</p>
-              </motion.div>
+              </div>
             ))}
 
             {/* FIX #9: only show review form to logged-in users; show verified badge hint if purchased */}
@@ -631,8 +634,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>{product.name}</p>
           <p className="text-base font-semibold" style={{ color: 'var(--crimson)' }}>
-            <span style={{ fontSize: '0.7em', verticalAlign: 'super', opacity: 0.8 }}>₹</span>
-            {effectivePrice.toLocaleString('en-IN')}
+            {formatPrice(effectivePrice)}
           </p>
         </div>
         <button
@@ -648,10 +650,8 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         <section className="mt-16">
           <h2 className="section-heading mb-8">You May Also Like</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {relatedProducts.map((p, i) => (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <ProductCard product={p} userId={userId} />
-              </motion.div>
+            {relatedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} userId={userId} />
             ))}
           </div>
         </section>

@@ -150,9 +150,9 @@ export default function CartPage() {
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
                           {/* FIX #3: w-11 h-11 on mobile (44px touch target), w-8 h-8 on sm+ */}
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined)} className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={12} /></button>
-                          <span className="w-10 text-center text-sm">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined)} disabled={item.quantity >= item.stock} className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={12} /></button>
+                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined)} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={16} /></button>
+                          <span className="w-10 text-center font-medium" style={{ fontSize: 15 }}>{item.quantity}</span>
+                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined)} disabled={item.quantity >= item.stock} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={16} /></button>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
