@@ -163,7 +163,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href={fontsUrl} rel="stylesheet" />
+        {/* FIX: Non-blocking font loading — rel=preload + onload prevents render-blocking
+            on slow 3G connections (common on budget Android in India).
+            The font still loads and swaps in (display=swap is in the URL),
+            but the browser doesn't wait for it before first paint. */}
+        <link rel="preload" as="style" href={fontsUrl} />
+        {/* Non-blocking: load as print, swap to all on load — prevents render-blocking on slow 3G */}
+        <link rel="stylesheet" href={fontsUrl} media="print" />
+        <noscript><link rel="stylesheet" href={fontsUrl} /></noscript>
         <link rel="icon" href={brand.logo_url || '/images/logo.png'} />
         <link rel="apple-touch-icon" href={brand.logo_url || '/images/logo.png'} />
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />

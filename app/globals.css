@@ -674,3 +674,75 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-
 @media (max-width: 640px) {
   .review-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT CARD — pure CSS transitions (replaces Framer Motion)
+   GPU-accelerated transforms, zero JS overhead, works on all devices
+   ═══════════════════════════════════════════════════════════════ */
+
+.product-card-wrapper {
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+.product-card-wrapper:hover {
+  transform: translateY(-4px);
+}
+.product-card-wrapper:active {
+  transform: translateY(-2px);
+}
+.product-card-inner {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: box-shadow 0.3s ease;
+}
+.product-card-wrapper:hover .product-card-inner {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+.product-card-img-wrap {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+.product-card-wrapper:hover .product-card-img-wrap {
+  transform: scale(1.06);
+}
+.product-card-gradient {
+  background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.product-card-wrapper:hover .product-card-gradient {
+  opacity: 1;
+}
+
+/* Disable lift animation on touch devices — tap, don't hover */
+@media (hover: none) {
+  .product-card-wrapper:hover { transform: none; }
+  .product-card-wrapper:hover .product-card-img-wrap { transform: none; }
+  .product-card-wrapper:hover .product-card-inner { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .product-card-wrapper:active { transform: scale(0.98); }
+}
+
+/* Respect prefers-reduced-motion — no animations for users who opted out */
+@media (prefers-reduced-motion: reduce) {
+  .product-card-wrapper,
+  .product-card-img-wrap,
+  .product-card-inner { transition: none !important; }
+}
+
+/* ── LIGHTBOX CLOSE BUTTON — safe area for Android notch/punch-hole ── */
+.lightbox-close {
+  top: max(20px, env(safe-area-inset-top, 20px)) !important;
+  right: max(20px, env(safe-area-inset-right, 20px)) !important;
+}
+
+/* ── FILTER DRAWER — safe bottom area for Android home indicator ── */
+@media (max-width: 1024px) {
+  .filter-drawer-actions {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+}
+
+/* ── PROFILE — address edit on narrow Android (360px) ── */
+@media (max-width: 400px) {
+  .address-edit-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .address-edit-grid-3 .city-field { grid-column: 1 / -1 !important; }
+}

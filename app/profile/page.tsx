@@ -216,18 +216,18 @@ export default function ProfilePage() {
                     <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Address Line 2 (optional)</label>
                     <input className="input-base" value={editForm.address_line2 || ''} onChange={e => setEditForm(f => ({ ...f, address_line2: e.target.value }))} />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
+                  <div className="grid grid-cols-3 gap-3 address-edit-grid-3">
+                    <div className="city-field">
                       <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>City</label>
-                      <input className="input-base" value={editForm.city || ''} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
+                      <input className="input-base" autoComplete="address-level2" value={editForm.city || ''} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
                     </div>
                     <div>
                       <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>State</label>
-                      <input className="input-base" value={editForm.state || ''} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} />
+                      <input className="input-base" autoComplete="address-level1" value={editForm.state || ''} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} />
                     </div>
                     <div>
                       <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Pincode</label>
-                      <input className="input-base" maxLength={6} value={editForm.pincode || ''} onChange={e => setEditForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g,'') }))} />
+                      <input className="input-base" autoComplete="postal-code" maxLength={6} value={editForm.pincode || ''} onChange={e => setEditForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g,'') }))} />
                     </div>
                   </div>
                   <div className="flex gap-2">

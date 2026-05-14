@@ -317,12 +317,13 @@ export default function CheckoutPage() {
             {/* FIX #5: grid-cols-1 on mobile, grid-cols-2 on sm+ so fields aren't squished */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <F label="Full Name" required>
-                <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" />
+                <input className="input-base" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} placeholder="As on ID" autoComplete="name" />
               </F>
               <F label="Phone" required>
                 <input
                   className="input-base"
                   value={form.phone}
+                  autoComplete="tel"
                   onChange={e => handlePhoneChange(e.target.value)}
                   placeholder="+91 XXXXX XXXXX"
                   type="tel"
@@ -332,23 +333,23 @@ export default function CheckoutPage() {
               </F>
               <div className="col-span-2">
                 <F label="Address Line 1" required>
-                  <input className="input-base" value={form.addressLine1} onChange={e => setForm(f => ({ ...f, addressLine1: e.target.value }))} placeholder="House/Flat No, Street, Area" />
+                  <input className="input-base" value={form.addressLine1} onChange={e => setForm(f => ({ ...f, addressLine1: e.target.value }))} placeholder="House/Flat No, Street, Area" autoComplete="address-line1" />
                 </F>
               </div>
               <div className="col-span-2">
                 <F label="Address Line 2">
-                  <input className="input-base" value={form.addressLine2} onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))} placeholder="Landmark (optional)" />
+                  <input className="input-base" value={form.addressLine2} onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))} placeholder="Landmark (optional)" autoComplete="address-line2" />
                 </F>
               </div>
               <F label="City" required>
-                <input className="input-base" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" />
+                <input className="input-base" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" autoComplete="address-level2" />
               </F>
               <F label="Pincode" required>
                 <input
                   className="input-base"
                   value={form.pincode}
                   onChange={e => setForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g, '') }))}
-                  placeholder="6-digit pincode"
+                  placeholder="6-digit pincode" autoComplete="postal-code"
                   maxLength={6}
                   type="tel"
                 />
@@ -394,7 +395,11 @@ export default function CheckoutPage() {
             <div className="space-y-3 mb-4">
               {items.map((item, i) => (
                 <div key={i} className="flex gap-3">
-                  {item.productImage && <img src={item.productImage} alt={item.productName} className="w-14 h-16 object-cover rounded flex-shrink-0" />}
+                  {item.productImage && (
+                    <div className="relative w-14 h-16 flex-shrink-0 overflow-hidden rounded">
+                      <Image src={item.productImage} alt={item.productName || ''} fill sizes="10vw" className="object-cover" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.productName}</p>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.colour} · Qty: {item.quantity}</p>

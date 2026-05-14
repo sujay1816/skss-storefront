@@ -61,11 +61,16 @@ export default function HomepageClient({ config, categories, featured, bestselle
               )}
             </video>
           ) : heroBanner?.imageUrl ? (
-            <img
+            /* FIX: Next.js Image — LCP priority, WebP/AVIF, correct size per device */
+            <Image
               src={heroBanner.imageUrl}
-              alt="Hero"
-              className="w-full h-full"
-              style={{ objectFit: 'cover', objectPosition: heroBanner.imageFocus || 'center' }}
+              alt={heroBanner.heading || 'Hero banner'}
+              fill
+              priority
+              quality={85}
+              sizes="100vw"
+              className="object-cover"
+              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
             />
           ) : (
             <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }}>
@@ -197,7 +202,10 @@ export default function HomepageClient({ config, categories, featured, bestselle
                   <div className="relative overflow-hidden rounded-lg mb-3 transition-all"
                     style={{ aspectRatio: '2/3', background: 'var(--cream)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
                     {cat.imageUrl ? (
-                      <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <Image src={cat.imageUrl} alt={cat.name} fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      quality={75}
+                      className="object-cover transition-transform duration-700 group-hover:scale-110" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center"
                         style={{ background: 'linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%)' }}>

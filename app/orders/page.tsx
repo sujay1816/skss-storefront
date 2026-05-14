@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -85,9 +86,9 @@ export default function OrdersPage() {
                   <div className="flex gap-1.5 flex-shrink-0">
                     {previewItems.map((item: any, i: number) => (
                       <div key={i} className="relative w-14 h-16 sm:w-12 sm:h-14 border overflow-hidden rounded flex-shrink-0"
-                        style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
+                        style={{ background: 'var(--cream)', borderColor: 'var(--border)', position: 'relative' }}>
                         {item.product_image ? (
-                          <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                          <Image src={item.product_image} alt={item.product_name || ''} fill sizes="10vw" className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-base">🥻</div>
                         )}

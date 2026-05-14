@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
 import { Heart, ShoppingBag, Eye, Zap } from 'lucide-react'
 import type { Product } from '@/types'
 import { formatPrice, getEffectivePrice } from '@/lib/utils'
@@ -31,7 +30,6 @@ const Price = ({ amount, className = '', style = {} }: { amount: number; classNa
 export default function ProductCard({ product, userId }: { product: Product; userId?: string }) {
   const [imgError, setImgError] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
   const [wishlistLoading, setWishlistLoading] = useState(false)
   // #1 — selected variant for swatch interaction
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0)
@@ -84,20 +82,10 @@ export default function ProductCard({ product, userId }: { product: Product; use
   }
 
   return (
-    <motion.div
-      className="relative cursor-pointer"
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      whileHover={{ y: -4, transition: { duration: 0.25, ease: 'easeOut' } }}
-    >
+    <div className="relative cursor-pointer product-card-wrapper">
       <Link href={`/product/${product.slug}`} onClick={handleProductTap} prefetch={true}>
-        <div className="bg-white overflow-hidden relative group transition-shadow duration-300"
-          style={{
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            boxShadow: isHovered ? '0 12px 40px rgba(0,0,0,0.12)' : '0 2px 12px rgba(0,0,0,0.06)',
-            transition: 'box-shadow 0.3s ease'
-          }}>
+        <div className="bg-white overflow-hidden relative group product-card-inner"
+          style={{ border: '1px solid var(--border)', borderRadius: 4 }}>
 
           {/* Image area */}
           <div className="relative overflow-hidden" style={{ aspectRatio: '3/4', background: 'var(--cream)' }}>
@@ -112,9 +100,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
             )}
 
             {/* Main image */}
-            <motion.div className="absolute inset-0"
-              animate={{ scale: isHovered ? 1.06 : 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}>
+            <div className="absolute inset-0 product-card-img-wrap">
               {primaryImage && !imgError ? (
                 <>
                   {/* Loading skeleton shown until image loads */}
@@ -140,11 +126,10 @@ export default function ProductCard({ product, userId }: { product: Product; use
                   </p>
                 </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Dark gradient at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', opacity: isHovered ? 1 : 0, transition: 'opacity 0.3s' }} />
+            <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none product-card-gradient" />
 
             {/* Badges */}
             <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
@@ -194,7 +179,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
               style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>
               {product.fabric}{product.originRegion ? ` · ${product.originRegion}` : ''}
             </p>
-            <p className="font-light leading-snug mb-2 transition-colors product-card-name" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)', fontSize: '15px' }}
+            <p className="font-light leading-snug mb-2 transition-colors product-card-name" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)', fontSize: '15px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
               onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--crimson)')}
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-primary)')}>
               {product.name}
@@ -257,6 +242,6 @@ export default function ProductCard({ product, userId }: { product: Product; use
           )}
         </div>
       </Link>
-    </motion.div>
+    </div>
   )
 }
