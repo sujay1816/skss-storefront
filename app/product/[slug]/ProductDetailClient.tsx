@@ -236,13 +236,45 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const effectivePrice = getEffectivePrice(product)
   const isOnSale = effectivePrice < product.originalPrice
   const gstAmount = Math.round((effectivePrice * product.gstRate) / 100)
-  // FIX: always calculate discount from actual prices — never rely on the DB field
-  // which can be null/wrong if admin forgot to fill it in
   const calculatedDiscount = isOnSale
     ? Math.round(((product.originalPrice - effectivePrice) / product.originalPrice) * 100)
     : 0
   const savingsAmount = product.originalPrice - effectivePrice
-  const primaryImage = product.images?.[activeImage] || product.images?.[0]
+
+  // When a colour variant is selected, show its image if it has one.
+  // Check if the variant image exists in product.images — if yes, jump to that index.
+  // If it's a standalone variant image (uploaded separately), show it as an overlay.
+  const [variantImageOverride, setVariantImageOverride] = useState<string | null>(null)
+
+  const handleVariantSelect = (v: ProductVariant) => {
+    if (v.stock === 0) return
+    setSelectedVariant(v)
+    setActiveImage(-1) // reset to -1 so we can handle below
+
+    if (v.imageUrl) {
+      // Check if this variant image matches one in the product images array
+      const matchIdx = product.images?.findIndex(img => img.url === v.imageUrl)
+      if (matchIdx !== undefined && matchIdx >= 0) {
+        setActiveImage(matchIdx)
+        setVariantImageOverride(null)
+      } else {
+        // Variant has its own image — show it as override
+        setActiveImage(0)
+        setVariantImageOverride(v.imageUrl)
+      }
+    } else {
+      // No variant image — just reset to first product image
+      setActiveImage(0)
+      setVariantImageOverride(null)
+    }
+  }
+
+  // The image shown in the main viewer
+  const displayImage = variantImageOverride
+    ? { url: variantImageOverride, altText: selectedVariant?.colour || product.name, isPrimary: true, id: 'variant', publicId: '', order: 0 }
+    : (product.images?.[activeImage] || product.images?.[0])
+
+  const primaryImage = displayImage
 
   // FIX: auto-fire when 6 digits entered
   useEffect(() => {
@@ -388,7 +420,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             // FIX #9: overflow-x-auto so thumbnails scroll horizontally on mobile instead of wrapping
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {product.images.map((img, i) => (
-                <button key={img.id} onClick={() => setActiveImage(i)}
+                <button key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === i ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
@@ -472,7 +504,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 {product.variants.map(v => (
                   <button
                     key={v.id}
-                    onClick={() => v.stock > 0 && setSelectedVariant(v)}
+                    onClick={() => handleVariantSelect(v)}
                     disabled={v.stock === 0}
                     title={v.colour}
                     className="relative flex-shrink-0 border-2 rounded overflow-hidden transition-all disabled:opacity-40 disabled:cursor-not-allowed"
