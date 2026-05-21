@@ -49,7 +49,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               preload="metadata"
               poster={heroBanner.imageUrl || undefined}
               className="hero-media"
-              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
+              style={{ objectPosition: 'center center' }}
             >
               <source src={heroBanner.videoUrl} type="video/mp4" />
               <source src={heroBanner.videoUrl} type="video/webm" />

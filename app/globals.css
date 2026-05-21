@@ -363,9 +363,25 @@ input, select, textarea { font-size: max(16px, 1em); }
 .hero-section video,
 .hero-section .hero-media {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  /* Always fill the container — whichever dimension is smaller scales up */
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: cover;
+  object-position: center center;
+}
+
+/* On portrait mobile, scale the video up more aggressively so no black bars */
+@media (orientation: portrait) and (max-width: 767px) {
+  .hero-section video {
+    width: 100%;
+    height: 100%;
+    min-width: unset;
+    min-height: unset;
+  }
 }
 
 .hero-content-container {
