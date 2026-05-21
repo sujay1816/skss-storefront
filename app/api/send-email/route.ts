@@ -2,16 +2,18 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getCfg } from '@/lib/get-config'
 
+// Module-level fallbacks for use inside HTML template functions
+const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  || 'https://skss-storefront.vercel.app'
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'
+
 // Keys read dynamically per request so admin changes take effect immediately
 async function getEmailConfig() {
-  const [apiKey, adminEmail, fromEmail, siteUrl, adminUrl] = await Promise.all([
-    getCfg('setup_resend_api_key',  process.env.RESEND_API_KEY),
-    getCfg('setup_admin_email',     process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'),
-    getCfg('setup_from_email',      process.env.FROM_EMAIL  || 'onboarding@resend.dev'),
-    getCfg('setup_site_url',        process.env.NEXT_PUBLIC_SITE_URL  || 'https://skss-storefront.vercel.app'),
-    getCfg('setup_admin_url',       process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'),
+  const [apiKey, adminEmail, fromEmail] = await Promise.all([
+    getCfg('setup_resend_api_key', process.env.RESEND_API_KEY),
+    getCfg('setup_admin_email',    process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'),
+    getCfg('setup_from_email',     process.env.FROM_EMAIL  || 'onboarding@resend.dev'),
   ])
-  return { resend: new Resend(apiKey), adminEmail, fromEmail, siteUrl, adminUrl }
+  return { resend: new Resend(apiKey), adminEmail, fromEmail }
 }
 
 function orderConfirmationHtml(order: any, items: any[], brandName: string) {
