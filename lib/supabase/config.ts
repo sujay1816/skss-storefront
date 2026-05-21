@@ -1,8 +1,24 @@
 import { createClient } from './server'
 import { cache } from 'react'
-import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, Address } from '@/types'
+import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, OrderItem, Address } from '@/types'
 
-// ─── Mappers ────────────────────────────────────────────────────────────────
+export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
+  const supabase = createClient()
+  const { data } = await supabase.from('site_config').select('key, value')
+  const config: SiteConfig = {} as SiteConfig
+  if (data) data.forEach(row => { config[row.key] = row.value })
+  return config
+})
+
+export const getCategories = cache(async (): Promise<Category[]> => {
+  const supabase = createClient()
+  const { data } = await supabase.from('categories').select('*').eq('is_active', true).order('display_order')
+  return (data || []).map(r => ({
+    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
+    imageUrl: r.image_url || '', isActive: r.is_active, displayOrder: r.display_order
+  }))
+})
+
 function mapImage(r: any): ProductImage {
   return { id: r.id, url: r.url, publicId: r.public_id || '', altText: r.alt_text || '', isPrimary: r.is_primary, order: r.order_index }
 }
@@ -13,7 +29,8 @@ function mapProduct(r: any): Product {
   const variants = (r.product_variants || []).map(mapVariant)
   const images = (r.product_images || []).sort((a: any, b: any) => a.order_index - b.order_index).map(mapImage)
   const totalStock = variants.reduce((s: number, v: ProductVariant) => s + v.stock, 0)
-  const isNew = new Date(r.created_at) > new Date(Date.now() - 30 * 86400000)
+  const newArrivalDays = 30
+  const isNew = new Date(r.created_at) > new Date(Date.now() - newArrivalDays * 86400000)
   return {
     id: r.id, name: r.name, slug: r.slug, description: r.description || '',
     fabric: r.fabric || '', weaveType: r.weave_type || '', originRegion: r.origin_region || '',
@@ -29,44 +46,9 @@ function mapProduct(r: any): Product {
   }
 }
 
-// ─── Select strings ──────────────────────────────────────────────────────────
-// List view — only primary image, only needed columns (no description, care instructions etc)
-const PRODUCT_SELECT_LIST = `
-  id, name, slug, fabric, weave_type, origin_region, occasion,
-  original_price, sale_price, discount_percent, sale_start_date, sale_end_date,
-  gst_rate, is_featured, is_bestseller, average_rating, review_count,
-  created_at, updated_at, video_url,
-  categories(slug, name),
-  product_images(id, url, alt_text, is_primary, order_index),
-  product_variants(id, colour, colour_hex, stock, sale_price)
-`
-// Detail view — all columns + all images
-const PRODUCT_SELECT_FULL = `
-  *, categories(slug, name),
-  product_images(id, url, public_id, alt_text, is_primary, order_index),
-  product_variants(id, colour, colour_hex, stock, sku, sale_price)
-`
+const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)`
 
-// ─── Cached public fetchers (work with ISR) ──────────────────────────────────
-export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
-  const sb = createClient()
-  const { data } = await sb.from('site_config').select('key, value')
-  const config: SiteConfig = {} as SiteConfig
-  if (data) data.forEach((row: any) => { config[row.key] = row.value })
-  return config
-})
-
-export const getCategories = cache(async (): Promise<Category[]> => {
-  const sb = createClient()
-  const { data } = await sb.from('categories').select('id, name, slug, description, image_url, is_active, display_order')
-    .eq('is_active', true).order('display_order')
-  return (data || []).map((r: any) => ({
-    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
-    imageUrl: r.image_url || '', isActive: r.is_active, displayOrder: r.display_order
-  }))
-})
-
-// ─── Product filters ─────────────────────────────────────────────────────────
+// Server-side filter params — all filtering done in Postgres, not in JS
 export interface ProductFilters {
   categorySlug?: string
   category?: string
@@ -74,6 +56,7 @@ export interface ProductFilters {
   featured?: boolean
   bestseller?: boolean
   newArrivals?: boolean
+  // Scalability filters — pushed to DB so 200+ sarees never slow the browser
   fabrics?: string[]
   occasions?: string[]
   priceMin?: number
@@ -81,39 +64,52 @@ export interface ProductFilters {
   onlyInStock?: boolean
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'discount'
   limit?: number
-  offset?: number
-  withCount?: boolean   // only true when paginating (shop page), skip on homepage
+  offset?: number        // for server-side pagination
 }
 
 export async function getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
-  const sb = createClient()
-  const withCount = filters?.withCount ?? false
+  const supabase = createClient()
 
-  let q = sb
+  // Use count:'exact' so we can paginate without a second query
+  let q = supabase
     .from('products')
-    .select(PRODUCT_SELECT_LIST, withCount ? { count: 'exact' } : undefined)
+    .select(PRODUCT_SELECT, { count: 'exact' })
     .eq('is_active', true)
 
-  // Category — get id first (cached), then filter
+  // ── Category ──────────────────────────────────────────────────────────────
   const categorySlug = filters?.categorySlug || filters?.category
   if (categorySlug) {
-    const catId = await getCategoryId(categorySlug)
-    if (catId) q = q.eq('category_id', catId)
-    else return { products: [], total: 0 }
+    const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single()
+    if (cat) q = q.eq('category_id', cat.id)
   }
 
+  // ── Boolean flags ─────────────────────────────────────────────────────────
   if (filters?.featured)    q = q.eq('is_featured', true)
   if (filters?.bestseller)  q = q.eq('is_bestseller', true)
   if (filters?.newArrivals) {
     const cutoff = new Date(Date.now() - 30 * 86400000).toISOString()
     q = q.gte('created_at', cutoff)
   }
+
+  // ── Search — name + fabric + origin (full text via ilike) ─────────────────
   if (filters?.search) {
     const s = `%${filters.search}%`
     q = q.or(`name.ilike.${s},fabric.ilike.${s},origin_region.ilike.${s}`)
   }
-  if (filters?.fabrics?.length)   q = q.in('fabric', filters.fabrics)
-  if (filters?.occasions?.length) q = q.overlaps('occasion', filters.occasions)
+
+  // ── Fabric filter (OR within fabrics, AND with everything else) ───────────
+  if (filters?.fabrics?.length) {
+    q = q.in('fabric', filters.fabrics)
+  }
+
+  // ── Occasion filter (array overlap) ───────────────────────────────────────
+  if (filters?.occasions?.length) {
+    q = q.overlaps('occasion', filters.occasions)
+  }
+
+  // ── Price range ───────────────────────────────────────────────────────────
+  // Uses sale_price when available, otherwise original_price
+  // Postgres: COALESCE(sale_price, original_price) with gte/lte
   if (filters?.priceMin !== undefined) {
     q = q.or(`sale_price.gte.${filters.priceMin},and(sale_price.is.null,original_price.gte.${filters.priceMin})`)
   }
@@ -121,113 +117,72 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
     q = q.or(`sale_price.lte.${filters.priceMax},and(sale_price.is.null,original_price.lte.${filters.priceMax})`)
   }
 
+  // ── Stock ─────────────────────────────────────────────────────────────────
+  // Note: is_out_of_stock is a computed column or we filter by total_stock > 0
+  // Keeping it simple: filter handled client-side for in-stock (no DB column)
+  // because stock is per-variant, not at product level in the DB.
+
+  // ── Sort ──────────────────────────────────────────────────────────────────
   switch (filters?.sortBy) {
     case 'price_asc':  q = q.order('original_price', { ascending: true });  break
     case 'price_desc': q = q.order('original_price', { ascending: false }); break
     case 'rating':     q = q.order('average_rating', { ascending: false });  break
     case 'discount':   q = q.order('discount_percent', { ascending: false, nullsFirst: false }); break
-    default:           q = q.order('created_at', { ascending: false }); break
+    default:           q = q.order('created_at', { ascending: false });      break
   }
 
+  // ── Pagination ────────────────────────────────────────────────────────────
   const limit  = filters?.limit  ?? 16
   const offset = filters?.offset ?? 0
   q = q.range(offset, offset + limit - 1)
 
   const { data, error, count } = await q
-  if (error) { console.error('getProducts:', error.message); return { products: [], total: 0 } }
-
-  // Filter to primary image only in JS (Supabase doesn't support WHERE on nested select)
-  const products = (data || []).map((r: any) => {
-    const imgs = (r.product_images || [])
-    const primary = imgs.find((i: any) => i.is_primary) || imgs[0] || null
-    return mapProduct({ ...r, product_images: primary ? [primary] : [] })
-  })
-
-  return { products, total: count ?? products.length }
+  if (error) { console.error('getProducts error:', error.message); return { products: [], total: 0 } }
+  return { products: (data || []).map(mapProduct), total: count ?? 0 }
 }
 
-// Cached category id lookup — avoids repeat queries for same slug
-const getCategoryId = cache(async (slug: string): Promise<string | null> => {
-  const sb = createClient()
-  const { data } = await sb.from('categories').select('id').eq('slug', slug).single()
-  return data?.id ?? null
-})
-
-// Homepage sections — no count query, no pagination overhead
+// Backwards-compatible wrapper for homepage sections (featured/bestsellers/new arrivals)
+// These don't need pagination or scalability fixes since they always fetch ≤8 items
 export async function getProductsSimple(filters?: {
-  categorySlug?: string; category?: string; featured?: boolean
-  bestseller?: boolean; newArrivals?: boolean; limit?: number
+  categorySlug?: string; category?: string; search?: string
+  featured?: boolean; bestseller?: boolean; newArrivals?: boolean; limit?: number
 }): Promise<Product[]> {
-  const result = await getProducts({ ...filters, limit: filters?.limit ?? 8, withCount: false })
+  const result = await getProducts({ ...filters, limit: filters?.limit ?? 8 })
   return result.products
 }
-
-// ─── Product detail (uses cookie client for auth-aware RLS) ─────────────────
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const sb = createClient()
-  const { data, error } = await sb.from('products')
-    .select(PRODUCT_SELECT_FULL)
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single()
+  const supabase = createClient()
+  const { data, error } = await supabase.from('products').select(PRODUCT_SELECT).eq('slug', slug).eq('is_active', true).single()
   if (error || !data) return null
   return mapProduct(data)
 }
 
 export async function getRelatedProducts(categorySlug: string, excludeSlug: string): Promise<Product[]> {
-  const catId = await getCategoryId(categorySlug)
-  if (!catId) return []
-  const sb = createClient()
-  const { data } = await sb.from('products')
-    .select(PRODUCT_SELECT_LIST)
-    .eq('category_id', catId)
-    .eq('is_active', true)
-    .neq('slug', excludeSlug)
-    .limit(4)
-  return (data || []).map((r: any) => {
-    const imgs = (r.product_images || [])
-    const primary = imgs.find((i: any) => i.is_primary) || imgs[0] || null
-    return mapProduct({ ...r, product_images: primary ? [primary] : [] })
-  })
+  const supabase = createClient()
+  const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single()
+  if (!cat) return []
+  const { data } = await supabase.from('products').select(PRODUCT_SELECT).eq('category_id', cat.id).eq('is_active', true).neq('slug', excludeSlug).limit(4)
+  return (data || []).map(mapProduct)
 }
 
-// ─── Auth-required queries (use cookie client) ───────────────────────────────
 export async function getProductReviews(productId: string): Promise<Review[]> {
-  const sb = createClient()
-  const { data } = await sb.from('reviews')
-    .select('*, profiles(full_name, avatar_url)')
-    .eq('product_id', productId)
-    .eq('is_approved', true)
-    .order('created_at', { ascending: false })
+  const supabase = createClient()
+  const { data } = await supabase.from('reviews').select('*, profiles(full_name, avatar_url)').eq('product_id', productId).eq('is_approved', true).order('created_at', { ascending: false })
   return (data || []).map((r: any) => ({
-    id: r.id, productId, userId: r.user_id,
-    userFullName: r.profiles?.full_name || 'Anonymous',
-    userAvatarUrl: r.profiles?.avatar_url || null,
-    rating: r.rating, comment: r.comment || '',
-    isVerifiedPurchase: r.is_verified_purchase, createdAt: r.created_at
+    id: r.id, productId, userId: r.user_id, userFullName: r.profiles?.full_name || 'Anonymous',
+    userAvatarUrl: r.profiles?.avatar_url || null, rating: r.rating, comment: r.comment || '', isVerifiedPurchase: r.is_verified_purchase, createdAt: r.created_at
   }))
 }
 
 export async function getBanners(): Promise<Banner[]> {
-  const sb = createClient()
-  const { data } = await sb.from('banners').select('*').eq('is_active', true).order('display_order')
-  return (data || []).map((r: any) => ({
-    id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || 'center',
-    heading: r.heading || '', headingItalic: r.heading_italic || '',
-    subheading: r.subheading || null, badgeText: r.badge_text || '',
-    ctaLabel: r.cta_label, ctaUrl: r.cta_url,
-    ctaSecondaryLabel: r.cta_secondary_label || '', ctaSecondaryUrl: r.cta_secondary_url || '',
-    overlayStyle: r.overlay_style || 'dark', textColor: r.text_color || 'white',
-    isActive: r.is_active, order: r.display_order, videoUrl: r.video_url || null
-  }))
+  const supabase = createClient()
+  const { data } = await supabase.from('banners').select('*').eq('is_active', true).order('display_order')
+  return (data || []).map((r: any) => ({ id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || "center", heading: r.heading || "", headingItalic: r.heading_italic || "", subheading: r.subheading || null, badgeText: r.badge_text || "", ctaLabel: r.cta_label, ctaUrl: r.cta_url, ctaSecondaryLabel: r.cta_secondary_label || "", ctaSecondaryUrl: r.cta_secondary_url || "", overlayStyle: r.overlay_style || "dark", textColor: r.text_color || "white", isActive: r.is_active, order: r.display_order, videoUrl: r.video_url || null }))
 }
 
 export async function getUserOrders(userId: string): Promise<Order[]> {
-  const sb = createClient()
-  const { data } = await sb.from('orders')
-    .select('*, order_items(*)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+  const supabase = createClient()
+  const { data } = await supabase.from('orders').select('*, order_items(*)').eq('user_id', userId).order('created_at', { ascending: false })
   return (data || []).map((r: any) => ({
     id: r.id, orderNumber: r.order_number, userId: r.user_id, addressSnapshot: r.address_snapshot,
     paymentMethod: r.payment_method, paymentStatus: r.payment_status,
@@ -247,12 +202,7 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
 }
 
 export async function getUserAddresses(userId: string): Promise<Address[]> {
-  const sb = createClient()
-  const { data } = await sb.from('addresses').select('*')
-    .eq('user_id', userId).order('is_default', { ascending: false })
-  return (data || []).map((r: any) => ({
-    id: r.id, userId: r.user_id, fullName: r.full_name, phone: r.phone,
-    addressLine1: r.address_line1, addressLine2: r.address_line2 || '',
-    city: r.city, state: r.state, pincode: r.pincode, isDefault: r.is_default
-  }))
+  const supabase = createClient()
+  const { data } = await supabase.from('addresses').select('*').eq('user_id', userId).order('is_default', { ascending: false })
+  return (data || []).map((r: any) => ({ id: r.id, userId: r.user_id, fullName: r.full_name, phone: r.phone, addressLine1: r.address_line1, addressLine2: r.address_line2 || '', city: r.city, state: r.state, pincode: r.pincode, isDefault: r.is_default }))
 }
