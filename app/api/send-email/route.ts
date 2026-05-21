@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { getCfg } from '@/lib/get-config'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'
-const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev'
-// Issue A & B fix — use env vars so URLs update automatically when domain changes
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'
+// Keys read dynamically per request so admin changes take effect immediately
+async function getEmailConfig() {
+  const [apiKey, adminEmail, fromEmail, siteUrl, adminUrl] = await Promise.all([
+    getCfg('setup_resend_api_key',  process.env.RESEND_API_KEY),
+    getCfg('setup_admin_email',     process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'),
+    getCfg('setup_from_email',      process.env.FROM_EMAIL  || 'onboarding@resend.dev'),
+    getCfg('setup_site_url',        process.env.NEXT_PUBLIC_SITE_URL  || 'https://skss-storefront.vercel.app'),
+    getCfg('setup_admin_url',       process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.vercel.app'),
+  ])
+  return { resend: new Resend(apiKey), adminEmail, fromEmail, siteUrl, adminUrl }
+}
 
 function orderConfirmationHtml(order: any, items: any[], brandName: string) {
   const addr = order.address_snapshot || order.shipping_address || {}
@@ -196,26 +202,16 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string,
 export async function POST(request: Request) {
   try {
     const { type, order, items, trackingId, courierName, customerEmail } = await request.json()
+    const { resend, adminEmail: ADMIN_EMAIL, fromEmail: FROM_EMAIL } = await getEmailConfig()
 
     if (type === 'order_confirmation') {
-      // Get brand name from site_config
-      const brandNameEnv = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
-      let brandName = brandNameEnv
-      try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-        const { data } = await sb.from('site_config').select('value').eq('key', 'brand_name').single()
-        if (data?.value) brandName = data.value
-      } catch {}
-
-      // Send to customer
+      const brandName = await getCfg('brand_name', process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
       await resend.emails.send({
         from: FROM_EMAIL,
         to: customerEmail,
         subject: `Order Confirmed! #${String(order.id).slice(0,8).toUpperCase()} - ${brandName}`,
         html: orderConfirmationHtml(order, items, brandName),
       })
-      // Send to admin
       await resend.emails.send({
         from: FROM_EMAIL,
         to: ADMIN_EMAIL,
@@ -226,35 +222,13 @@ export async function POST(request: Request) {
     }
 
     if (type === 'shipping_update') {
-      const brandNameEnv = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
-      let brandName = brandNameEnv
-      try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-        const { data } = await sb.from('site_config').select('value').eq('key', 'brand_name').single()
-        if (data?.value) brandName = data.value
-      } catch {}
-
+      const brandName = await getCfg('brand_name', process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
       await resend.emails.send({
         from: FROM_EMAIL,
         to: customerEmail,
         subject: `Your order has been shipped! #${String(order.id).slice(0,8).toUpperCase()}`,
         html: shippingUpdateHtml(order, trackingId, courierName, brandName),
       })
-
-      // Issue C fix: WhatsApp on shipping is commented out until DLT is set up
-      /* try {
-        const addr = order.address_snapshot || order.shipping_address || {}
-        const phone = addr.phone
-        if (phone) {
-          await fetch(`${SITE_URL}/api/send-whatsapp`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'order_shipped', order, phone, trackingId, courierName })
-          })
-        }
-      } catch (e) { console.error('WhatsApp shipping failed:', e) } */
-
       return NextResponse.json({ success: true })
     }
 

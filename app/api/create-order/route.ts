@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 import { createClient } from '@supabase/supabase-js'
-
-// FIX: Previously trusted client-sent amount — attacker could send ₹1 for any cart.
-// Now: 1) requires valid session, 2) recalculates total server-side.
-
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+import { getCfg } from '@/lib/get-config'
 
 async function getServerTotal(userId: string): Promise<number | null> {
   try {
@@ -39,7 +32,6 @@ async function getServerTotal(userId: string): Promise<number | null> {
       subtotal += price * item.quantity
       gstTotal += Math.round(price * item.quantity * ((p.gst_rate ?? 5) / 100))
     }
-
     const shipping = subtotal >= freeShippingAbove ? 0 : shippingCharge
     return Math.max(0, subtotal + shipping + gstTotal)
   } catch { return null }
@@ -47,7 +39,6 @@ async function getServerTotal(userId: string): Promise<number | null> {
 
 export async function POST(request: Request) {
   try {
-    // 1. Auth check — require valid Bearer token
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     if (!token) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
@@ -60,21 +51,25 @@ export async function POST(request: Request) {
 
     const { receipt, clientAmount } = await request.json()
 
-    // 2. Server-side amount recalculation
+    // Read keys from site_config first, fall back to process.env
+    const keyId     = await getCfg('setup_razorpay_key_id',     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID)
+    const keySecret = await getCfg('setup_razorpay_key_secret', process.env.RAZORPAY_KEY_SECRET)
+
+    if (!keyId || !keySecret) {
+      return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 })
+    }
+
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
+
     const serverTotal = await getServerTotal(user.id)
     let amountToCharge: number
 
     if (serverTotal !== null) {
       amountToCharge = serverTotal
-      // Tamper detection: reject if client amount differs > 5% from server calc
       if (clientAmount && Math.abs(clientAmount - serverTotal) > serverTotal * 0.05 + 1) {
-        return NextResponse.json(
-          { error: 'Order total mismatch. Please refresh and try again.' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Order total mismatch. Please refresh and try again.' }, { status: 400 })
       }
     } else {
-      // Fallback for guest/local cart (no DB cart) — use client amount
       amountToCharge = clientAmount
     }
 

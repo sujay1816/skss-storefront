@@ -310,16 +310,18 @@ export default function OrderDetailPage() {
               const done = currentStepIdx >= stepOrder.indexOf(step.key)
               const active = stepOrder.indexOf(step.key) === currentStepIdx
               return (
-                <div key={step.key} className="flex flex-col items-center gap-1 relative z-10" style={{ flex: 1 }}>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all"
-                    style={{
-                      background: done ? 'var(--crimson)' : 'white',
-                      border: `2px solid ${done ? 'var(--crimson)' : 'var(--border)'}`,
-                      boxShadow: active ? '0 0 0 3px rgba(139,26,43,0.2)' : 'none',
-                    }}>
-                    {done ? <span style={{ fontSize: 13 }}>{step.icon}</span> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)', display: 'block' }} />}
+                <div key={step.key} className="flex flex-col items-center gap-1 relative z-10" style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    width: 'clamp(28px, 7vw, 32px)', height: 'clamp(28px, 7vw, 32px)',
+                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: done ? 'var(--crimson)' : 'white',
+                    border: `2px solid ${done ? 'var(--crimson)' : 'var(--border)'}`,
+                    boxShadow: active ? '0 0 0 3px rgba(139,26,43,0.2)' : 'none',
+                    flexShrink: 0,
+                  }}>
+                    {done ? <span style={{ fontSize: 11 }}>{step.icon}</span> : <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--border)', display: 'block' }} />}
                   </div>
-                  <p className="text-xs font-medium text-center" style={{ color: done ? 'var(--crimson)' : 'var(--text-secondary)', fontSize: 10 }}>{step.label}</p>
+                  <p className="text-center truncate w-full px-0.5" style={{ color: done ? 'var(--crimson)' : 'var(--text-secondary)', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 500 }}>{step.label}</p>
                 </div>
               )
             })}
