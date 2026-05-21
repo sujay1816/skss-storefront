@@ -108,7 +108,8 @@ export default function CheckoutPage() {
   // FIX #5: cap total at 0 — a large flat coupon could make total negative
   const total = Math.max(0, sub - discount + shipping + gst)
 
-  // FIX #4: stock check BEFORE opening Razorpay modal, not after payment
+  // FIX #4: stock check BEFORE opening Razorpay modal (quick pre-check only)
+  // The actual atomic stock deduction happens server-side in /api/place-order
   const checkStockAvailability = async (supabase: any): Promise<boolean> => {
     for (const item of items) {
       const { data: variant } = await supabase
@@ -144,10 +145,11 @@ export default function CheckoutPage() {
     try {
       const supabase = createClient()
 
-      // FIX #4: check stock before payment for both COD and online
+      // Pre-check stock (non-locking, fast UI feedback)
       const stockOk = await checkStockAvailability(supabase)
       if (!stockOk) { setLoading(false); return }
 
+      // Save address if requested
       if (form.saveAddress) {
         const { data: existing } = await supabase.from('addresses').select('id').eq('user_id', userId).eq('address_line1', form.addressLine1).eq('city', form.city).eq('pincode', form.pincode).maybeSingle()
         if (!existing) {
@@ -158,18 +160,16 @@ export default function CheckoutPage() {
           })
         }
       }
+
       if (paymentMethod === 'cod') {
-        await placeOrder(supabase, null, null); return
+        await placeOrder(null, null); return
       }
+
       const receipt = `order_${Date.now()}`
-      // FIX: send Bearer token so server can verify session + recalculate amount
       const { data: { session: currentSession } } = await supabase.auth.getSession()
       const res = await fetch('/api/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentSession?.access_token || ''}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession?.access_token || ''}` },
         body: JSON.stringify({ clientAmount: total, receipt }),
       })
       const razorpayOrder = await res.json()
@@ -191,7 +191,7 @@ export default function CheckoutPage() {
           })
           const { verified } = await verify.json()
           if (verified) {
-            await placeOrder(supabase, razorpayOrder.id, response.razorpay_payment_id)
+            await placeOrder(razorpayOrder.id, response.razorpay_payment_id)
           } else {
             toast.error('Payment verification failed. Contact support.')
             setLoading(false)
@@ -213,55 +213,58 @@ export default function CheckoutPage() {
     }
   }
 
-  const placeOrder = async (supabase: any, razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
+  const placeOrder = async (razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
     try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
-      const { data: order, error } = await supabase.from('orders').insert({
-        user_id: userId, status: 'confirmed',
-        payment_status: paymentMethod === 'cod' ? 'pending' : 'paid',
-        payment_method: paymentMethod === 'cod' ? 'cod' : 'razorpay',
-        // FIX: generate order_number at creation using brand prefix from site_config
-        // Format: {PREFIX}-{YYYYMMDD}-{4-char random hex} e.g. SKSS-20240315-A3F2
-        order_number: `${orderPrefix}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.random().toString(16).slice(2,6).toUpperCase()}`,
-        razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId,
-        subtotal: sub, shipping_charge: shipping, total_gst: gst, gst_amount: gst,
-        total_amount: total, coupon_code: appliedCoupon?.code || null,
-        coupon_discount: discount || 0, address_snapshot: addressData, shipping_address: addressData,
-      }).select().single()
-      if (error) throw error
-      await supabase.from('order_items').insert(items.map(item => ({
-        order_id: order.id, product_id: item.productId, product_name: item.productName,
-        product_image: item.productImage, colour: item.colour, quantity: item.quantity,
-        original_price: item.originalPrice, sale_price: item.salePrice ?? item.originalPrice,
-        total: (item.salePrice ?? item.originalPrice) * item.quantity,
-        gst_rate: item.gstRate, gst_amount: Math.round((item.salePrice ?? item.originalPrice) * item.quantity * (item.gstRate / 100)),
-      })))
-      // FIX #1: removed NEXT_PUBLIC_INTERNAL_API_SECRET — the env var on server side
-      // is now just INTERNAL_API_SECRET (no NEXT_PUBLIC_ prefix), so it won't be
-      // bundled into the browser. The route reads process.env.INTERNAL_API_SECRET.
-      // On the client we read NEXT_PUBLIC_INTERNAL_API_SECRET which you must add to
-      // your .env as: NEXT_PUBLIC_INTERNAL_API_SECRET=<same value as INTERNAL_API_SECRET>
-      // OR better: move stock deduction to a server action so no secret is needed at all.
-      // For now we keep the header pattern but note the env var rename in .env.example.
-      await fetch('/api/update-stock', {
+
+      // Single atomic server call — handles stock lock, order creation, and stock deduction
+      // in one Postgres transaction. Prevents overselling even with simultaneous orders.
+      const res = await fetch('/api/place-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || '' },
-        body: JSON.stringify({ type: 'deduct', items: items.map(item => ({ product_id: item.productId, colour: item.colour, quantity: item.quantity })) })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({
+          items,
+          addressData,
+          paymentMethod,
+          razorpayOrderId,
+          razorpayPaymentId,
+          subtotal: sub,
+          shipping,
+          gst,
+          total,
+          couponCode: appliedCoupon?.code || null,
+          couponDiscount: discount || 0,
+          orderPrefix,
+        }),
       })
-      // FIX #12: removed duplicate nested if (appliedCoupon?.code) — outer check is sufficient
-      if (appliedCoupon?.code) {
-        await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
+      const result = await res.json()
+      if (!result.success) {
+        toast.error(result.error || 'Order creation failed')
+        setLoading(false)
+        return
       }
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'order_confirmation', order, items: items.map(item => ({ product_name: item.productName, colour: item.colour, quantity: item.quantity, sale_price: item.salePrice ?? item.originalPrice, original_price: item.originalPrice, total: (item.salePrice ?? item.originalPrice) * item.quantity })), customerEmail: email })
-        })
-      } catch (e) { console.error('Email failed:', e) }
+
+      // Send confirmation email (non-blocking)
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'order_confirmation',
+          order: { id: result.orderId, total_amount: total },
+          items: items.map(item => ({
+            product_name: item.productName, colour: item.colour, quantity: item.quantity,
+            sale_price: item.salePrice ?? item.originalPrice, original_price: item.originalPrice,
+            total: (item.salePrice ?? item.originalPrice) * item.quantity,
+          })),
+          customerEmail: email,
+        }),
+      }).catch(() => {})
+
       await clearCart()
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
-      router.push(`/orders/${order.id}`)
+      router.push(`/orders/${result.orderId}`)
     } catch (error: any) {
       toast.error('Order creation failed: ' + error.message)
       setLoading(false)
