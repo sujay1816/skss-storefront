@@ -89,27 +89,20 @@ const ZoomImage = memo(function ZoomImage({
         </video>
       ) : src ? (
         // ── Product image with zoom ──────────────────────────────────
-        <div className="absolute inset-0 overflow-hidden">
+        <div key={src} className="absolute inset-0 overflow-hidden">
           {!loaded && <div className="absolute inset-0 skeleton" />}
-          <motion.div
-            key={src}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: loaded ? 1 : 0 }}
-            transition={{ duration: 0.25 }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={src} alt={alt} fill
-              className="object-cover transition-transform duration-200"
-              style={{
-                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                transform: !isTouchDevice && isZooming ? 'scale(2)' : 'scale(1)',
-                transition: 'transform 0.2s',
-              }}
-              priority
-              onLoad={() => setLoaded(true)}
-            />
-          </motion.div>
+          <Image
+            src={src} alt={alt} fill
+            className="object-cover"
+            style={{
+              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+              transform: !isTouchDevice && isZooming ? 'scale(2)' : 'scale(1)',
+              transition: 'transform 0.2s, opacity 0.25s ease',
+              opacity: loaded ? 1 : 0,
+            }}
+            priority
+            onLoad={() => setLoaded(true)}
+          />
         </div>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: 'var(--cream)' }}>
