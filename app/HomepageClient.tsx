@@ -15,7 +15,9 @@ export default function HomepageClient({ config, categories, featured, bestselle
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
-  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
+  // Parallax: only on desktop — on mobile it causes the video/image to shift out of the short viewport
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const heroY = useTransform(scrollYProgress, [0, 1], isMobile ? ['0%', '0%'] : ['0%', '30%'])
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
   const heroBanner = banners[0]
 
@@ -41,18 +43,42 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {/* ── HERO ── */}
       <section ref={heroRef} className="hero-section">
         {/* Background layer */}
-        <motion.div className="absolute inset-0" style={{ y: heroY }}>
+        {/* NOTE: parallax y-transform disabled on mobile (causes video clipping on short viewports).
+            On desktop the 30% shift looks great; on mobile it shifts the video out of frame. */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ y: heroY }}
+        >
           {heroBanner?.videoUrl ? (
             <video
               key={heroBanner.videoUrl}
-              className="w-full h-full"
-              style={{ objectFit: 'cover', objectPosition: heroBanner.imageFocus || 'center' }}
-              autoPlay muted loop playsInline preload="none"
+              autoPlay
+              muted
+              loop
+              playsInline
+              // preload="metadata" instead of "none" — loads enough to show first frame
+              // instantly on mobile instead of a black screen while buffering starts
+              preload="metadata"
               poster={heroBanner.imageUrl || undefined}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                // Use imageFocus as objectPosition so the admin-set focus point works on video too
+                objectPosition: heroBanner.imageFocus || 'center',
+              }}
             >
               <source src={heroBanner.videoUrl} type="video/mp4" />
+              <source src={heroBanner.videoUrl} type="video/webm" />
+              {/* Fallback to poster image if video fails */}
               {heroBanner.imageUrl && (
-                <img src={heroBanner.imageUrl} alt="Hero" className="w-full h-full" style={{ objectFit: 'cover' }} />
+                <img
+                  src={heroBanner.imageUrl}
+                  alt="Hero"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               )}
             </video>
           ) : heroBanner?.imageUrl ? (

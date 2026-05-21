@@ -395,6 +395,24 @@ input, select, textarea { font-size: max(16px, 1em); }
   .hero-section { height: clamp(520px, 90vh, 100vh); }
 }
 
+/* iOS Safari fix — video must be position:absolute to fill container correctly.
+   Without this, Safari treats the video as inline and it collapses to a tiny box. */
+.hero-section video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* On mobile, disable parallax overflow that clips video at top/bottom */
+@media (max-width: 767px) {
+  .hero-section .hero-bg-layer {
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
 /* Hero text container — responsive padding */
 .hero-content-container {
   padding-top: clamp(3rem, 12vw, 8rem);
