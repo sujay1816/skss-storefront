@@ -8,7 +8,7 @@ function mapImage(r: any): ProductImage {
   return { id: r.id, url: r.url, publicId: r.public_id || '', altText: r.alt_text || '', isPrimary: r.is_primary, order: r.order_index }
 }
 function mapVariant(r: any): ProductVariant {
-  return { id: r.id, colour: r.colour, colourHex: r.colour_hex, stock: r.stock, sku: r.sku || '', salePrice: r.sale_price || null }
+  return { id: r.id, colour: r.colour, colourHex: r.colour_hex, stock: r.stock, sku: r.sku || '' }
 }
 function mapProduct(r: any): Product {
   const variants = (r.product_variants || []).map(mapVariant)
