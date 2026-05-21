@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect, useCallback, memo } from 'react'
+import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, ShoppingBag, Star, ChevronDown, ChevronUp, MapPin, RotateCcw, Shield, Truck, Share2, Check } from 'lucide-react'
+import { Heart, ShoppingBag, Star, ChevronDown, ChevronUp, MapPin, RotateCcw, Shield, Truck, Share2, Check, Play } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import RecentlyViewed, { recordRecentlyViewed } from '@/components/product/RecentlyViewed'
 import { formatPrice, getEffectivePrice } from '@/lib/utils'
@@ -13,27 +13,25 @@ import { createClient } from '@/lib/supabase/client'
 import type { Product, ProductVariant, Review, SiteConfig } from '@/types'
 import toast from 'react-hot-toast'
 
-// Isolated zoom component — memo prevents product detail re-renders on every mouse move.
-// Without this, zoomPos/isZooming state updates (fired on every mousemove event)
-// re-render the entire ProductDetailClient including all accordion sections.
+// ── ZoomImage ────────────────────────────────────────────────────────────────
+// Memoised to prevent full re-render on every mousemove.
+// showVideo is now a clean boolean — replaces the fragile activeImage === -1 pattern.
 const ZoomImage = memo(function ZoomImage({
-  src, alt, isNew, isOnSale, calculatedDiscount, activeImage, videoUrl,
+  src, alt, isNew, isOnSale, calculatedDiscount, showVideo, videoUrl, posterUrl,
   onOpen, onTouchStart, onTouchEnd
 }: {
   src: string | null; alt: string; isNew: boolean; isOnSale: boolean
-  calculatedDiscount: number; activeImage: number; videoUrl?: string | null
-  onOpen: (idx: number) => void
+  calculatedDiscount: number; showVideo: boolean; videoUrl?: string | null; posterUrl?: string | null
+  onOpen: () => void
   onTouchStart?: React.TouchEventHandler
   onTouchEnd?: React.TouchEventHandler
 }) {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isZooming, setIsZooming] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  // RESPONSIVE FIX: detect touch/mobile device — disable hover zoom entirely
-  // on touchscreens. window.matchMedia('(hover: none)') returns true on any
-  // device whose primary input has no hover capability (phones, tablets).
-  // Falls back to false (zoom enabled) during SSR when window is not available.
   const [isTouchDevice, setIsTouchDevice] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
   useEffect(() => {
     setIsTouchDevice(window.matchMedia('(hover: none)').matches)
   }, [])
@@ -41,9 +39,15 @@ const ZoomImage = memo(function ZoomImage({
   // Reset loaded state when image src changes
   useEffect(() => { setLoaded(false) }, [src])
 
+  // Auto-play video when it becomes visible
+  useEffect(() => {
+    if (showVideo && videoRef.current) {
+      videoRef.current.play().catch(() => {})
+    }
+  }, [showVideo])
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Never fire zoom on touch devices
-    if (isTouchDevice) return
+    if (isTouchDevice || showVideo) return
     const rect = e.currentTarget.getBoundingClientRect()
     setZoomPos({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -54,20 +58,37 @@ const ZoomImage = memo(function ZoomImage({
   return (
     <motion.div
       className="relative w-full overflow-hidden mb-3"
-      style={{ aspectRatio: '3/4', background: 'var(--cream)', cursor: activeImage === -1 ? 'default' : isTouchDevice ? 'pointer' : isZooming ? 'zoom-out' : 'zoom-in' }}
-      onClick={() => { if (activeImage !== -1) onOpen(activeImage) }}
-      onMouseEnter={() => { if (!isTouchDevice) setIsZooming(true) }}
+      style={{
+        aspectRatio: '3/4',
+        background: 'var(--cream)',
+        cursor: showVideo ? 'default' : isTouchDevice ? 'pointer' : isZooming ? 'zoom-out' : 'zoom-in',
+      }}
+      onClick={() => { if (!showVideo) onOpen() }}
+      onMouseEnter={() => { if (!isTouchDevice && !showVideo) setIsZooming(true) }}
       onMouseLeave={() => { if (!isTouchDevice) setIsZooming(false) }}
       onMouseMove={handleMouseMove}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       whileHover={{ scale: 1.0 }}
       transition={{ duration: 0.3 }}>
-      {activeImage === -1 && videoUrl ? (
-        <video className="w-full h-full" style={{ objectFit: 'cover' }} controls playsInline preload="metadata">
+
+      {showVideo && videoUrl ? (
+        // ── Video player ────────────────────────────────────────────
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full"
+          style={{ objectFit: 'contain', background: '#000' }}
+          controls
+          playsInline
+          preload="auto"
+          poster={posterUrl || undefined}
+          onClick={e => e.stopPropagation()}  // prevent lightbox open on click
+        >
           <source src={videoUrl} type="video/mp4" />
+          <source src={videoUrl} type="video/webm" />
         </video>
       ) : src ? (
+        // ── Product image with zoom ──────────────────────────────────
         <div className="absolute inset-0 overflow-hidden">
           {!loaded && <div className="absolute inset-0 skeleton" />}
           <motion.div
@@ -77,17 +98,17 @@ const ZoomImage = memo(function ZoomImage({
             transition={{ duration: 0.25 }}
             className="absolute inset-0"
           >
-          <Image
-            src={src} alt={alt} fill
-            className="object-cover transition-transform duration-200"
-            style={{
-              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-              transform: !isTouchDevice && isZooming && activeImage !== -1 ? 'scale(2)' : 'scale(1)',
-              transition: 'transform 0.2s',
-            }}
-            priority
-            onLoad={() => setLoaded(true)}
-          />
+            <Image
+              src={src} alt={alt} fill
+              className="object-cover transition-transform duration-200"
+              style={{
+                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                transform: !isTouchDevice && isZooming ? 'scale(2)' : 'scale(1)',
+                transition: 'transform 0.2s',
+              }}
+              priority
+              onLoad={() => setLoaded(true)}
+            />
           </motion.div>
         </div>
       ) : (
@@ -96,10 +117,14 @@ const ZoomImage = memo(function ZoomImage({
           <p className="text-sm mt-4 text-center px-8" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}>{alt}</p>
         </div>
       )}
-      <div className="absolute top-3 left-3 flex flex-col gap-1">
-        {isNew && <span className="badge-new">New</span>}
-        {isOnSale && <span className="badge-sale">{calculatedDiscount}% Off</span>}
-      </div>
+
+      {/* Badges — only when not playing video */}
+      {!showVideo && (
+        <div className="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none">
+          {isNew && <span className="badge-new">New</span>}
+          {isOnSale && <span className="badge-sale">{calculatedDiscount}% Off</span>}
+        </div>
+      )}
     </motion.div>
   )
 })
@@ -130,6 +155,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
 }) {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
   const [activeImage, setActiveImage] = useState(0)
+  const [showVideo, setShowVideo] = useState(false)
   const [pincode, setPincode] = useState('')
   const [pincodeResult, setPincodeResult] = useState<null | { available: boolean; message: string }>(null)
   const [checkingPincode, setCheckingPincode] = useState(false)
@@ -183,8 +209,8 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
 
   // Stable callbacks passed to ZoomImage memo — useCallback prevents new references
   // on every render which would defeat memo and still cause re-renders
-  const handleOpenLightbox = useCallback((idx: number) => {
-    setLightboxIdx(idx)
+  const handleOpenLightbox = useCallback(() => {
+    setLightboxIdx(activeImage >= 0 ? activeImage : 0)
     setLightboxOpen(true)
   }, [])
 
@@ -249,21 +275,19 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   const handleVariantSelect = (v: ProductVariant) => {
     if (v.stock === 0) return
     setSelectedVariant(v)
-    setActiveImage(-1) // reset to -1 so we can handle below
+    setShowVideo(false)
+    setActiveImage(-1)
 
     if (v.imageUrl) {
-      // Check if this variant image matches one in the product images array
       const matchIdx = product.images?.findIndex(img => img.url === v.imageUrl)
       if (matchIdx !== undefined && matchIdx >= 0) {
         setActiveImage(matchIdx)
         setVariantImageOverride(null)
       } else {
-        // Variant has its own image — show it as override
         setActiveImage(0)
         setVariantImageOverride(v.imageUrl)
       }
     } else {
-      // No variant image — just reset to first product image
       setActiveImage(0)
       setVariantImageOverride(null)
     }
@@ -411,30 +435,36 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             isNew={product.isNew}
             isOnSale={isOnSale}
             calculatedDiscount={calculatedDiscount}
-            activeImage={activeImage}
+            showVideo={showVideo}
             videoUrl={product.videoUrl}
+            posterUrl={product.images?.[0]?.url || null}
             onOpen={handleOpenLightbox}
           />
 
           {(product.images.length > 1 || product.videoUrl) && (
-            // FIX #9: overflow-x-auto so thumbnails scroll horizontally on mobile instead of wrapping
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {product.images.map((img, i) => (
-                <button key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null) }}
+                <button key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null); setShowVideo(false) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
-                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === i ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
+                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: !showVideo && activeImage === i && !variantImageOverride ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
               {product.videoUrl && (
-                <button onClick={() => setActiveImage(-1)}
+                <button
+                  onClick={() => { setShowVideo(true); setVariantImageOverride(null) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all flex items-center justify-center"
-                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: activeImage === -1 ? 'var(--crimson)' : 'var(--border)', background: '#1A0E0A' }}>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                      <svg width="12" height="14" viewBox="0 0 12 14" fill="white"><path d="M1 1l10 6-10 6V1z"/></svg>
+                  style={{ width: 60, height: 72, borderRadius: 2, borderColor: showVideo ? 'var(--crimson)' : 'var(--border)', background: '#111', flexShrink: 0 }}>
+                  {/* Show first product image as video poster thumbnail */}
+                  {product.images?.[0]?.url && (
+                    <Image src={product.images[0].url} alt="Video" fill className="object-cover opacity-40" />
+                  )}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: showVideo ? 'var(--crimson)' : 'rgba(255,255,255,0.9)' }}>
+                      <Play size={10} fill={showVideo ? 'white' : '#111'} color={showVideo ? 'white' : '#111'} style={{ marginLeft: 1 }} />
                     </div>
-                    <span className="text-white text-xs" style={{ fontSize: 9 }}>VIDEO</span>
+                    <span className="text-white text-center font-medium" style={{ fontSize: 8, letterSpacing: '0.05em' }}>VIDEO</span>
                   </div>
                 </button>
               )}
