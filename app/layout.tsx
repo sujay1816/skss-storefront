@@ -137,48 +137,47 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   `
 
 
+  const b = brand as any
+
   // Organization structured data
   const orgSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: brand.brand_name || BRAND_NAME,
+    name: b.brand_name || BRAND_NAME,
     url: SITE_URL,
     logo: {
       '@type': 'ImageObject',
-      url: brand.logo_url || `${SITE_URL}/images/logo.png`,
+      url: b.logo_url || `${SITE_URL}/images/logo.png`,
       width: 512,
       height: 512,
     },
-    sameAs: [
-      brand.instagram_url, brand.facebook_url, brand.youtube_url,
-    ].filter(Boolean),
+    sameAs: [b.instagram_url, b.facebook_url, b.youtube_url].filter(Boolean),
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: brand.whatsapp_number || '',
+      telephone: b.whatsapp_number || '',
       contactType: 'customer service',
       availableLanguage: ['English', 'Hindi', 'Tamil', 'Telugu'],
     },
   }
 
-  // LocalBusiness / ClothingStore schema — critical for local SEO + Google Shopping
+  // LocalBusiness / ClothingStore schema
   const localBusinessSchema = {
     '@context': 'https://schema.org',
     '@type': 'ClothingStore',
-    name: brand.brand_name || BRAND_NAME,
+    name: b.brand_name || BRAND_NAME,
     url: SITE_URL,
-    image: brand.logo_url || `${SITE_URL}/images/logo.png`,
+    image: b.logo_url || `${SITE_URL}/images/logo.png`,
     description: `Premium silk sarees — Kanjivaram, Banarasi, Chanderi and more. Shop online with free shipping.`,
     priceRange: '₹₹₹',
     currenciesAccepted: 'INR',
     paymentAccepted: 'Cash, Credit Card, Debit Card, UPI, Net Banking, COD',
     areaServed: 'India',
-    servesCuisine: undefined,
-    hasMap: brand.contact_map_url || undefined,
-    telephone: brand.whatsapp_number || undefined,
-    email: brand.support_email || undefined,
-    address: brand.business_address ? {
+    hasMap: b.contact_map_url || undefined,
+    telephone: b.whatsapp_number || undefined,
+    email: b.support_email || undefined,
+    address: b.business_address ? {
       '@type': 'PostalAddress',
-      streetAddress: brand.business_address,
+      streetAddress: b.business_address,
       addressCountry: 'IN',
     } : undefined,
     openingHoursSpecification: {
@@ -193,7 +192,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: brand.brand_name || BRAND_NAME,
+    name: b.brand_name || BRAND_NAME,
     url: SITE_URL,
     potentialAction: {
       '@type': 'SearchAction',
