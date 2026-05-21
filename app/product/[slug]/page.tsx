@@ -5,21 +5,14 @@ import Footer from '@/components/layout/Footer'
 import WhatsAppButton from '@/components/layout/WhatsAppButton'
 import ProductDetailClient from './ProductDetailClient'
 import { getSiteConfig, getCategories, getProductBySlug, getProductReviews, getRelatedProducts } from '@/lib/supabase/config'
-import { createClient } from '@/lib/supabase/server'
 
+// ISR — revalidate every 60s. generateStaticParams removed — pre-building all
+// products at deploy time caused Vercel function timeouts (502) on large catalogues.
+// ISR handles cold cache efficiently on first visit.
 export const revalidate = 60
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
-
-// Pre-build all active product pages at deploy time — cold cache on first crawl eliminated
-export async function generateStaticParams() {
-  try {
-    const supabase = createClient()
-    const { data } = await supabase.from('products').select('slug').eq('is_active', true)
-    return (data || []).map(p => ({ slug: p.slug }))
-  } catch { return [] }
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {

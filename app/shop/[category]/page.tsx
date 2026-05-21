@@ -9,37 +9,41 @@ import ShopContent from '../ShopContent'
 import { createClient } from '@/lib/supabase/server'
 
 export const revalidate = 60
+// Allow on-demand generation for category slugs not pre-built
+export const dynamicParams = true
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 
-// Pre-build all category pages at deploy time
+// Pre-build known category pages at deploy time
+// Uses direct Supabase call — React cache() doesn't work outside render context
 export async function generateStaticParams() {
   try {
     const supabase = createClient()
-    const { data } = await supabase.from('categories').select('slug').eq('is_active', true)
+    const { data } = await supabase
+      .from('categories').select('slug').eq('is_active', true)
     return (data || []).map(c => ({ category: c.slug }))
   } catch { return [] }
 }
 
 export async function generateMetadata({ params }: { params: { category: string } }): Promise<Metadata> {
   try {
-    const [categories, config] = await Promise.all([
-      getCategories(),
+    const supabase = createClient()
+    const [{ data: catData }, config] = await Promise.all([
+      supabase.from('categories').select('name, slug, image_url').eq('slug', params.category).single(),
       getSiteConfig().catch(() => ({} as any)),
     ])
-    const cat = categories.find(c => c.slug === params.category)
-    if (!cat) return { title: 'Category Not Found' }
+    if (!catData) return { title: 'Category Not Found' }
     const brandName = config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
-    const title = `${cat.name} Sarees — Buy Online`
-    const desc = `Shop authentic ${cat.name} sarees at ${brandName}. Handpicked collection with free shipping above ₹2,500. Easy 7-day returns.`
-    const imageUrl = cat.imageUrl || `${SITE_URL}/images/logo.png`
+    const title = `${catData.name} Sarees — Buy Online`
+    const desc = `Shop authentic ${catData.name} sarees at ${brandName}. Handpicked collection with free shipping above ₹2,500. Easy 7-day returns.`
+    const imageUrl = catData.image_url || `${SITE_URL}/images/logo.png`
 
     return {
       title,
       description: desc,
       keywords: [
-        `${cat.name} saree`, `${cat.name} saree online`, `buy ${cat.name} saree`,
-        `${cat.name} silk saree`, 'sarees online India', brandName,
+        `${catData.name} saree`, `${catData.name} saree online`, `buy ${catData.name} saree`,
+        `${catData.name} silk saree`, 'sarees online India', brandName,
       ],
       alternates: { canonical: `${SITE_URL}/shop/${params.category}` },
       openGraph: {
@@ -48,7 +52,7 @@ export async function generateMetadata({ params }: { params: { category: string 
         type: 'website',
         url: `${SITE_URL}/shop/${params.category}`,
         siteName: brandName,
-        images: [{ url: imageUrl, width: 800, height: 600, alt: cat.name }],
+        images: [{ url: imageUrl, width: 800, height: 600, alt: catData.name }],
         locale: 'en_IN',
       },
       twitter: {
@@ -64,12 +68,13 @@ export async function generateMetadata({ params }: { params: { category: string 
 }
 
 export default async function CategoryPage({ params, searchParams }: { params: { category: string }; searchParams: any }) {
-  const [config, categories, fabricsData] = await Promise.all([
+  const supabase = createClient()
+  const [config, categories, catResult, fabricsData] = await Promise.all([
     getSiteConfig().catch(() => ({} as any)),
     getCategories().catch(() => []),
+    supabase.from('categories').select('id, name, slug, image_url').eq('slug', params.category).single(),
     (async () => {
       try {
-        const supabase = createClient()
         const { data } = await supabase.from('site_config').select('value').eq('key', 'fabric_types').maybeSingle()
         if (data?.value) return JSON.parse(data.value) as string[]
       } catch {}
@@ -77,8 +82,9 @@ export default async function CategoryPage({ params, searchParams }: { params: {
     })(),
   ])
 
-  const cat = categories.find(c => c.slug === params.category)
-  if (!cat) notFound()
+  // Validate category exists — use direct query result, not React cache
+  if (catResult.error || !catResult.data) notFound()
+  const cat = catResult.data
 
   const PAGE_SIZE = 16
   const currentPage = Math.max(1, parseInt(searchParams?.page || '1', 10))
