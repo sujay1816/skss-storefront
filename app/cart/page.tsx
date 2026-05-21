@@ -198,13 +198,15 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#1B7A3E' : 'inherit' }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span></div>
                 <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>{formatPrice(gst)}</span></div>
               </div>
-              <div className="cart-total-row" style={{ margin: '0 -24px', padding: '14px 24px' }}>
-                <span className="text-sm font-medium tracking-wide uppercase" style={{ letterSpacing: '0.08em' }}>Total</span>
+              <div className="cart-total-row">
+                <span className="text-sm font-medium tracking-wide uppercase">Total</span>
                 <span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 300 }}>
                   {formatPrice(total)}
                 </span>
               </div>
-              <Link href="/checkout" className="btn-primary w-full justify-center block text-center mt-4">Proceed to Checkout <ArrowRight size={14} /></Link>
+              <Link href="/checkout" className="btn-primary w-full justify-center mt-4" style={{ display: 'flex' }}>
+                Proceed to Checkout <ArrowRight size={14} />
+              </Link>
             </div>
           </div>
         </div>

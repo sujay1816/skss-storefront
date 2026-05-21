@@ -101,11 +101,11 @@ function LoginForm() {
           </p>
         </div>
       </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: '#111111', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(16px, 5vw, 32px)', background: '#111111', position: 'relative', minHeight: '100svh' }}>
         <div style={{ position: 'absolute', top: 20, left: 20 }}>
           <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none' }}>← Back to store</Link>
         </div>
-        <div style={{ width: '100%', maxWidth: 360 }}>
+        <div style={{ width: '100%', maxWidth: 360, paddingTop: 40 }}>
           <div className="lg:hidden" style={{ textAlign: 'center', marginBottom: 32 }}>
             <Image src={logoUrl} alt={brandName} width={50} height={50} style={{ objectFit: 'contain', margin: '0 auto 8px' }} />
           </div>

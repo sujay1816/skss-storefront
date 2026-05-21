@@ -78,7 +78,7 @@ export default function OrdersPage() {
       <h1 className="section-heading mb-6">My Orders</h1>
       {/* Search + status filter */}
       {orders.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-6 orders-filter-bar">
           <div className="relative flex-1">
             <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
             <input
