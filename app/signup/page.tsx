@@ -201,7 +201,9 @@ function SignupForm() {
             </div>
             <button type="submit" disabled={loading}
               style={{ width: '100%', padding: 13, background: loading ? 'rgba(139,26,43,0.5)' : 'linear-gradient(135deg, #8B1A2B 0%, #6B1220 100%)', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 20px rgba(139,26,43,0.4)' }}>
-              {loading ? 'Creating account...' : <><span>Create Account</span><ArrowRight size={14} /></>}
+              {loading
+                ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating account...</>
+                : <><span>Create Account</span><ArrowRight size={14} /></>}
             </button>
           </form>
 

@@ -299,6 +299,9 @@ input, select, textarea { font-size: max(16px, 1em); }
 @keyframes pulse      { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .animate-fadeIn  { animation: fadeIn  0.4s ease-out; }
 .animate-slideUp { animation: slideUp 0.5s ease-out; }
+/* Page enter — applied on main content wrapper */
+.page-enter { animation: pageEnter 0.3s ease-out; }
+@keyframes pageEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 .gold-divider { display: flex; align-items: center; gap: var(--space-3); }
 .gold-divider::before, .gold-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--gold), transparent); }

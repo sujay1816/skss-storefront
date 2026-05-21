@@ -51,8 +51,10 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
               className="newsletter-input"
               required
             />
-            <button type="submit" disabled={loading} className="newsletter-btn">
-              {loading ? '·  ·  ·' : 'Subscribe'}
+            <button type="submit" disabled={loading} className="newsletter-btn flex items-center justify-center gap-2">
+              {loading
+                ? <><span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Subscribing</>
+                : 'Subscribe'}
             </button>
           </form>
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>

@@ -6,6 +6,19 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Package, ChevronRight, Search as SearchIcon } from 'lucide-react'
 
+const OrderSkeleton = () => (
+  <div className="card p-4 space-y-3">
+    <div className="flex gap-3">
+      {[1,2,3].map(i => <div key={i} className="skeleton rounded flex-shrink-0" style={{ width: 56, height: 64 }} />)}
+    </div>
+    <div className="space-y-2">
+      <div className="skeleton h-4 w-40 rounded" />
+      <div className="skeleton h-3 w-28 rounded" />
+      <div className="skeleton h-4 w-24 rounded" />
+    </div>
+  </div>
+)
+
 export default function OrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<any[]>([])
@@ -16,7 +29,6 @@ export default function OrdersPage() {
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-      // FIX #4: use getUser() instead of getSession() for server-validated auth
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login?redirect=/orders'); return }
       const { data } = await supabase
@@ -31,90 +43,69 @@ export default function OrdersPage() {
   }, [])
 
   const statusColors: Record<string, string> = {
-    confirmed:        '#16A34A',
-    processing:       '#2563EB',
-    shipped:          '#7C3AED',
-    delivered:        '#16A34A',
-    cancelled:        '#DC2626',
-    pending:          '#D97706',
-    return_requested: '#92400E',
-    return_approved:  '#16A34A',
-    return_rejected:  '#DC2626',
-    refunded:         '#16A34A',
+    confirmed: '#16A34A', processing: '#2563EB', shipped: '#7C3AED',
+    delivered: '#16A34A', cancelled: '#DC2626', pending: '#D97706',
+    return_requested: '#92400E', return_approved: '#16A34A',
+    return_rejected: '#DC2626', refunded: '#16A34A',
   }
-
   const statusLabels: Record<string, string> = {
-    confirmed:        'Confirmed',
-    processing:       'Processing',
-    shipped:          'Shipped',
-    delivered:        'Delivered',
-    cancelled:        'Cancelled',
-    pending:          'Pending',
-    return_requested: 'Return Requested',
-    return_approved:  'Return Approved',
-    return_rejected:  'Return Rejected',
-    refunded:         'Refunded',
+    confirmed: 'Confirmed', processing: 'Processing', shipped: 'Shipped',
+    delivered: 'Delivered', cancelled: 'Cancelled', pending: 'Pending',
+    return_requested: 'Return Requested', return_approved: 'Return Approved',
+    return_rejected: 'Return Rejected', refunded: 'Refunded',
   }
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
-      const matchStatus = !statusFilter || o.status === statusFilter
-      const q = search.toLowerCase()
-      const matchSearch = !q ||
-        (o.order_number || '').toLowerCase().includes(q) ||
-        (o.order_items || []).some((i: any) => (i.product_name || '').toLowerCase().includes(q))
-      return matchStatus && matchSearch
-    })
-  }, [orders, search, statusFilter])
+  const filteredOrders = useMemo(() => orders.filter(o => {
+    const matchStatus = !statusFilter || o.status === statusFilter
+    const q = search.toLowerCase()
+    const matchSearch = !q ||
+      (o.order_number || '').toLowerCase().includes(q) ||
+      (o.order_items || []).some((i: any) => (i.product_name || '').toLowerCase().includes(q))
+    return matchStatus && matchSearch
+  }), [orders, search, statusFilter])
 
   if (loading) return (
-    <div className="page-container py-20 text-center">
-      <div className="inline-block w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--crimson)', borderTopColor: 'transparent' }} />
+    <div className="page-container py-8 max-w-2xl animate-fadeIn">
+      <div className="skeleton h-8 w-36 rounded mb-6" />
+      <div className="flex gap-3 mb-6">
+        <div className="skeleton h-10 flex-1 rounded" />
+        <div className="skeleton h-10 w-40 rounded" />
+      </div>
+      <div className="space-y-3">
+        {[1,2,3].map(i => <OrderSkeleton key={i} />)}
+      </div>
     </div>
   )
 
   return (
-    <div className="page-container py-8 max-w-2xl">
+    <div className="page-container py-8 max-w-2xl animate-fadeIn">
       <h1 className="section-heading mb-6">My Orders</h1>
-      {/* Search + status filter */}
       {orders.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-3 mb-6 orders-filter-bar">
           <div className="relative flex-1">
             <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by order number or product..."
-              className="input-base pl-9 w-full"
-              style={{ height: 40 }}
-            />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by order number or product..." className="input-base pl-9 w-full" style={{ height: 40 }} />
           </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="input-base"
-            style={{ height: 40, minWidth: 160 }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="input-base" style={{ height: 40, minWidth: 160 }}>
             <option value="">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="return_requested">Return Requested</option>
-            <option value="refunded">Refunded</option>
+            {Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
       )}
       {orders.length === 0 ? (
         <div className="text-center py-16">
-          <Package size={48} className="mx-auto mb-4" style={{ color: 'var(--border)' }} />
-          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>You haven't placed any orders yet</p>
+          <div className="empty-state-icon mx-auto mb-6" style={{ width: 80, height: 80 }}>
+            <Package size={36} style={{ color: 'var(--crimson)', opacity: 0.5 }} />
+          </div>
+          <h2 className="text-2xl font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>No orders yet</h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>You haven't placed any orders yet.</p>
           <Link href="/shop" className="btn-primary">Browse Collection</Link>
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredOrders.length === 0 && orders.length > 0 && (
+          {filteredOrders.length === 0 && (
             <div className="text-center py-12">
               <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>No orders match your search.</p>
               <button onClick={() => { setSearch(''); setStatusFilter('') }} className="btn-outline text-xs">Clear filters</button>
@@ -125,22 +116,18 @@ export default function OrdersPage() {
             const orderItems = order.order_items || []
             const previewItems = orderItems.slice(0, 3)
             const extraCount = orderItems.length - previewItems.length
-
             return (
               <Link key={order.id} href={`/orders/${order.id}`}
-                className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-md transition-shadow"
+                className="card p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-md transition-all duration-200 active:scale-[0.99]"
                 style={{ textDecoration: 'none' }}>
-
                 {previewItems.length > 0 && (
                   <div className="flex gap-1.5 flex-shrink-0">
                     {previewItems.map((item: any, i: number) => (
-                      <div key={i} className="relative w-14 h-16 sm:w-12 sm:h-14 border overflow-hidden rounded flex-shrink-0"
-                        style={{ background: 'var(--cream)', borderColor: 'var(--border)', position: 'relative' }}>
-                        {item.product_image ? (
-                          <Image src={item.product_image} alt={item.product_name || ''} fill sizes="10vw" className="object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-base">🥻</div>
-                        )}
+                      <div key={i} className="relative border overflow-hidden rounded flex-shrink-0"
+                        style={{ width: 56, height: 64, background: 'var(--cream)', borderColor: 'var(--border)' }}>
+                        {item.product_image
+                          ? <Image src={item.product_image} alt={item.product_name || ''} fill sizes="10vw" className="object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-base">🥻</div>}
                         {i === previewItems.length - 1 && extraCount > 0 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <span className="text-white text-xs font-bold">+{extraCount}</span>
@@ -150,7 +137,6 @@ export default function OrdersPage() {
                     ))}
                   </div>
                 )}
-
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     Order #{order.order_number || order.id?.slice(0, 8).toUpperCase()}
@@ -169,7 +155,6 @@ export default function OrdersPage() {
                     ₹{Number(order.total_amount).toLocaleString('en-IN')}
                   </p>
                 </div>
-
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white"
                     style={{ background: statusColors[order.status] || '#6B7280' }}>

@@ -125,10 +125,22 @@ export default function ProfilePage() {
   }
 
   if (loading) return (
-    <div style={{ padding: '80px 24px', textAlign: 'center' }}>
-      <div style={{ display: 'inline-block', width: 32, height: 32, border: '2px solid #8B1A2B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <p style={{ marginTop: 12, color: '#5A4A3A', fontSize: 14 }}>Loading your profile...</p>
+    <div className="page-container py-8 max-w-2xl animate-fadeIn">
+      <div className="skeleton h-4 w-16 rounded mb-6" />
+      <div className="skeleton h-8 w-32 rounded mb-8" />
+      <div className="flex gap-4 mb-6 border-b pb-3" style={{ borderColor: 'var(--border)' }}>
+        <div className="skeleton h-4 w-28 rounded" />
+        <div className="skeleton h-4 w-28 rounded" />
+      </div>
+      <div className="space-y-4">
+        {[1,2,3].map(i => (
+          <div key={i}>
+            <div className="skeleton h-3 w-20 rounded mb-2" />
+            <div className="skeleton h-11 w-full rounded" />
+          </div>
+        ))}
+        <div className="skeleton h-11 w-36 rounded mt-2" />
+      </div>
     </div>
   )
 
@@ -182,8 +194,9 @@ export default function ProfilePage() {
             <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)} className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates</span>
           </label>
-          <button onClick={save} disabled={saving || !!phoneError} className="btn-primary"
+          <button onClick={save} disabled={saving || !!phoneError} className="btn-primary flex items-center gap-2"
             style={{ opacity: saving || phoneError ? 0.6 : 1 }}>
+            {saving && <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>

@@ -424,7 +424,9 @@ export default function CheckoutPage() {
             <button onClick={createOrder} disabled={loading || !!phoneError}
               className="btn-primary w-full mt-4 justify-center"
               style={{ opacity: loading || phoneError ? 0.7 : 1 }}>
-              {loading ? 'Processing...' : paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')}`}
+              {loading
+                ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</>
+                : paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')}`}
             </button>
             <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>🔒 Secured by Razorpay</p>
           </div>

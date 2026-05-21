@@ -176,10 +176,16 @@ export default function HomepageClient({ config, categories, featured, bestselle
                   <div className="relative overflow-hidden rounded-lg mb-3 transition-all"
                     style={{ aspectRatio: '2/3', background: 'var(--cream)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
                     {cat.imageUrl ? (
-                      <Image src={cat.imageUrl} alt={cat.name} fill
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      quality={75}
-                      className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <>
+                        <div className="absolute inset-0 skeleton" />
+                        <Image src={cat.imageUrl} alt={cat.name} fill
+                          sizes="(max-width: 640px) 50vw, 33vw"
+                          quality={75}
+                          className="object-cover transition-all duration-700 group-hover:scale-110"
+                          style={{ opacity: 0, transition: 'opacity 0.4s ease' }}
+                          onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1' }}
+                        />
+                      </>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center"
                         style={{ background: 'linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%)' }}>

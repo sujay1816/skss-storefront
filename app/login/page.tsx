@@ -148,7 +148,9 @@ function LoginForm() {
             </div>
             <button type="submit" disabled={loading}
               style={{ width: '100%', padding: 13, background: 'linear-gradient(135deg, #8B1A2B 0%, #6B1220 100%)', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: loading ? 0.6 : 1 }}>
-              {loading ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={14} /></>}
+              {loading
+                ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</>
+                : <><span>Sign In</span><ArrowRight size={14} /></>}
             </button>
           </form>
           <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 24 }}>
