@@ -1,4 +1,3 @@
-import { createPublicClient } from './public'
 import { createClient } from './server'
 import { cache } from 'react'
 import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, Address } from '@/types'
@@ -50,7 +49,7 @@ const PRODUCT_SELECT_FULL = `
 
 // ─── Cached public fetchers (work with ISR) ──────────────────────────────────
 export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('site_config').select('key, value')
   const config: SiteConfig = {} as SiteConfig
   if (data) data.forEach((row: any) => { config[row.key] = row.value })
@@ -58,7 +57,7 @@ export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
 })
 
 export const getCategories = cache(async (): Promise<Category[]> => {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('categories').select('id, name, slug, description, image_url, is_active, display_order')
     .eq('is_active', true).order('display_order')
   return (data || []).map((r: any) => ({
@@ -87,7 +86,7 @@ export interface ProductFilters {
 }
 
 export async function getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
-  const sb = createPublicClient()
+  const sb = createClient()
   const withCount = filters?.withCount ?? false
 
   let q = sb
@@ -149,7 +148,7 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
 
 // Cached category id lookup — avoids repeat queries for same slug
 const getCategoryId = cache(async (slug: string): Promise<string | null> => {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('categories').select('id').eq('slug', slug).single()
   return data?.id ?? null
 })
@@ -165,7 +164,7 @@ export async function getProductsSimple(filters?: {
 
 // ─── Product detail (uses cookie client for auth-aware RLS) ─────────────────
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data, error } = await sb.from('products')
     .select(PRODUCT_SELECT_FULL)
     .eq('slug', slug)
@@ -178,7 +177,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 export async function getRelatedProducts(categorySlug: string, excludeSlug: string): Promise<Product[]> {
   const catId = await getCategoryId(categorySlug)
   if (!catId) return []
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('products')
     .select(PRODUCT_SELECT_LIST)
     .eq('category_id', catId)
@@ -194,7 +193,7 @@ export async function getRelatedProducts(categorySlug: string, excludeSlug: stri
 
 // ─── Auth-required queries (use cookie client) ───────────────────────────────
 export async function getProductReviews(productId: string): Promise<Review[]> {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('reviews')
     .select('*, profiles(full_name, avatar_url)')
     .eq('product_id', productId)
@@ -210,7 +209,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
 }
 
 export async function getBanners(): Promise<Banner[]> {
-  const sb = createPublicClient()
+  const sb = createClient()
   const { data } = await sb.from('banners').select('*').eq('is_active', true).order('display_order')
   return (data || []).map((r: any) => ({
     id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || 'center',
