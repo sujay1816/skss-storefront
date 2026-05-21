@@ -2,7 +2,7 @@
 import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import type { SiteConfig, Category, Product, Banner } from '@/types'
@@ -14,11 +14,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
-  // Parallax: only on desktop — on mobile it causes the video/image to shift out of the short viewport
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const heroY = useTransform(scrollYProgress, [0, 1], isMobile ? ['0%', '0%'] : ['0%', '30%'])
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
+  const heroOpacity = 1
   const heroBanner = banners[0]
 
   // Compute overlay gradient based on admin setting
@@ -42,65 +38,36 @@ export default function HomepageClient({ config, categories, featured, bestselle
     <>
       {/* ── HERO ── */}
       <section ref={heroRef} className="hero-section">
-        {/* Background layer */}
-        {/* NOTE: parallax y-transform disabled on mobile (causes video clipping on short viewports).
-            On desktop the 30% shift looks great; on mobile it shifts the video out of frame. */}
-        <motion.div
-          className="absolute inset-0"
-          style={{ y: heroY }}
-        >
+
+        {/* Background — plain div, no motion transform.
+            Motion transforms on the wrapper break video rendering on many devices. */}
+        <div className="absolute inset-0">
           {heroBanner?.videoUrl ? (
             <video
               key={heroBanner.videoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              // preload="metadata" instead of "none" — loads enough to show first frame
-              // instantly on mobile instead of a black screen while buffering starts
+              autoPlay muted loop playsInline
               preload="metadata"
               poster={heroBanner.imageUrl || undefined}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                // Use imageFocus as objectPosition so the admin-set focus point works on video too
-                objectPosition: heroBanner.imageFocus || 'center',
-              }}
+              className="hero-media"
+              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
             >
               <source src={heroBanner.videoUrl} type="video/mp4" />
               <source src={heroBanner.videoUrl} type="video/webm" />
-              {/* Fallback to poster image if video fails */}
-              {heroBanner.imageUrl && (
-                <img
-                  src={heroBanner.imageUrl}
-                  alt="Hero"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              )}
             </video>
           ) : heroBanner?.imageUrl ? (
             <Image
               src={heroBanner.imageUrl}
               alt={heroBanner.heading || 'Hero banner'}
               fill priority quality={85} sizes="100vw"
-              className="object-cover"
+              className="object-cover hero-media"
               style={{ objectPosition: heroBanner.imageFocus || 'center' }}
             />
           ) : (
-            <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }}>
-              <div className="absolute inset-0 flex items-center justify-center opacity-5">
-                <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
-              </div>
-            </div>
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }} />
           )}
-          {/* Overlay */}
           <div className="absolute inset-0" style={{ background: overlayGradient }} />
-          {/* Bottom fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.12), transparent)' }} />
-        </motion.div>
+          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.1), transparent)' }} />
+        </div>
 
         {/* Content */}
         <motion.div style={{ opacity: heroOpacity }} className="relative z-10 h-full flex items-center">
@@ -110,8 +77,8 @@ export default function HomepageClient({ config, categories, featured, bestselle
               className="max-w-xl hero-content-container"
             >
               {/* Badge */}
-              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="h-px w-10 sm:w-12 flex-shrink-0" style={{ background: textCol.accent }} />
+              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-4">
+                <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
                 <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
                   {heroBanner?.badgeText || 'New Collection 2025'}
                 </span>
@@ -120,7 +87,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               {/* Heading */}
               <motion.h1
                 variants={fadeUp}
-                className="hero-heading font-light mb-4 sm:mb-6"
+                className="hero-heading font-light mb-4"
                 style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}
               >
                 {heroBanner?.heading || 'Draped in'}
@@ -129,36 +96,23 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 </em>
               </motion.h1>
 
-              {/* Subheading — hidden on very small screens */}
-              <motion.p
-                variants={fadeUp}
-                className="text-sm font-light mb-3 max-w-sm hero-subtext"
-                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}
-              >
-                {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman. Each piece a masterpiece of Indian heritage.'}
+              <motion.p variants={fadeUp} className="text-sm font-light mb-2 max-w-sm hero-subtext"
+                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
+                {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman.'}
               </motion.p>
 
-              <motion.p
-                variants={fadeUp}
-                className="text-xs mb-6 sm:mb-8 tracking-widest hero-tagline"
-                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}
-              >
+              <motion.p variants={fadeUp} className="text-xs mb-6 tracking-widest hero-tagline"
+                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
                 &quot;{config.brand_tagline}&quot;
               </motion.p>
 
               {/* CTA Buttons */}
               <motion.div variants={fadeUp} className="hero-cta-group">
-                <Link
-                  href={heroBanner?.ctaUrl || '/shop'}
-                  className="hero-cta-primary group"
-                >
+                <Link href={heroBanner?.ctaUrl || '/shop'} className="hero-cta-primary">
                   {heroBanner?.ctaLabel || 'Shop Now'}
-                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform flex-shrink-0" />
+                  <ArrowRight size={13} className="flex-shrink-0" />
                 </Link>
-                <Link
-                  href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'}
-                  className="hero-cta-secondary"
-                >
+                <Link href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'} className="hero-cta-secondary">
                   {heroBanner?.ctaSecondaryLabel || 'New Arrivals'}
                 </Link>
               </motion.div>
