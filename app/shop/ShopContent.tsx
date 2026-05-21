@@ -192,12 +192,6 @@ export default function ShopContent({ products, categories, config, userId, init
   const totalPages = Math.ceil(totalProducts / pageSize)
   const page = currentPage
 
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-    params.set('page', String(p))
-    startTransition(() => router.push(`${pathname}?${params.toString()}`, { scroll: true }))
-  }
-
   const toggleFilter = (arr: string[], val: string, set: (v: string[]) => void, key: string) => {
     const next = arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]
     set(next)
