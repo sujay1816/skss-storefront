@@ -1,5 +1,5 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -9,6 +9,39 @@ import type { SiteConfig, Category, Product, Banner } from '@/types'
 
 const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }
+
+// Cycles through multiple videos in sequence — each video plays once then moves to the next
+function MultiVideo({ urls, poster, objectPosition }: { urls: string[]; poster?: string; objectPosition?: string }) {
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const handleEnded = () => {
+    setCurrentIdx(prev => (prev + 1) % urls.length)
+  }
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load()
+      videoRef.current.play().catch(() => {})
+    }
+  }, [currentIdx])
+
+  return (
+    <video
+      ref={videoRef}
+      key={urls[currentIdx]}
+      autoPlay muted playsInline
+      preload="metadata"
+      poster={poster}
+      onEnded={handleEnded}
+      className="hero-media"
+      style={{ objectPosition: objectPosition || 'center' }}
+    >
+      <source src={urls[currentIdx]} type="video/mp4" />
+      <source src={urls[currentIdx]} type="video/webm" />
+    </video>
+  )
+}
 
 export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId }: {
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
@@ -39,17 +72,22 @@ export default function HomepageClient({ config, categories, featured, bestselle
       {/* ── HERO ── */}
       <section ref={heroRef} className="hero-section">
 
-        {/* Background — plain div, no motion transform.
-            Motion transforms on the wrapper break video rendering on many devices. */}
+        {/* Background — plain div, no motion transform */}
         <div className="absolute inset-0">
-          {heroBanner?.videoUrl ? (
+          {heroBanner?.videoUrls?.length > 0 ? (
+            <MultiVideo
+              urls={heroBanner.videoUrls}
+              poster={heroBanner.imageUrl || undefined}
+              objectPosition={heroBanner.imageFocus || 'center'}
+            />
+          ) : heroBanner?.videoUrl ? (
             <video
               key={heroBanner.videoUrl}
               autoPlay muted loop playsInline
               preload="metadata"
               poster={heroBanner.imageUrl || undefined}
               className="hero-media"
-              style={{ objectPosition: 'center center' }}
+              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
             >
               <source src={heroBanner.videoUrl} type="video/mp4" />
               <source src={heroBanner.videoUrl} type="video/webm" />
