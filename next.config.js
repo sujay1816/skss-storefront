@@ -41,6 +41,8 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               // Product images from Cloudinary, Supabase storage, and Google avatars
               "img-src 'self' data: blob: https://res.cloudinary.com https://*.supabase.co https://lh3.googleusercontent.com",
+              // Videos from Cloudinary (hero banner background video)
+              "media-src 'self' blob: https://res.cloudinary.com https://*.supabase.co",
               // Razorpay payment iframe
               "frame-src https://api.razorpay.com https://checkout.razorpay.com",
               // form-action self only
