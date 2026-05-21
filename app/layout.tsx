@@ -102,8 +102,8 @@ function adjustColor(hex: string, amount: number): string {
 async function getBrandConfig() {
   try {
     const supabase = createClient()
-    const { data } = await supabase.from('site_config').select('key, value')
-      .in('key', Object.keys(DEFAULT_BRAND))
+    const keys = [...Object.keys(DEFAULT_BRAND), 'instagram_url', 'facebook_url', 'youtube_url', 'whatsapp_number', 'support_email', 'business_address', 'contact_map_url', 'brand_name']
+    const { data } = await supabase.from('site_config').select('key, value').in('key', keys)
     const cfg: Record<string, string> = { ...DEFAULT_BRAND }
     data?.forEach((r: any) => { if (r.value) cfg[r.key] = r.value })
     return cfg
@@ -136,21 +136,64 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   `
 
+
   // Organization structured data
   const orgSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: BRAND_NAME,
+    name: brand.brand_name || BRAND_NAME,
     url: SITE_URL,
-    logo: brand.logo_url || `${SITE_URL}/images/logo.png`,
-    sameAs: [],
+    logo: {
+      '@type': 'ImageObject',
+      url: brand.logo_url || `${SITE_URL}/images/logo.png`,
+      width: 512,
+      height: 512,
+    },
+    sameAs: [
+      brand.instagram_url, brand.facebook_url, brand.youtube_url,
+    ].filter(Boolean),
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: brand.whatsapp_number || '',
+      contactType: 'customer service',
+      availableLanguage: ['English', 'Hindi', 'Tamil', 'Telugu'],
+    },
+  }
+
+  // LocalBusiness / ClothingStore schema — critical for local SEO + Google Shopping
+  const localBusinessSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ClothingStore',
+    name: brand.brand_name || BRAND_NAME,
+    url: SITE_URL,
+    image: brand.logo_url || `${SITE_URL}/images/logo.png`,
+    description: `Premium silk sarees — Kanjivaram, Banarasi, Chanderi and more. Shop online with free shipping.`,
+    priceRange: '₹₹₹',
+    currenciesAccepted: 'INR',
+    paymentAccepted: 'Cash, Credit Card, Debit Card, UPI, Net Banking, COD',
+    areaServed: 'India',
+    servesCuisine: undefined,
+    hasMap: brand.contact_map_url || undefined,
+    telephone: brand.whatsapp_number || undefined,
+    email: brand.support_email || undefined,
+    address: brand.business_address ? {
+      '@type': 'PostalAddress',
+      streetAddress: brand.business_address,
+      addressCountry: 'IN',
+    } : undefined,
+    openingHoursSpecification: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      opens: '10:00',
+      closes: '19:00',
+    },
   }
 
   // WebSite structured data with SearchAction
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: BRAND_NAME,
+    name: brand.brand_name || BRAND_NAME,
     url: SITE_URL,
     potentialAction: {
       '@type': 'SearchAction',
@@ -176,6 +219,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="apple-touch-icon" href={brand.logo_url || '/images/logo.png'} />
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
       <body>

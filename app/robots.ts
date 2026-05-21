@@ -17,8 +17,18 @@ export default function robots(): MetadataRoute.Robots {
           '/wishlist',
           '/profile',
           '/api/',
+          '/reset-password',
+          '/forgot-password',
+          // Block old query-param category URLs — clean /shop/[category] URLs are canonical
+          '/shop?category=',
         ],
       },
+      // Block AI training bots
+      { userAgent: 'GPTBot', disallow: ['/'] },
+      { userAgent: 'ChatGPT-User', disallow: ['/'] },
+      { userAgent: 'CCBot', disallow: ['/'] },
+      { userAgent: 'anthropic-ai', disallow: ['/'] },
+      { userAgent: 'Claude-Web', disallow: ['/'] },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

@@ -101,7 +101,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
             <h4 className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'var(--text-primary)' }}>Shop</h4>
             <ul className="space-y-2">
               {categories.slice(0, 5).map(cat => (
-                <li key={cat.id}><Link href={`/shop?category=${cat.slug}`} className="text-xs transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>{cat.name}</Link></li>
+                <li key={cat.id}><Link href={`/shop/${cat.slug}`} className="text-xs transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>{cat.name}</Link></li>
               ))}
               <li><Link href="/shop?filter=new" className="text-xs transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>New Arrivals</Link></li>
               <li><Link href="/shop?filter=bestsellers" className="text-xs transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>Bestsellers</Link></li>

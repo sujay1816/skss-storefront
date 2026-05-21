@@ -117,20 +117,25 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
     ],
   }
 
-  // CollectionPage schema
-  const collectionSchema = {
+  // ItemList schema — enables Google product carousels
+  const itemListSchema = {
     '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: `${config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'} — Saree Collection`,
-    description: 'Premium silk sarees collection',
+    '@type': 'ItemList',
+    name: 'Saree Collection',
     url: `${SITE_URL}/shop`,
-    numberOfItems: products.length,
+    numberOfItems: totalProducts,
+    itemListElement: products.slice(0, 10).map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${SITE_URL}/product/${p.slug}`,
+      name: p.name,
+    })),
   }
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
       <Navbar categories={categories} config={config} user={user} />
       <ShopContent
         products={products}

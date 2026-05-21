@@ -166,17 +166,21 @@ export default function ShopContent({ products, categories, config, userId, init
     const nw   = overrides.onlyNew   !== undefined ? overrides.onlyNew   : onlyNew
     const sort = overrides.sortBy    !== undefined ? overrides.sortBy    : sortBy
     const srch = overrides.search    !== undefined ? overrides.search    : search
-    if (cat)        params.set('category', cat)
+
+    // Use clean /shop/[category] URL for SEO — no query param
+    const basePath = cat ? `/shop/${cat}` : '/shop'
+
     if (fabs?.length) params.set('fabrics', fabs.join(','))
     if (occ?.length)  params.set('occasions', occ.join(','))
-    if (pMin)       params.set('priceMin', pMin)
-    if (pMax)       params.set('priceMax', pMax)
-    if (nw)         params.set('filter', 'new')
+    if (pMin)         params.set('priceMin', pMin)
+    if (pMax)         params.set('priceMax', pMax)
+    if (nw)           params.set('filter', 'new')
     if (sort && sort !== 'newest') params.set('sort', sort)
-    if (srch)       params.set('q', srch)
-    const url = `${pathname}?${params.toString()}`
+    if (srch)         params.set('q', srch)
+    const qs = params.toString()
+    const url = qs ? `${basePath}?${qs}` : basePath
     startTransition(() => router.push(url, { scroll: false }))
-  }, [selectedCategory, selectedFabrics, selectedOccasions, priceMin, priceMax, onlyNew, sortBy, search, pathname, router])
+  }, [selectedCategory, selectedFabrics, selectedOccasions, priceMin, priceMax, onlyNew, sortBy, search, router])
 
   const setSelectedCategoryAndNav = (v: string) => { setSelectedCategory(v); applyServerFilters({ category: v }) }
   const setSortByAndNav = (v: string) => { setSortBy(v); applyServerFilters({ sortBy: v }) }
@@ -206,7 +210,14 @@ export default function ShopContent({ products, categories, config, userId, init
   const clearAll = () => {
     setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([])
     setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false)
-    startTransition(() => router.push(pathname, { scroll: false }))
+    startTransition(() => router.push('/shop', { scroll: false }))
+  }
+
+  const setPage = (p: number) => {
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    params.set('page', String(p))
+    const base = selectedCategory ? `/shop/${selectedCategory}` : '/shop'
+    startTransition(() => router.push(`${base}?${params.toString()}`, { scroll: true }))
   }
 
   const handleSearchSubmit = () => {

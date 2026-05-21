@@ -172,7 +172,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
             className="category-grid-3col">
             {categories.map((cat, i) => (
               <motion.div key={cat.id} variants={fadeUp}>
-                <Link href={`/shop?category=${cat.slug}`} className="group block">
+                <Link href={`/shop/${cat.slug}`} className="group block">
                   <div className="relative overflow-hidden rounded-lg mb-3 transition-all"
                     style={{ aspectRatio: '2/3', background: 'var(--cream)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
                     {cat.imageUrl ? (

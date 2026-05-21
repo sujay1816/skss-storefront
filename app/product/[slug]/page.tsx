@@ -5,13 +5,21 @@ import Footer from '@/components/layout/Footer'
 import WhatsAppButton from '@/components/layout/WhatsAppButton'
 import ProductDetailClient from './ProductDetailClient'
 import { getSiteConfig, getCategories, getProductBySlug, getProductReviews, getRelatedProducts } from '@/lib/supabase/config'
-// PERFORMANCE: ISR — revalidate every 60s.
-// Product pages rarely change (price/stock updates trigger on-demand revalidation via admin).
-// The user's wishlist/cart badge is loaded client-side in Navbar.
+import { createClient } from '@/lib/supabase/server'
+
 export const revalidate = 60
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'
+
+// Pre-build all active product pages at deploy time — cold cache on first crawl eliminated
+export async function generateStaticParams() {
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.from('products').select('slug').eq('is_active', true)
+    return (data || []).map(p => ({ slug: p.slug }))
+  } catch { return [] }
+}
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {
@@ -142,6 +150,18 @@ export default async function ProductPage({ params }: { params: { slug: string }
         bestRating: 5,
         worstRating: 1,
       },
+      review: reviews.slice(0, 5).map(r => ({
+        '@type': 'Review',
+        author: { '@type': 'Person', name: r.userFullName || 'Customer' },
+        datePublished: r.createdAt?.split('T')[0],
+        reviewBody: r.comment || '',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: r.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      })),
     } : {}),
     ...(product.fabric ? {
       material: product.fabric,

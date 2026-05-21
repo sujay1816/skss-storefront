@@ -174,7 +174,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             {/* Desktop category nav — hidden on landscape phones (they use hamburger) */}
             <nav className="hidden md:flex landscape-hide-nav items-center gap-0 flex-1 justify-center overflow-hidden">
               {categories.map(cat => (
-                <Link key={cat.id} href={`/shop?category=${cat.slug}`}
+                <Link key={cat.id} href={`/shop/${cat.slug}`}
                   className="px-3 py-2 text-xs tracking-widest uppercase transition-all duration-200 relative group whitespace-nowrap flex items-center gap-1.5"
                   style={{ color: 'var(--text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}
@@ -395,7 +395,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                 <div className="py-2">
                   <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Shop by Category</p>
                   {categories.map(cat => (
-                    <Link key={cat.id} href={`/shop?category=${cat.slug}`}
+                    <Link key={cat.id} href={`/shop/${cat.slug}`}
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center justify-between px-5 py-3 text-sm border-b transition-colors active:bg-[var(--cream)]"
                       style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
