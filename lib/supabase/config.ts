@@ -1,26 +1,9 @@
+import { createPublicClient } from './public'
 import { createClient } from './server'
 import { cache } from 'react'
-import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, OrderItem, Address } from '@/types'
+import type { SiteConfig, Category, Product, ProductImage, ProductVariant, Banner, Review, Order, Address } from '@/types'
 
-// React cache() — deduplicates calls within the same server render tree
-// so getSiteConfig() called in layout + page only hits DB once per request
-export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
-  const supabase = createClient()
-  const { data } = await supabase.from('site_config').select('key, value')
-  const config: SiteConfig = {} as SiteConfig
-  if (data) data.forEach(row => { config[row.key] = row.value })
-  return config
-})
-
-export const getCategories = cache(async (): Promise<Category[]> => {
-  const supabase = createClient()
-  const { data } = await supabase.from('categories').select('*').eq('is_active', true).order('display_order')
-  return (data || []).map(r => ({
-    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
-    imageUrl: r.image_url || '', isActive: r.is_active, displayOrder: r.display_order
-  }))
-})
-
+// ─── Mappers ────────────────────────────────────────────────────────────────
 function mapImage(r: any): ProductImage {
   return { id: r.id, url: r.url, publicId: r.public_id || '', altText: r.alt_text || '', isPrimary: r.is_primary, order: r.order_index }
 }
@@ -31,8 +14,7 @@ function mapProduct(r: any): Product {
   const variants = (r.product_variants || []).map(mapVariant)
   const images = (r.product_images || []).sort((a: any, b: any) => a.order_index - b.order_index).map(mapImage)
   const totalStock = variants.reduce((s: number, v: ProductVariant) => s + v.stock, 0)
-  const newArrivalDays = 30
-  const isNew = new Date(r.created_at) > new Date(Date.now() - newArrivalDays * 86400000)
+  const isNew = new Date(r.created_at) > new Date(Date.now() - 30 * 86400000)
   return {
     id: r.id, name: r.name, slug: r.slug, description: r.description || '',
     fabric: r.fabric || '', weaveType: r.weave_type || '', originRegion: r.origin_region || '',
@@ -48,24 +30,44 @@ function mapProduct(r: any): Product {
   }
 }
 
-// Shop grid — only primary image + variants needed (not all images)
+// ─── Select strings ──────────────────────────────────────────────────────────
+// List view — only primary image, only needed columns (no description, care instructions etc)
 const PRODUCT_SELECT_LIST = `
   id, name, slug, fabric, weave_type, origin_region, occasion,
   original_price, sale_price, discount_percent, sale_start_date, sale_end_date,
-  gst_rate, is_featured, is_bestseller, is_active, average_rating, review_count,
+  gst_rate, is_featured, is_bestseller, average_rating, review_count,
   created_at, updated_at, video_url,
   categories(slug, name),
-  product_images!inner(id, url, public_id, alt_text, is_primary, order_index),
-  product_variants(id, colour, colour_hex, stock, sku, sale_price)
+  product_images(id, url, alt_text, is_primary, order_index),
+  product_variants(id, colour, colour_hex, stock, sale_price)
 `
-
-// Product detail — all images needed
+// Detail view — all columns + all images
 const PRODUCT_SELECT_FULL = `
   *, categories(slug, name),
   product_images(id, url, public_id, alt_text, is_primary, order_index),
   product_variants(id, colour, colour_hex, stock, sku, sale_price)
 `
 
+// ─── Cached public fetchers (work with ISR) ──────────────────────────────────
+export const getSiteConfig = cache(async (): Promise<SiteConfig> => {
+  const sb = createPublicClient()
+  const { data } = await sb.from('site_config').select('key, value')
+  const config: SiteConfig = {} as SiteConfig
+  if (data) data.forEach((row: any) => { config[row.key] = row.value })
+  return config
+})
+
+export const getCategories = cache(async (): Promise<Category[]> => {
+  const sb = createPublicClient()
+  const { data } = await sb.from('categories').select('id, name, slug, description, image_url, is_active, display_order')
+    .eq('is_active', true).order('display_order')
+  return (data || []).map((r: any) => ({
+    id: r.id, name: r.name, slug: r.slug, description: r.description || '',
+    imageUrl: r.image_url || '', isActive: r.is_active, displayOrder: r.display_order
+  }))
+})
+
+// ─── Product filters ─────────────────────────────────────────────────────────
 export interface ProductFilters {
   categorySlug?: string
   category?: string
@@ -81,23 +83,24 @@ export interface ProductFilters {
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'discount'
   limit?: number
   offset?: number
+  withCount?: boolean   // only true when paginating (shop page), skip on homepage
 }
 
 export async function getProducts(filters?: ProductFilters): Promise<{ products: Product[]; total: number }> {
-  const supabase = createClient()
+  const sb = createPublicClient()
+  const withCount = filters?.withCount ?? false
 
-  let q = supabase
+  let q = sb
     .from('products')
-    .select(PRODUCT_SELECT_LIST, { count: 'exact' })
+    .select(PRODUCT_SELECT_LIST, withCount ? { count: 'exact' } : undefined)
     .eq('is_active', true)
 
-  // Category filter — use JOIN on categories.slug instead of a separate query
+  // Category — get id first (cached), then filter
   const categorySlug = filters?.categorySlug || filters?.category
   if (categorySlug) {
-    q = (q as any).eq('categories.slug', categorySlug)
-    // Supabase doesn't support filtering by joined column directly in .eq
-    // Use the categories table via foreign key filter
-    q = (q as any).filter('categories.slug', 'eq', categorySlug)
+    const catId = await getCategoryId(categorySlug)
+    if (catId) q = q.eq('category_id', catId)
+    else return { products: [], total: 0 }
   }
 
   if (filters?.featured)    q = q.eq('is_featured', true)
@@ -106,15 +109,12 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
     const cutoff = new Date(Date.now() - 30 * 86400000).toISOString()
     q = q.gte('created_at', cutoff)
   }
-
   if (filters?.search) {
     const s = `%${filters.search}%`
     q = q.or(`name.ilike.${s},fabric.ilike.${s},origin_region.ilike.${s}`)
   }
-
-  if (filters?.fabrics?.length) q = q.in('fabric', filters.fabrics)
+  if (filters?.fabrics?.length)   q = q.in('fabric', filters.fabrics)
   if (filters?.occasions?.length) q = q.overlaps('occasion', filters.occasions)
-
   if (filters?.priceMin !== undefined) {
     q = q.or(`sale_price.gte.${filters.priceMin},and(sale_price.is.null,original_price.gte.${filters.priceMin})`)
   }
@@ -127,7 +127,7 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
     case 'price_desc': q = q.order('original_price', { ascending: false }); break
     case 'rating':     q = q.order('average_rating', { ascending: false });  break
     case 'discount':   q = q.order('discount_percent', { ascending: false, nullsFirst: false }); break
-    default:           q = q.order('created_at', { ascending: false });      break
+    default:           q = q.order('created_at', { ascending: false }); break
   }
 
   const limit  = filters?.limit  ?? 16
@@ -135,36 +135,38 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
   q = q.range(offset, offset + limit - 1)
 
   const { data, error, count } = await q
-  if (error) { console.error('getProducts error:', error.message); return { products: [], total: 0 } }
+  if (error) { console.error('getProducts:', error.message); return { products: [], total: 0 } }
 
-  // For list view, filter to primary image only to reduce data sent to client
-  const mapped = (data || []).map((r: any) => {
-    const primaryOnly = (r.product_images || []).filter((i: any) => i.is_primary).slice(0, 1)
-    return mapProduct({ ...r, product_images: primaryOnly.length ? primaryOnly : (r.product_images || []).slice(0, 1) })
+  // Filter to primary image only in JS (Supabase doesn't support WHERE on nested select)
+  const products = (data || []).map((r: any) => {
+    const imgs = (r.product_images || [])
+    const primary = imgs.find((i: any) => i.is_primary) || imgs[0] || null
+    return mapProduct({ ...r, product_images: primary ? [primary] : [] })
   })
 
-  return { products: mapped, total: count ?? 0 }
+  return { products, total: count ?? products.length }
 }
 
-// Category filter helper — used by shop page
-export async function getCategoryId(slug: string): Promise<string | null> {
-  const supabase = createClient()
-  const { data } = await supabase.from('categories').select('id').eq('slug', slug).single()
+// Cached category id lookup — avoids repeat queries for same slug
+const getCategoryId = cache(async (slug: string): Promise<string | null> => {
+  const sb = createPublicClient()
+  const { data } = await sb.from('categories').select('id').eq('slug', slug).single()
   return data?.id ?? null
-}
+})
 
+// Homepage sections — no count query, no pagination overhead
 export async function getProductsSimple(filters?: {
-  categorySlug?: string; category?: string; search?: string
-  featured?: boolean; bestseller?: boolean; newArrivals?: boolean; limit?: number
+  categorySlug?: string; category?: string; featured?: boolean
+  bestseller?: boolean; newArrivals?: boolean; limit?: number
 }): Promise<Product[]> {
-  const result = await getProducts({ ...filters, limit: filters?.limit ?? 8 })
+  const result = await getProducts({ ...filters, limit: filters?.limit ?? 8, withCount: false })
   return result.products
 }
 
+// ─── Product detail (uses cookie client for auth-aware RLS) ─────────────────
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('products')
+  const sb = createPublicClient()
+  const { data, error } = await sb.from('products')
     .select(PRODUCT_SELECT_FULL)
     .eq('slug', slug)
     .eq('is_active', true)
@@ -174,40 +176,42 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getRelatedProducts(categorySlug: string, excludeSlug: string): Promise<Product[]> {
-  const supabase = createClient()
   const catId = await getCategoryId(categorySlug)
   if (!catId) return []
-  const { data } = await supabase
-    .from('products')
+  const sb = createPublicClient()
+  const { data } = await sb.from('products')
     .select(PRODUCT_SELECT_LIST)
     .eq('category_id', catId)
     .eq('is_active', true)
     .neq('slug', excludeSlug)
     .limit(4)
   return (data || []).map((r: any) => {
-    const primaryOnly = (r.product_images || []).filter((i: any) => i.is_primary).slice(0, 1)
-    return mapProduct({ ...r, product_images: primaryOnly.length ? primaryOnly : (r.product_images || []).slice(0, 1) })
+    const imgs = (r.product_images || [])
+    const primary = imgs.find((i: any) => i.is_primary) || imgs[0] || null
+    return mapProduct({ ...r, product_images: primary ? [primary] : [] })
   })
 }
 
+// ─── Auth-required queries (use cookie client) ───────────────────────────────
 export async function getProductReviews(productId: string): Promise<Review[]> {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from('reviews')
+  const sb = createPublicClient()
+  const { data } = await sb.from('reviews')
     .select('*, profiles(full_name, avatar_url)')
     .eq('product_id', productId)
     .eq('is_approved', true)
     .order('created_at', { ascending: false })
   return (data || []).map((r: any) => ({
-    id: r.id, productId, userId: r.user_id, userFullName: r.profiles?.full_name || 'Anonymous',
-    userAvatarUrl: r.profiles?.avatar_url || null, rating: r.rating,
-    comment: r.comment || '', isVerifiedPurchase: r.is_verified_purchase, createdAt: r.created_at
+    id: r.id, productId, userId: r.user_id,
+    userFullName: r.profiles?.full_name || 'Anonymous',
+    userAvatarUrl: r.profiles?.avatar_url || null,
+    rating: r.rating, comment: r.comment || '',
+    isVerifiedPurchase: r.is_verified_purchase, createdAt: r.created_at
   }))
 }
 
 export async function getBanners(): Promise<Banner[]> {
-  const supabase = createClient()
-  const { data } = await supabase.from('banners').select('*').eq('is_active', true).order('display_order')
+  const sb = createPublicClient()
+  const { data } = await sb.from('banners').select('*').eq('is_active', true).order('display_order')
   return (data || []).map((r: any) => ({
     id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || 'center',
     heading: r.heading || '', headingItalic: r.heading_italic || '',
@@ -220,9 +224,8 @@ export async function getBanners(): Promise<Banner[]> {
 }
 
 export async function getUserOrders(userId: string): Promise<Order[]> {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from('orders')
+  const sb = createClient()
+  const { data } = await sb.from('orders')
     .select('*, order_items(*)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -245,8 +248,9 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
 }
 
 export async function getUserAddresses(userId: string): Promise<Address[]> {
-  const supabase = createClient()
-  const { data } = await supabase.from('addresses').select('*').eq('user_id', userId).order('is_default', { ascending: false })
+  const sb = createClient()
+  const { data } = await sb.from('addresses').select('*')
+    .eq('user_id', userId).order('is_default', { ascending: false })
   return (data || []).map((r: any) => ({
     id: r.id, userId: r.user_id, fullName: r.full_name, phone: r.phone,
     addressLine1: r.address_line1, addressLine2: r.address_line2 || '',

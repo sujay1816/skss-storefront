@@ -101,6 +101,7 @@ export default async function ShopPage({ searchParams }: { searchParams: any }) 
     sortBy:     (searchParams?.sort as ProductFilters['sortBy']) || 'newest',
     limit:      PAGE_SIZE,
     offset:     (currentPage - 1) * PAGE_SIZE,
+    withCount:  true,
   }
 
   const { products, total: totalProducts } = await getProducts(filters).catch(() => ({ products: [], total: 0 }))
