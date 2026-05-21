@@ -28,7 +28,7 @@ const Price = ({ amount, className = '', style = {} }: { amount: number; classNa
   )
 }
 
-export default function ProductCard({ product, userId }: { product: Product; userId?: string }) {
+export default function ProductCard({ product, userId, index = 99 }: { product: Product; userId?: string; index?: number }) {
   const [imgError, setImgError] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
   const [wishlistLoading, setWishlistLoading] = useState(false)
@@ -84,7 +84,7 @@ export default function ProductCard({ product, userId }: { product: Product; use
 
   return (
     <div className="relative cursor-pointer product-card-wrapper">
-      <Link href={`/product/${product.slug}`} onClick={handleProductTap} prefetch={true}>
+      <Link href={`/product/${product.slug}`} onClick={handleProductTap} prefetch={false}>
         <div className="bg-white overflow-hidden relative group product-card-inner"
           style={{ border: '1px solid var(--border)', borderRadius: 4 }}>
 
@@ -115,6 +115,8 @@ export default function ProductCard({ product, userId }: { product: Product; use
                     onLoad={() => setImgLoaded(true)}
                     style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
                     sizes="(max-width: 768px) 50vw, 25vw"
+                    priority={index < 4}
+                    loading={index < 4 ? 'eager' : 'lazy'}
                   />
                 </>
               ) : (

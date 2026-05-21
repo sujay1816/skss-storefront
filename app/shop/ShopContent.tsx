@@ -323,7 +323,7 @@ export default function ShopContent({ products, categories, config, userId, init
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid" style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-              {paginated.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+              {paginated.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
           )}
 

@@ -225,7 +225,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "var(--space-4)" }}>
-              {newArrivals.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+              {newArrivals.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
             <div className="mt-8 text-center md:hidden">
               <Link href="/shop?filter=new" className="btn-outline">View All New Arrivals <ArrowRight size={13} /></Link>
@@ -282,7 +282,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {bestsellers.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+              {bestsellers.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
             <div className="mt-8 text-center md:hidden">
               <Link href="/shop?filter=bestsellers" className="btn-outline">View All Bestsellers <ArrowRight size={13} /></Link>
@@ -308,7 +308,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {featured.map(p => <ProductCard key={p.id} product={p} userId={userId} />)}
+              {featured.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
             <div className="mt-8 text-center md:hidden">
               <Link href="/shop?filter=featured" className="btn-outline">View All Featured <ArrowRight size={13} /></Link>

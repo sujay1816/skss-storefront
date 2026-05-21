@@ -9,7 +9,7 @@ import BackToTop from '@/components/layout/BackToTop'
 // Key insight: shop URL params (category, filter, q) make each URL unique.
 // Next.js caches each URL separately, so /shop?category=kanjivaram is cached
 // independently from /shop?category=banarasi. All filtering now server-side.
-export const revalidate = 30
+export const revalidate = 60
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
 
