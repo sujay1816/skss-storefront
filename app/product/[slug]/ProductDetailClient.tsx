@@ -462,21 +462,52 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             Inclusive of GST ({product.gstRate}% = {formatPrice(gstAmount)})
           </p>
 
-          {product.variants.length > 0 && (
+          {/* Colours — Myntra-style image thumbnails. Hidden for single piece products. */}
+          {product.variants.length > 0 && !(product.variants.length === 1 && product.variants[0].colour === 'Single Piece') && (
             <div className="mb-6">
-              <p className="text-xs font-medium tracking-wide uppercase mb-3" style={{ color: 'var(--text-primary)' }}>Colour: <span style={{ color: 'var(--crimson)' }}>{selectedVariant?.colour}</span></p>
+              <p className="text-xs font-medium tracking-wide uppercase mb-3" style={{ color: 'var(--text-primary)' }}>
+                Colour: <span style={{ color: 'var(--crimson)' }}>{selectedVariant?.colour}</span>
+              </p>
               <div className="flex gap-2 flex-wrap">
                 {product.variants.map(v => (
-                  // FIX #8: w-11 h-11 on mobile (44px touch target), w-9 h-9 on sm+
-                  <button key={v.id} onClick={() => v.stock > 0 && setSelectedVariant(v)} disabled={v.stock === 0} title={v.colour}
-                    className="relative w-11 h-11 sm:w-9 sm:h-9 rounded-full border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: v.colourHex, borderColor: selectedVariant?.id === v.id ? 'var(--text-primary)' : 'transparent', boxShadow: selectedVariant?.id === v.id ? '0 0 0 2px var(--text-primary)' : 'none' }}>
-                    {v.stock === 0 && <span className="absolute inset-0 flex items-center justify-center"><div className="w-full h-px bg-white/70 rotate-45" /></span>}
-                    {selectedVariant?.id === v.id && v.stock > 0 && <Check size={12} className="absolute inset-0 m-auto text-white" />}
+                  <button
+                    key={v.id}
+                    onClick={() => v.stock > 0 && setSelectedVariant(v)}
+                    disabled={v.stock === 0}
+                    title={v.colour}
+                    className="relative flex-shrink-0 border-2 rounded overflow-hidden transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      width: 56, height: 70,
+                      borderColor: selectedVariant?.id === v.id ? 'var(--crimson)' : 'var(--border)',
+                      boxShadow: selectedVariant?.id === v.id ? '0 0 0 1px var(--crimson)' : 'none',
+                    }}
+                  >
+                    {v.imageUrl ? (
+                      <img src={v.imageUrl} alt={v.colour} className="w-full h-full object-cover" />
+                    ) : (
+                      /* Fallback to colour swatch if no image uploaded */
+                      <div className="w-full h-full flex items-end justify-center pb-1"
+                        style={{ background: v.colourHex || 'var(--cream)' }}>
+                        <span className="text-white text-center leading-tight"
+                          style={{ fontSize: 7, fontWeight: 600, textShadow: '0 1px 2px rgba(0,0,0,0.6)', padding: '0 2px' }}>
+                          {v.colour}
+                        </span>
+                      </div>
+                    )}
+                    {v.stock === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/60">
+                        <span className="text-xs font-medium" style={{ color: 'var(--crimson)', fontSize: 8 }}>Out</span>
+                      </div>
+                    )}
+                    {selectedVariant?.id === v.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'var(--crimson)' }} />
+                    )}
                   </button>
                 ))}
               </div>
-              {selectedVariant?.stock > 0 && selectedVariant?.stock <= 5 && <p className="text-xs mt-2" style={{ color: 'var(--crimson)' }}>Only {selectedVariant.stock} left!</p>}
+              {selectedVariant?.stock > 0 && selectedVariant?.stock <= 5 && (
+                <p className="text-xs mt-2" style={{ color: 'var(--crimson)' }}>Only {selectedVariant.stock} left!</p>
+              )}
               {selectedVariant?.stock === 0 && (
                 <div className="mt-3 p-3 border rounded" style={{ borderColor: 'var(--crimson)', background: '#FFF5F5' }}>
                   <p className="text-xs font-medium mb-2" style={{ color: 'var(--crimson)' }}>This colour is currently out of stock</p>

@@ -1,4 +1,4 @@
-export interface ProductVariant { id:string; colour:string; colourHex:string; stock:number; sku:string; }
+export interface ProductVariant { id:string; colour:string; colourHex:string; stock:number; sku:string; imageUrl?:string|null; }
 export interface ProductImage { id:string; url:string; publicId:string; altText:string; isPrimary:boolean; order:number; }
 export interface Product {
   id:string; name:string; slug:string; description:string; fabric:string; weaveType:string; originRegion:string;

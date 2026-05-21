@@ -250,23 +250,13 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
             </div>
           </div>
 
-          {/* #1 — Colour swatch strip */}
-          {product.variants && product.variants.length > 0 && (
-            <div className="colour-swatch-strip" onClick={e => e.preventDefault()}>
-              {product.variants.slice(0, 6).map((v, i) => (
-                <div
-                  key={v.id}
-                  className={`colour-swatch ${selectedVariantIdx === i ? 'active' : ''} ${v.stock === 0 ? 'out-of-stock' : ''}`}
-                  style={{ background: v.colourHex || '#888' }}
-                  title={v.colour}
-                  onClick={e => { e.preventDefault(); if (v.stock > 0) setSelectedVariantIdx(i) }}
-                />
-              ))}
-              {product.variants.length > 6 && (
-                <span className="text-xs" style={{ color: 'var(--text-secondary)', fontSize: '10px', alignSelf: 'center' }}>
-                  +{product.variants.length - 6}
-                </span>
-              )}
+          {/* Show colour count if multiple variants — no tiny dots */}
+          {product.variants && product.variants.length > 1 &&
+           !(product.variants.length === 1 && product.variants[0].colour === 'Single Piece') && (
+            <div className="px-3 pb-2.5">
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {product.variants.length} colours available
+              </p>
             </div>
           )}
         </div>

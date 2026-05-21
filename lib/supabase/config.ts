@@ -23,7 +23,7 @@ function mapImage(r: any): ProductImage {
   return { id: r.id, url: r.url, publicId: r.public_id || '', altText: r.alt_text || '', isPrimary: r.is_primary, order: r.order_index }
 }
 function mapVariant(r: any): ProductVariant {
-  return { id: r.id, colour: r.colour, colourHex: r.colour_hex, stock: r.stock, sku: r.sku || '' }
+  return { id: r.id, colour: r.colour, colourHex: r.colour_hex, stock: r.stock, sku: r.sku || '', imageUrl: r.image_url || null }
 }
 function mapProduct(r: any): Product {
   const variants = (r.product_variants || []).map(mapVariant)
@@ -46,7 +46,7 @@ function mapProduct(r: any): Product {
   }
 }
 
-const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)`
+const PRODUCT_SELECT = `*, categories(slug, name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku,image_url)`
 
 // Server-side filter params — all filtering done in Postgres, not in JS
 export interface ProductFilters {
