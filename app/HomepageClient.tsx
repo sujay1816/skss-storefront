@@ -39,36 +39,27 @@ export default function HomepageClient({ config, categories, featured, bestselle
   return (
     <>
       {/* ── HERO ── */}
-      <section ref={heroRef} className="hero-section relative overflow-hidden">
+      <section ref={heroRef} className="hero-section">
+        {/* Background layer */}
         <motion.div className="absolute inset-0" style={{ y: heroY }}>
           {heroBanner?.videoUrl ? (
-            /* Background video — muted, autoplay, lazy loaded for performance */
             <video
               key={heroBanner.videoUrl}
               className="w-full h-full"
               style={{ objectFit: 'cover', objectPosition: heroBanner.imageFocus || 'center' }}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="none"
+              autoPlay muted loop playsInline preload="none"
               poster={heroBanner.imageUrl || undefined}
             >
               <source src={heroBanner.videoUrl} type="video/mp4" />
-              {/* Fallback to image if video fails */}
               {heroBanner.imageUrl && (
                 <img src={heroBanner.imageUrl} alt="Hero" className="w-full h-full" style={{ objectFit: 'cover' }} />
               )}
             </video>
           ) : heroBanner?.imageUrl ? (
-            /* FIX: Next.js Image — LCP priority, WebP/AVIF, correct size per device */
             <Image
               src={heroBanner.imageUrl}
               alt={heroBanner.heading || 'Hero banner'}
-              fill
-              priority
-              quality={85}
-              sizes="100vw"
+              fill priority quality={85} sizes="100vw"
               className="object-cover"
               style={{ objectPosition: heroBanner.imageFocus || 'center' }}
             />
@@ -77,73 +68,77 @@ export default function HomepageClient({ config, categories, featured, bestselle
               <div className="absolute inset-0 flex items-center justify-center opacity-5">
                 <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
               </div>
-              <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(201,168,76,0.03) 60px, rgba(201,168,76,0.03) 61px)', backgroundSize: '120px 120px' }} />
             </div>
           )}
-          {/* Dynamic overlay */}
+          {/* Overlay */}
           <div className="absolute inset-0" style={{ background: overlayGradient }} />
           {/* Bottom fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-40" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.15), transparent)' }} />
+          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.12), transparent)' }} />
         </motion.div>
 
+        {/* Content */}
         <motion.div style={{ opacity: heroOpacity }} className="relative z-10 h-full flex items-center">
-          <div className="page-container">
-            <motion.div initial="hidden" animate="visible" variants={stagger} className="max-w-3xl">
-
-              {/* Badge text */}
-              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
-                <div className="h-px w-12" style={{ background: textCol.accent }} />
+          <div className="page-container w-full">
+            <motion.div
+              initial="hidden" animate="visible" variants={stagger}
+              className="max-w-xl hero-content-container"
+            >
+              {/* Badge */}
+              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-4 sm:mb-6">
+                <div className="h-px w-10 sm:w-12 flex-shrink-0" style={{ background: textCol.accent }} />
                 <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
                   {heroBanner?.badgeText || 'New Collection 2025'}
                 </span>
               </motion.div>
 
               {/* Heading */}
-              <motion.h1 variants={fadeUp} className="font-light leading-none mb-6"
-                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)', fontSize: 'var(--text-display)', letterSpacing: '-0.01em' }}>
+              <motion.h1
+                variants={fadeUp}
+                className="hero-heading font-light mb-4 sm:mb-6"
+                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}
+              >
                 {heroBanner?.heading || 'Draped in'}
-                {heroBanner?.headingItalic ? (
-                  <><br /><em style={{ color: textCol.accent }}>{heroBanner.headingItalic}</em></>
-                ) : (
-                  <><br /><em style={{ color: 'var(--gold-light)' }}>Royal Elegance</em></>
-                )}
+                <em style={{ color: textCol.accent }}>
+                  {heroBanner?.headingItalic || 'Royal Elegance'}
+                </em>
               </motion.h1>
 
-              {/* Subheading */}
-              <motion.p variants={fadeUp} className="text-base font-light mb-3 max-w-lg hero-subtext"
-                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
+              {/* Subheading — hidden on very small screens */}
+              <motion.p
+                variants={fadeUp}
+                className="text-sm font-light mb-3 max-w-sm hero-subtext"
+                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}
+              >
                 {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman. Each piece a masterpiece of Indian heritage.'}
               </motion.p>
 
-              <motion.p variants={fadeUp} className="text-sm mb-10 tracking-widest hero-tagline"
-                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
-                "{config.brand_tagline}"
+              <motion.p
+                variants={fadeUp}
+                className="text-xs mb-6 sm:mb-8 tracking-widest hero-tagline"
+                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}
+              >
+                &quot;{config.brand_tagline}&quot;
               </motion.p>
 
               {/* CTA Buttons */}
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 hero-cta-group">
-                <Link href={heroBanner?.ctaUrl || '/shop'}
-                  className="group flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase text-white transition-all w-full sm:w-auto"
-                  style={{ background: 'linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%)', boxShadow: '0 4px 24px rgba(139,26,43,0.5)' }}>
+              <motion.div variants={fadeUp} className="hero-cta-group">
+                <Link
+                  href={heroBanner?.ctaUrl || '/shop'}
+                  className="hero-cta-primary group"
+                >
                   {heroBanner?.ctaLabel || 'Shop Now'}
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform flex-shrink-0" />
                 </Link>
-                {/* Secondary CTA — from admin or fallback to New Arrivals */}
-                <Link href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'}
-                  className="flex items-center justify-center gap-3 px-6 py-4 text-xs font-medium tracking-widest uppercase transition-all flex-1 sm:flex-none"
-                  style={{ border: `1px solid ${textCol.border}`, color: textCol.secondary }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = textCol.accent; (e.currentTarget as HTMLElement).style.color = textCol.primary }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = textCol.border; (e.currentTarget as HTMLElement).style.color = textCol.secondary }}>
+                <Link
+                  href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'}
+                  className="hero-cta-secondary"
+                >
                   {heroBanner?.ctaSecondaryLabel || 'New Arrivals'}
                 </Link>
               </motion.div>
             </motion.div>
           </div>
         </motion.div>
-
-    
-
-
       </section>
 
       {/* ── MARQUEE ── */}

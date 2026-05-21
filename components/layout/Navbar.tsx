@@ -123,9 +123,15 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
 
   return (
     <>
-      {/* FIX #11: added announcement-bar class so globals.css can reduce tracking on mobile */}
-      <div className="announcement-bar text-center py-2 text-xs tracking-widest font-light text-white" style={{ background: 'var(--crimson)' }}>
-        Free shipping on orders above ₹{Number(config.free_shipping_above || 1999).toLocaleString('en-IN')} &nbsp;·&nbsp; {config.brand_tagline}
+      {/* Announcement bar — truncates gracefully on narrow phones */}
+      <div
+        className="announcement-bar text-center py-2 text-xs font-light text-white"
+        style={{ background: 'var(--crimson)', overflow: 'hidden' }}
+      >
+        <span className="inline-block truncate max-w-full px-3" style={{ letterSpacing: '0.05em' }}>
+          Free shipping above ₹{Number(config.free_shipping_above || 1999).toLocaleString('en-IN')}
+          <span className="hidden sm:inline"> &nbsp;·&nbsp; {config.brand_tagline}</span>
+        </span>
       </div>
 
       <motion.header
