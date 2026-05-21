@@ -296,6 +296,7 @@ input, select, textarea { font-size: max(16px, 1em); }
 @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes trustBadgeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes wa-bounce  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes pulse      { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .animate-fadeIn  { animation: fadeIn  0.4s ease-out; }
 .animate-slideUp { animation: slideUp 0.5s ease-out; }
 

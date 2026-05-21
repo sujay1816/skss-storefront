@@ -175,10 +175,18 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             <nav className="hidden md:flex landscape-hide-nav items-center gap-0 flex-1 justify-center overflow-hidden">
               {categories.map(cat => (
                 <Link key={cat.id} href={`/shop?category=${cat.slug}`}
-                  className="px-3 py-2 text-xs tracking-widest uppercase transition-all duration-200 relative group whitespace-nowrap"
+                  className="px-3 py-2 text-xs tracking-widest uppercase transition-all duration-200 relative group whitespace-nowrap flex items-center gap-1.5"
                   style={{ color: 'var(--text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                  onClick={e => {
+                    const el = e.currentTarget
+                    el.style.color = 'var(--crimson)'
+                    const dot = document.createElement('span')
+                    dot.style.cssText = 'display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--crimson);animation:pulse 0.6s ease infinite;margin-left:4px'
+                    el.appendChild(dot)
+                    setTimeout(() => dot.remove(), 2000)
+                  }}>
                   {cat.name}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 group-hover:w-full transition-all duration-300" style={{ background: 'var(--gold)' }} />
                 </Link>
@@ -387,11 +395,14 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                 <div className="py-2">
                   <p className="px-5 py-2 text-xs tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Shop by Category</p>
                   {categories.map(cat => (
-                    <Link key={cat.id} href={`/shop?category=${cat.slug}`} onClick={() => setMenuOpen(false)}
-                      className="flex items-center justify-between px-5 py-3 text-sm border-b transition-colors"
+                    <Link key={cat.id} href={`/shop?category=${cat.slug}`}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center justify-between px-5 py-3 text-sm border-b transition-colors active:bg-[var(--cream)]"
                       style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      onTouchStart={e => (e.currentTarget.style.background = 'var(--cream)')}
+                      onTouchEnd={e => (e.currentTarget.style.background = 'transparent')}>
                       {cat.name} <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
                     </Link>
                   ))}

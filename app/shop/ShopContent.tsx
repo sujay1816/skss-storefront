@@ -291,13 +291,17 @@ export default function ShopContent({ products, categories, config, userId, init
           )}
 
         <div className="flex-1">
-          <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+            {isPending && (
+              <span className="inline-block w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0"
+                style={{ borderColor: 'var(--crimson)', borderTopColor: 'transparent' }} />
+            )}
             {filtered.length} {filtered.length === 1 ? 'product' : 'products'}
             {search && ` for "${search}"`}
           </p>
-          {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+          {(isLoading || isPending) ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+              {Array.from({ length: pageSize || 16 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : paginated.length === 0 ? (
             <div className="py-16 text-center">
@@ -322,7 +326,7 @@ export default function ShopContent({ products, categories, config, userId, init
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid" style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 product-grid">
               {paginated.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
           )}
