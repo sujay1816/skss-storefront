@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
     // Increment coupon usage if applicable
     if (couponCode) {
-      await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode }).catch(() => {})
+      try { await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode }) } catch {}
     }
 
     return NextResponse.json({ success: true, orderId: result })
