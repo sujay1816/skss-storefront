@@ -140,24 +140,42 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
         className="sticky top-0 z-50 bg-white border-b transition-shadow duration-300"
         style={{ borderColor: 'var(--border)', boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.08)' : 'none' }}>
         <div className="page-container">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <button className="md:hidden flex items-center justify-center w-10 h-10" onClick={() => setMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={menuOpen}>
+          <div className="flex items-center justify-between h-14 md:h-16 gap-2 md:gap-4">
+            {/* Hamburger — shown on mobile AND landscape phones */}
+            <button
+              className="landscape-show-menu md:hidden flex items-center justify-center w-10 h-10 flex-shrink-0"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={menuOpen}
+            >
               <Menu size={22} style={{ color: 'var(--text-primary)' }} />
             </button>
 
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <Image src={config.logo_url || "/images/logo.png"} alt={config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'} width={44} height={44} className="object-contain" />
-              {/* Issue 2 fix — removed 'hidden sm:block' so brand name shows on mobile too */}
-              <div>
-                <p className="text-sm font-semibold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)' }}>{config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}</p>
-                <p className="text-xs tracking-widest hidden sm:block" style={{ color: 'var(--gold)', letterSpacing: '0.15em' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
+            {/* Brand */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0 min-w-0">
+              <Image
+                src={config.logo_url || "/images/logo.png"}
+                alt={config.brand_name || 'Our Store'}
+                width={36} height={36}
+                className="object-contain flex-shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight truncate"
+                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)', maxWidth: '160px' }}>
+                  {config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}
+                </p>
+                <p className="text-xs tracking-widest hidden sm:block landscape-hide"
+                  style={{ color: 'var(--gold)', letterSpacing: '0.15em' }}>
+                  {config.brand_subtitle || 'SILKS & SAREES'}
+                </p>
               </div>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-0 flex-1 justify-center">
+            {/* Desktop category nav — hidden on landscape phones (they use hamburger) */}
+            <nav className="hidden md:flex landscape-hide-nav items-center gap-0 flex-1 justify-center overflow-hidden">
               {categories.map(cat => (
                 <Link key={cat.id} href={`/shop?category=${cat.slug}`}
-                  className="px-4 py-2 text-xs tracking-widest uppercase transition-all duration-200 relative group"
+                  className="px-3 py-2 text-xs tracking-widest uppercase transition-all duration-200 relative group whitespace-nowrap"
                   style={{ color: 'var(--text-secondary)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>
