@@ -52,6 +52,8 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    setTapped(false)
     if (!selectedVariant || selectedVariant.stock === 0) return
     addItem({
       productId: product.id, productName: product.name, productSlug: product.slug,
@@ -78,8 +80,10 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
   }
 
   // Instant tap feedback — shows spinner immediately on mobile tap
+  // Auto-resets after 3s in case navigation is slow or user taps Add to Cart
   const handleProductTap = () => {
     setTapped(true)
+    setTimeout(() => setTapped(false), 3000)
   }
 
   return (
