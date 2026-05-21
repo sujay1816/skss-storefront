@@ -14,7 +14,7 @@ interface CartStore {
   appliedCoupon: AppliedCoupon | null
   addItem: (item: CartItem, userId?: string) => void
   removeItem: (productId: string, colour: string, userId?: string) => void
-  updateQty: (productId: string, colour: string, qty: number, userId?: string) => void
+  updateQty: (productId: string, colour: string, qty: number, userId?: string) => Promise<void>
   clearCart: (userId?: string) => void
   syncToDb: (userId: string) => Promise<void>
   syncFromDb: (userId: string) => Promise<void>
@@ -59,10 +59,19 @@ export const useCartStore = create<CartStore>()(
         }
       },
 
-      updateQty: (productId, colour, qty, userId) => {
+      updateQty: async (productId, colour, qty, userId) => {
+        let maxStock = 999
+        try {
+          const { createClient } = await import('@/lib/supabase/client')
+          const sb = createClient()
+          const { data } = await sb.from('product_variants').select('stock')
+            .eq('product_id', productId).eq('colour', colour).single()
+          if (data) maxStock = data.stock
+        } catch {}
+        const safeQty = Math.max(1, Math.min(qty, maxStock))
         set(state => ({
           items: state.items.map(i => i.productId === productId && i.colour === colour
-            ? { ...i, quantity: Math.max(1, Math.min(qty, i.stock)) } : i)
+            ? { ...i, quantity: safeQty, stock: maxStock } : i)
         }))
         if (userId) setTimeout(() => get().syncToDb(userId), 0)
       },

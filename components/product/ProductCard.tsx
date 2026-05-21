@@ -48,23 +48,66 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
   // Use selected variant's image if available
   const selectedVariant = product.variants?.[selectedVariantIdx] || product.variants?.[0]
   const primaryImage = product.images?.find(i => i.isPrimary) || product.images?.[0]
+  // Use selected variant stock for accurate display — not total across all variants
+  // product.isOutOfStock = ALL variants out of stock
+  // selectedVariant.stock = 0 means THIS colour is out of stock
+  const selectedVariantOutOfStock = !selectedVariant || selectedVariant.stock === 0
   const isLowStock = selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 3
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setTapped(false)
-    if (!selectedVariant || selectedVariant.stock === 0) return
-    addItem({
-      productId: product.id, productName: product.name, productSlug: product.slug,
-      productImage: primaryImage?.url || '', colour: selectedVariant.colour,
-      colourHex: selectedVariant.colourHex, originalPrice: product.originalPrice,
-      salePrice: product.salePrice, quantity: 1, stock: selectedVariant.stock, gstRate: product.gstRate
-    })
-    toast.success(
-      <span>Added to cart! <a href="/cart" style={{ color: 'var(--crimson)', fontWeight: 600, marginLeft: 4 }}>View Cart →</a></span>,
-      { className: 'toast-brand toast-success-brand', icon: '🛍️', duration: 3500 }
-    )
+    if (!selectedVariant) return
+
+    // Re-check live stock from DB before adding — the product page data
+    // may be stale (loaded 30+ minutes ago via ISR cache)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const sb = createClient()
+      const { data: variant } = await sb
+        .from('product_variants')
+        .select('stock')
+        .eq('id', selectedVariant.id)
+        .single()
+
+      const liveStock = variant?.stock ?? selectedVariant.stock
+      if (liveStock === 0) {
+        toast.error(`${product.name} (${selectedVariant.colour}) is out of stock.`, {
+          className: 'toast-brand toast-error-brand'
+        })
+        return
+      }
+
+      addItem({
+        productId: product.id, productName: product.name, productSlug: product.slug,
+        productImage: primaryImage?.url || '', colour: selectedVariant.colour,
+        colourHex: selectedVariant.colourHex, originalPrice: product.originalPrice,
+        salePrice: product.salePrice, quantity: 1,
+        stock: liveStock,  // use live stock so cart quantity cap is accurate
+        gstRate: product.gstRate
+      }, userId)
+      toast.success(
+        <span>Added to cart! <a href="/cart" style={{ color: 'var(--crimson)', fontWeight: 600, marginLeft: 4 }}>View Cart →</a></span>,
+        { className: 'toast-brand toast-success-brand', icon: '🛍️', duration: 3500 }
+      )
+    } catch {
+      // If live check fails, fall back to cached stock
+      if (selectedVariant.stock === 0) {
+        toast.error('This item is out of stock.', { className: 'toast-brand toast-error-brand' })
+        return
+      }
+      addItem({
+        productId: product.id, productName: product.name, productSlug: product.slug,
+        productImage: primaryImage?.url || '', colour: selectedVariant.colour,
+        colourHex: selectedVariant.colourHex, originalPrice: product.originalPrice,
+        salePrice: product.salePrice, quantity: 1, stock: selectedVariant.stock, gstRate: product.gstRate
+      }, userId)
+      toast.success(
+        <span>Added to cart! <a href="/cart" style={{ color: 'var(--crimson)', fontWeight: 600, marginLeft: 4 }}>View Cart →</a></span>,
+        { className: 'toast-brand toast-success-brand', icon: '🛍️', duration: 3500 }
+      )
+    }
   }
 
   const handleWishlist = async (e: React.MouseEvent) => {
@@ -140,8 +183,8 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
 
             {/* Badges — max 2 shown, priority order to avoid clutter on mobile */}
             <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-              {product.isOutOfStock
-                ? <span className="badge-sold">Sold Out</span>
+              {selectedVariantOutOfStock
+                ? <span className="badge-sold">{product.isOutOfStock ? 'Sold Out' : 'Out of Stock'}</span>
                 : isLowStock
                   ? <span className="flex items-center gap-1 text-white"
                       style={{ background: '#F59E0B', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', padding: '3px 8px', textTransform: 'uppercase' }}>
@@ -149,13 +192,13 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
                     </span>
                   : null
               }
-              {!product.isOutOfStock && isOnSale && (
+              {!selectedVariantOutOfStock && isOnSale && (
                 <span className="badge-sale">{discountPct}% Off</span>
               )}
-              {!product.isOutOfStock && !isOnSale && product.isNew && (
+              {!selectedVariantOutOfStock && !isOnSale && product.isNew && (
                 <span className="badge-new">New</span>
               )}
-              {!product.isOutOfStock && !isOnSale && product.isBestseller && (
+              {!selectedVariantOutOfStock && !isOnSale && product.isBestseller && (
                 <span className="badge-bestseller">Bestseller</span>
               )}
             </div>
@@ -178,7 +221,7 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
             {/* Add to Cart:
                 Desktop — slides up from bottom on hover (full bar)
                 Mobile — compact button below the image (not overlaying it) */}
-            {!product.isOutOfStock && (
+            {!selectedVariantOutOfStock && (
               <button
                 className="absolute bottom-0 left-0 right-0 py-2.5 text-xs font-medium tracking-widest uppercase text-white items-center justify-center gap-2 transition-all duration-300 hidden md:flex md:translate-y-full md:group-hover:translate-y-0"
                 style={{ background: 'var(--crimson)', zIndex: 10 }}
@@ -238,7 +281,7 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
                 )}
               </div>
               {/* Mobile-only Add to Cart icon button */}
-              {!product.isOutOfStock && (
+              {!selectedVariantOutOfStock && (
                 <button
                   className="md:hidden flex-shrink-0 flex items-center justify-center rounded"
                   style={{ width: 32, height: 32, background: 'var(--crimson)', color: 'white', border: 'none' }}
