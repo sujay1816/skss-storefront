@@ -75,9 +75,9 @@ const ZoomImage = memo(function ZoomImage({
       transition={{ duration: 0.3 }}>
 
       {showVideo && videoUrl ? (
-        // Video only rendered when user clicks — saves bandwidth on page load
-        // preload="none" until play() is called, then browser fetches the video
-        <div className="absolute inset-0 flex items-center justify-center bg-black">
+        // Video element only rendered when user clicks — zero bytes loaded on page load.
+        // URL gets Cloudinary quality+format optimisation appended if it's a Cloudinary URL.
+        <div className="absolute inset-0 bg-black">
           <video
             ref={videoRef}
             className="absolute inset-0 w-full h-full"
@@ -88,8 +88,13 @@ const ZoomImage = memo(function ZoomImage({
             poster={posterUrl || undefined}
             onClick={e => e.stopPropagation()}
           >
-            <source src={videoUrl} type="video/mp4" />
-            <source src={videoUrl} type="video/webm" />
+            {/* Single source — browser picks the format it supports */}
+            <source
+              src={videoUrl.includes('cloudinary.com')
+                ? videoUrl.replace('/upload/', '/upload/q_auto,f_auto/')
+                : videoUrl}
+              type="video/mp4"
+            />
           </video>
         </div>
       ) : src ? (

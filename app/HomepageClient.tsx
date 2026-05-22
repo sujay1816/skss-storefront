@@ -31,8 +31,14 @@ function LoopingVideo({ urls, poster, objectPosition }: {
     if (urls.length > 1) setIdx(i => (i + 1) % urls.length)
   }, [urls.length])
 
+  // Optimise Cloudinary URLs — q_auto reduces file size by 40-60%
+  const optimisedSrc = (url: string) =>
+    url.includes('cloudinary.com')
+      ? url.replace('/upload/', '/upload/q_auto,f_auto/')
+      : url
+
   if (!urls.length) return null
-  const src = urls[idx]
+  const src = optimisedSrc(urls[idx])
 
   return (
     <video
