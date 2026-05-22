@@ -10,56 +10,37 @@ import type { SiteConfig, Category, Product, Banner, BannerSlide } from '@/types
 const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }
 
-// ── LoopingVideo — loops a single video or cycles through multiple, each looping ──
-function LoopingVideo({ urls, poster, objectPosition }: {
-  urls: string[]; poster?: string; objectPosition?: string
-}) {
-  const [idx, setIdx] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
+// ── optimise Cloudinary video URL ─────────────────────────────────────────────
+const optimiseVideo = (url: string) =>
+  url?.includes('cloudinary.com')
+    ? url.replace('/upload/', '/upload/q_auto,f_auto/')
+    : url
 
-  // Auto-play on mount and when idx changes
+// ── VideoSlide — plays one video, calls onEnded when done ─────────────────────
+function VideoSlide({ src, poster, objectPosition, onEnded }: {
+  src: string; poster?: string; objectPosition?: string; onEnded: () => void
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const optimised = optimiseVideo(src)
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
     v.load()
-    v.play().catch(() => {})
-  }, [idx])
-
-  // When single video — use loop attribute directly (most efficient)
-  // When multiple — each video loops independently; user can also let them cycle
-  const handleEnded = useCallback(() => {
-    if (urls.length > 1) setIdx(i => (i + 1) % urls.length)
-  }, [urls.length])
-
-  // Optimise Cloudinary URLs — q_auto reduces file size by 40-60%
-  const optimisedSrc = (url: string) =>
-    url.includes('cloudinary.com')
-      ? url.replace('/upload/', '/upload/q_auto,f_auto/')
-      : url
-
-  if (!urls.length) return null
-  const src = optimisedSrc(urls[idx])
-
+    const p = v.play()
+    if (p) p.catch(() => {})
+  }, [optimised])
   return (
-    <video
-      ref={videoRef}
-      key={src}
-      autoPlay muted playsInline
-      loop={urls.length === 1}   // loop attribute only when single video
-      preload="metadata"
-      poster={poster}
-      onEnded={handleEnded}
-      className="hero-media"
-      style={{ objectPosition: objectPosition || 'center' }}
-    >
-      <source src={src} type="video/mp4" />
-      <source src={src} type="video/webm" />
+    <video ref={videoRef} autoPlay muted playsInline preload="auto"
+      poster={poster} onEnded={onEnded}
+      className="absolute inset-0 w-full h-full object-cover hero-media"
+      style={{ objectPosition: objectPosition || 'center' }}>
+      <source src={optimised} type="video/mp4" />
     </video>
   )
 }
 
-// ── HeroSlideshow — cycles through banner slides with individual CTAs ──
-const SLIDE_INTERVAL = 5000  // 5 seconds per slide
+// ── HeroSlideshow ──────────────────────────────────────────────────────────────
+const DEFAULT_DURATION = 5
 
 function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   banner: Banner
@@ -67,143 +48,106 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   textCol: { primary: string; secondary: string; accent: string; border: string }
   tagline: string
 }) {
-  // Build slide list — if banner has slides array use those, otherwise use the banner itself as a single slide
-  const slides: BannerSlide[] = banner.slides?.length > 0 ? banner.slides : [{
-    imageUrl: banner.imageUrl,
-    imageFocus: banner.imageFocus,
-    heading: banner.heading,
-    headingItalic: banner.headingItalic,
-    subheading: banner.subheading || '',
-    badgeText: banner.badgeText,
-    ctaLabel: banner.ctaLabel,
-    ctaUrl: banner.ctaUrl,
-    ctaSecondaryLabel: banner.ctaSecondaryLabel,
-    ctaSecondaryUrl: banner.ctaSecondaryUrl,
-  }]
+  // Build slides: new card-based format first, then legacy video_urls, then single image
+  const slides: BannerSlide[] = (() => {
+    if (banner.slides?.length > 0) return banner.slides
+    const legacyUrls = banner.videoUrls?.length > 0 ? banner.videoUrls : banner.videoUrl ? [banner.videoUrl] : []
+    if (legacyUrls.length > 0) {
+      return legacyUrls.map(url => ({
+        mediaType: 'video' as const, videoUrl: url,
+        imageUrl: banner.imageUrl, imageFocus: banner.imageFocus,
+        heading: banner.heading, headingItalic: banner.headingItalic,
+        subheading: banner.subheading || '', badgeText: banner.badgeText,
+        ctaLabel: banner.ctaLabel, ctaUrl: banner.ctaUrl,
+        ctaSecondaryLabel: banner.ctaSecondaryLabel, ctaSecondaryUrl: banner.ctaSecondaryUrl,
+      }))
+    }
+    return [{
+      mediaType: 'image' as const,
+      imageUrl: banner.imageUrl, imageFocus: banner.imageFocus,
+      heading: banner.heading, headingItalic: banner.headingItalic,
+      subheading: banner.subheading || '', badgeText: banner.badgeText,
+      ctaLabel: banner.ctaLabel, ctaUrl: banner.ctaUrl,
+      ctaSecondaryLabel: banner.ctaSecondaryLabel, ctaSecondaryUrl: banner.ctaSecondaryUrl,
+    }]
+  })()
 
+  const total = slides.length
   const [current, setCurrent] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasVideo = banner.videoUrls?.length > 0 || !!banner.videoUrl
-  const videoUrls = banner.videoUrls?.length > 0 ? banner.videoUrls : banner.videoUrl ? [banner.videoUrl] : []
-
-  const goTo = useCallback((idx: number) => {
-    setCurrent(idx)
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }, [])
-
-  const next = useCallback(() => goTo((current + 1) % slides.length), [current, slides.length, goTo])
-  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length), [current, slides.length, goTo])
-
-  // Auto-advance slides (only when multiple slides and no video)
-  useEffect(() => {
-    if (slides.length <= 1 || hasVideo) return
-    timerRef.current = setTimeout(next, SLIDE_INTERVAL)
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [current, slides.length, hasVideo, next])
-
   const slide = slides[current]
+  const isVideo = slide.mediaType === 'video' && !!slide.videoUrl
+
+  const clearTimer = () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }
+
+  const goTo = (idx: number) => { setCurrent(idx); clearTimer() }
+  const goNext = useCallback(() => goTo((current + 1) % total), [current, total])
+  const goPrev = useCallback(() => goTo((current - 1 + total) % total), [current, total])
+
+  // Image slides: auto-advance after slideDuration seconds
+  useEffect(() => {
+    if (isVideo || total <= 1) return
+    const ms = ((slide.slideDuration ?? DEFAULT_DURATION)) * 1000
+    timerRef.current = setTimeout(goNext, ms)
+    return clearTimer
+  }, [current, isVideo, total, slide.slideDuration])
 
   return (
     <>
-      {/* Background */}
       <div className="absolute inset-0">
-        {hasVideo ? (
-          <LoopingVideo
-            urls={videoUrls}
-            poster={banner.imageUrl || undefined}
-            objectPosition={banner.imageFocus || 'center'}
-          />
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: 'easeInOut' }}
-            >
-              {/* Video slide */}
-              {slide.videoUrl ? (
-                <video
-                  key={slide.videoUrl}
-                  autoPlay muted loop playsInline
-                  preload="metadata"
-                  poster={slide.imageUrl || banner.imageUrl || undefined}
-                  className="hero-media"
-                  style={{ objectPosition: slide.imageFocus || 'center', objectFit: 'cover', width: '100%', height: '100%' }}
-                >
-                  <source
-                    src={slide.videoUrl.includes('cloudinary.com')
-                      ? slide.videoUrl.replace('/upload/', '/upload/q_auto,f_auto/')
-                      : slide.videoUrl}
-                    type="video/mp4"
-                  />
-                </video>
-              ) : slide.imageUrl ? (
-                <Image
-                  src={slide.imageUrl}
-                  alt={slide.heading || 'Banner'}
-                  fill priority quality={85} sizes="100vw"
-                  className="object-cover hero-media"
-                  style={{ objectPosition: slide.imageFocus || 'center' }}
-                />
-              ) : (
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }} />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={`bg-${current}`} className="absolute inset-0"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: 'easeInOut' }}>
+            {isVideo ? (
+              <VideoSlide
+                src={slide.videoUrl!}
+                poster={slide.imageUrl || banner.imageUrl || undefined}
+                objectPosition={slide.imageFocus || 'center'}
+                onEnded={() => { if (total > 1) goNext() }}
+              />
+            ) : slide.imageUrl ? (
+              <Image src={slide.imageUrl} alt={slide.heading || 'Banner'}
+                fill priority quality={85} sizes="100vw" className="object-cover hero-media"
+                style={{ objectPosition: slide.imageFocus || 'center' }} />
+            ) : (
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#0D0806,#1A0E0A,#2C1810)' }} />
+            )}
+          </motion.div>
+        </AnimatePresence>
         <div className="absolute inset-0" style={{ background: overlayGradient }} />
-        <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.1), transparent)' }} />
+        <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top,rgba(253,250,247,0.1),transparent)' }} />
       </div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center">
         <div className="page-container w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="max-w-xl hero-content-container"
-            >
-              {/* Badge */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
-                <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
-                  {slide.badgeText || 'New Collection 2025'}
-                </span>
-              </div>
-
-              {/* Heading */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={`txt-${current}`} className="max-w-xl hero-content-container"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
+              {slide.badgeText && (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
+                  <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>{slide.badgeText}</span>
+                </div>
+              )}
               <h1 className="hero-heading font-light mb-4" style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}>
                 {slide.heading || 'Draped in'}
-                <em style={{ color: textCol.accent }}>{slide.headingItalic || 'Royal Elegance'}</em>
+                <em style={{ color: textCol.accent }}>{slide.headingItalic || ' Royal Elegance'}</em>
               </h1>
-
-              <p className="text-sm font-light mb-2 max-w-sm hero-subtext"
-                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
-                {slide.subheading || 'Discover timeless silk sarees crafted for the modern woman.'}
-              </p>
-
-              <p className="text-xs mb-6 tracking-widest hero-tagline"
-                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
-                &quot;{tagline}&quot;
-              </p>
-
-              {/* CTA — each slide has its own */}
+              {slide.subheading && (
+                <p className="text-sm font-light mb-2 max-w-sm hero-subtext" style={{ color: textCol.secondary, lineHeight: 1.7 }}>{slide.subheading}</p>
+              )}
+              {tagline && (
+                <p className="text-xs mb-6 tracking-widest hero-tagline" style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>&quot;{tagline}&quot;</p>
+              )}
               <div className="hero-cta-group">
                 <Link href={slide.ctaUrl || '/shop'} className="hero-cta-primary">
-                  {slide.ctaLabel || 'Shop Now'}
-                  <ArrowRight size={13} className="flex-shrink-0" />
+                  {slide.ctaLabel || 'Shop Now'}<ArrowRight size={13} className="flex-shrink-0" />
                 </Link>
                 {slide.ctaSecondaryLabel && (
-                  <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary">
-                    {slide.ctaSecondaryLabel}
-                  </Link>
+                  <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary">{slide.ctaSecondaryLabel}</Link>
                 )}
               </div>
             </motion.div>
@@ -211,48 +155,32 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
         </div>
       </div>
 
-      {/* Slide controls — only shown when multiple slides and no video */}
-      {slides.length > 1 && !hasVideo && (
+      {/* Controls */}
+      {total > 1 && (
         <>
-          {/* Prev / Next arrows */}
-          <button type="button" onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all"
-            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
-            aria-label="Previous slide">
+          <button type="button" onClick={goPrev} aria-label="Previous"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>
             <ChevronLeft size={18} />
           </button>
-          <button type="button" onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all"
-            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
-            aria-label="Next slide">
+          <button type="button" onClick={goNext} aria-label="Next"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>
             <ChevronRight size={18} />
           </button>
-
-          {/* Dot indicators */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
             {slides.map((_, i) => (
-              <button key={i} type="button" onClick={() => goTo(i)}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === current ? 24 : 8,
-                  height: 8,
-                  background: i === current ? 'var(--gold-light)' : 'rgba(255,255,255,0.4)',
-                }}
-                aria-label={`Go to slide ${i + 1}`}
-              />
+              <button key={i} type="button" onClick={() => goTo(i)} className="rounded-full transition-all"
+                style={{ width: i === current ? 24 : 8, height: 8, background: i === current ? 'var(--gold-light)' : 'rgba(255,255,255,0.4)' }} />
             ))}
           </div>
-
-          {/* Progress bar */}
           <div className="absolute bottom-0 left-0 right-0 h-0.5 z-20" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <motion.div
-              key={current}
-              className="h-full"
-              style={{ background: 'var(--gold-light)' }}
-              initial={{ width: '0%' }}
-              animate={{ width: '100%' }}
-              transition={{ duration: SLIDE_INTERVAL / 1000, ease: 'linear' }}
-            />
+            {isVideo
+              ? <div className="h-full opacity-40" style={{ width: '100%', background: 'var(--gold-light)' }} />
+              : <motion.div key={`pb-${current}`} className="h-full" style={{ background: 'var(--gold-light)' }}
+                  initial={{ width: '0%' }} animate={{ width: '100%' }}
+                  transition={{ duration: slide.slideDuration ?? DEFAULT_DURATION, ease: 'linear' }} />
+            }
           </div>
         </>
       )}

@@ -47,6 +47,7 @@ export interface BannerSlide {
   ctaUrl?: string;
   ctaSecondaryLabel?: string;
   ctaSecondaryUrl?: string;
+  slideDuration?: number;  // seconds — how long to show this slide (image slides only; video plays to end)
 }
 export interface Banner {
   id:string;
