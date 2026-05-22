@@ -9,6 +9,7 @@ import { useCartStore } from '@/lib/store/cart'
 import { useWishlistStore } from '@/lib/store/wishlist'
 import { useRouter } from 'next/navigation'
 import type { Category, SiteConfig, UserProfile } from '@/types'
+import SearchBar from './SearchBar'
 import toast from 'react-hot-toast'
 
 interface NavbarProps { categories: Category[]; config: SiteConfig; user?: UserProfile | null }
@@ -19,14 +20,12 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   // FIX: useRef instead of useState for lastScrollY
   // useState caused the scroll useEffect to re-register its listener on every
   // scroll event (lastScrollY was in the deps array), making every scroll
   // remove + re-add the event handler — an expensive cycle
   const lastScrollY = useRef(0)
   const [profileOpen, setProfileOpen] = useState(false)
-  const searchRef = useRef<HTMLInputElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const cartCount = useCartStore(s => s.totalItems())
@@ -92,20 +91,12 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  useEffect(() => { if (searchOpen) searchRef.current?.focus() }, [searchOpen])
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
-  const handleSearch = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      // Issue F fix — use ?q= param which shop/page.tsx reads correctly
-      router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
-      setSearchOpen(false); setSearchQuery('')
-    }
-    if (e.key === 'Escape') setSearchOpen(false)
-  }
+
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -315,12 +306,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden border-t" style={{ borderColor: 'var(--border)', background: 'var(--ivory)' }}>
               <div className="page-container py-4">
-                <div className="relative max-w-2xl mx-auto">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-                  <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search sarees by name, fabric, occasion..." className="input-base pl-10" onKeyDown={handleSearch} />
-                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2" aria-label="Clear search"><X size={14} style={{ color: 'var(--text-secondary)' }} /></button>}
-                </div>
+                <SearchBar onClose={() => setSearchOpen(false)} />
               </div>
             </motion.div>
           )}

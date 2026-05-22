@@ -23,12 +23,13 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
     setFormSending(true)
     try {
       const supabase = createClient()
-      await supabase.from('contact_messages').insert({
+      const { error } = await supabase.from('contact_messages').insert({
         name: formName.trim(),
         email: formEmail.trim(),
         message: formMessage.trim(),
         created_at: new Date().toISOString(),
       })
+      if (error) throw error
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,8 +37,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
       }).catch(() => {})
       setFormSent(true)
     } catch {
-      toast.success("Message sent! We'll get back to you soon.")
-      setFormName(''); setFormEmail(''); setFormMessage('')
+      toast.error("Something went wrong. Please try again or contact us directly.")
     }
     setFormSending(false)
   }
