@@ -178,22 +178,42 @@ export async function getBanners(): Promise<Banner[]> {
   const supabase = createClient()
   const { data } = await supabase.from('banners').select('*').eq('is_active', true).order('display_order')
   return (data || []).map((r: any) => {
+    // Parse legacy video_urls
     let videoUrls: string[] = []
     try {
       if (r.video_urls) videoUrls = JSON.parse(r.video_urls).filter(Boolean)
       else if (r.video_url) videoUrls = [r.video_url]
     } catch { if (r.video_url) videoUrls = [r.video_url] }
+
+    // Parse slides — validate each slide has at least imageUrl or videoUrl
     let slides: any[] = []
-    try { if (r.slides) slides = JSON.parse(r.slides).filter(Boolean) } catch {}
+    try {
+      if (r.slides) {
+        const parsed = JSON.parse(r.slides)
+        if (Array.isArray(parsed)) {
+          slides = parsed.filter((s: any) =>
+            s && typeof s === 'object' && (s.imageUrl || s.videoUrl)
+          )
+        }
+      }
+    } catch {}
 
     return {
-      id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || 'center',
-      heading: r.heading || '', headingItalic: r.heading_italic || '',
-      subheading: r.subheading || null, badgeText: r.badge_text || '',
-      ctaLabel: r.cta_label, ctaUrl: r.cta_url,
-      ctaSecondaryLabel: r.cta_secondary_label || '', ctaSecondaryUrl: r.cta_secondary_url || '',
-      overlayStyle: r.overlay_style || 'dark', textColor: r.text_color || 'white',
-      isActive: r.is_active, order: r.display_order,
+      id: r.id,
+      imageUrl: r.image_url || '',
+      imageFocus: r.image_focus || 'center',
+      heading: r.heading || '',
+      headingItalic: r.heading_italic || '',
+      subheading: r.subheading || null,
+      badgeText: r.badge_text || '',
+      ctaLabel: r.cta_label || 'Shop Now',
+      ctaUrl: r.cta_url || '/shop',
+      ctaSecondaryLabel: r.cta_secondary_label || '',
+      ctaSecondaryUrl: r.cta_secondary_url || '',
+      overlayStyle: r.overlay_style || 'dark',
+      textColor: r.text_color || 'white',
+      isActive: r.is_active,
+      order: r.display_order,
       videoUrl: videoUrls[0] || null,
       videoUrls,
       slides,

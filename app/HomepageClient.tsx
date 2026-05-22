@@ -50,7 +50,14 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
 }) {
   // Build slides: new card-based format first, then legacy video_urls, then single image
   const slides: BannerSlide[] = (() => {
-    if (banner.slides?.length > 0) return banner.slides
+    if (banner.slides?.length > 0) {
+      // Fill in banner.imageUrl as fallback for any slide missing an image
+      return banner.slides.map(s => ({
+        ...s,
+        imageUrl: s.imageUrl || banner.imageUrl || '',
+        imageFocus: s.imageFocus || banner.imageFocus || 'center',
+      }))
+    }
     const legacyUrls = banner.videoUrls?.length > 0 ? banner.videoUrls : banner.videoUrl ? [banner.videoUrl] : []
     if (legacyUrls.length > 0) {
       return legacyUrls.map(url => ({
