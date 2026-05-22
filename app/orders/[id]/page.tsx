@@ -129,6 +129,19 @@ export default function OrderDetailPage() {
       setCancelling(false)
       return
     }
+    // Restore stock for all order items
+    try {
+      const cfg = await supabase.from('site_config').select('value').eq('key', 'setup_internal_api_secret').maybeSingle()
+      const secret = cfg.data?.value || process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
+      await fetch('/api/update-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
+        body: JSON.stringify({
+          type: 'restore',
+          items: items.map((i: any) => ({ product_id: i.product_id, colour: i.colour, quantity: i.quantity })),
+        }),
+      })
+    } catch {}
     setOrder((o: any) => ({ ...o, status: 'cancelled' }))
     setShowCancelForm(false)
     setCancelling(false)

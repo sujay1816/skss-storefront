@@ -84,6 +84,49 @@ export async function POST(request: Request) {
       const { error: _couponErr } = await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode })
     }
 
+    // Check for low-stock variants and fire admin notification (non-blocking)
+    try {
+      const lowStockThreshold = parseInt(await getCfg('low_stock_threshold', '5'))
+      const productIds = items.map((i: any) => i.productId)
+      const { data: variants } = await supabase
+        .from('product_variants')
+        .select('product_id, colour, stock, products(name)')
+        .in('product_id', productIds)
+        .lte('stock', lowStockThreshold)
+        .gt('stock', 0)
+
+      if (variants && variants.length > 0) {
+        const messages = variants.map((v: any) =>
+          `${(v.products as any)?.name || v.product_id} (${v.colour}): ${v.stock} left`
+        ).join(', ')
+        await supabase.from('admin_notifications').insert({
+          type: 'low_stock',
+          title: 'Low Stock Alert',
+          message: `After order ${orderNumber}: ${messages}`,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        })
+      }
+      // Also check for out-of-stock (stock === 0)
+      const { data: outOfStock } = await supabase
+        .from('product_variants')
+        .select('product_id, colour, products(name)')
+        .in('product_id', productIds)
+        .eq('stock', 0)
+      if (outOfStock && outOfStock.length > 0) {
+        const names = outOfStock.map((v: any) =>
+          `${(v.products as any)?.name || v.product_id} (${v.colour})`
+        ).join(', ')
+        await supabase.from('admin_notifications').insert({
+          type: 'low_stock',
+          title: 'Out of Stock',
+          message: `After order ${orderNumber}: ${names} is now out of stock`,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        })
+      }
+    } catch {}
+
     return NextResponse.json({ success: true, orderId: result })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

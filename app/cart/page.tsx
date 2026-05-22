@@ -22,10 +22,25 @@ export default function CartPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    // FIX #4: use getUser() instead of getSession() for server-validated auth
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id || null)
     })
+    // Re-validate stock for all cart items on page load — catches items that sold out since adding
+    if (items.length > 0) {
+      const productIds = [...new Set(items.map(i => i.productId))]
+      supabase.from('product_variants')
+        .select('product_id, colour, stock')
+        .in('product_id', productIds)
+        .then(({ data }) => {
+          if (!data) return
+          items.forEach(item => {
+            const live = data.find((v: any) => v.product_id === item.productId && v.colour === item.colour)
+            if (live && live.stock !== item.stock) {
+              updateQty(item.productId, item.colour, Math.min(item.quantity, live.stock))
+            }
+          })
+        })
+    }
     supabase.from('site_config')
       .select('key, value')
       .in('key', ['free_shipping_above', 'default_shipping_charge', 'default_gst_rate'])
