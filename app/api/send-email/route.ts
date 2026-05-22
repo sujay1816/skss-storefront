@@ -10,7 +10,7 @@ const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://skss-admin-u9ms.
 async function getEmailConfig() {
   const [apiKey, adminEmail, fromEmail] = await Promise.all([
     getCfg('setup_resend_api_key', process.env.RESEND_API_KEY),
-    getCfg('setup_admin_email',    process.env.ADMIN_EMAIL || 'sujaykumar760@gmail.com'),
+    getCfg('setup_admin_email',    process.env.ADMIN_EMAIL || ''),
     getCfg('setup_from_email',     process.env.FROM_EMAIL  || 'onboarding@resend.dev'),
   ])
   return { resend: new Resend(apiKey), adminEmail, fromEmail }
@@ -214,12 +214,14 @@ export async function POST(request: Request) {
         subject: `Order Confirmed! #${String(order.id).slice(0,8).toUpperCase()} - ${brandName}`,
         html: orderConfirmationHtml(order, items, brandName),
       })
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: ADMIN_EMAIL,
-        subject: `New Order #${String(order.id).slice(0,8).toUpperCase()} - ₹${Number(order.total_amount).toLocaleString('en-IN')}`,
-        html: adminNotificationHtml(order, items),
-      })
+      if (ADMIN_EMAIL) {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: ADMIN_EMAIL,
+          subject: `New Order #${String(order.id).slice(0,8).toUpperCase()} - ₹${Number(order.total_amount).toLocaleString('en-IN')}`,
+          html: adminNotificationHtml(order, items),
+        })
+      }
       return NextResponse.json({ success: true })
     }
 

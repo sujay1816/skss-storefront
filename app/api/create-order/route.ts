@@ -10,8 +10,8 @@ async function getServerTotal(userId: string): Promise<number | null> {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     const { data: cartItems, error } = await supabase
-      .from('cart_items')
-      .select('quantity, colour, products ( id, original_price, sale_price, gst_rate, product_variants ( colour, stock, sale_price ) )')
+      .from('carts')
+      .select('quantity, colour, original_price, sale_price, gst_rate, product_id')
       .eq('user_id', userId)
 
     if (error || !cartItems || cartItems.length === 0) return null
@@ -26,11 +26,9 @@ async function getServerTotal(userId: string): Promise<number | null> {
 
     let subtotal = 0, gstTotal = 0
     for (const item of cartItems as any[]) {
-      const p = item.products; if (!p) continue
-      const variant = p.product_variants?.find((v: any) => v.colour === item.colour)
-      const price = variant?.sale_price ?? p.sale_price ?? p.original_price ?? 0
+      const price = item.sale_price ?? item.original_price ?? 0
       subtotal += price * item.quantity
-      gstTotal += Math.round(price * item.quantity * ((p.gst_rate ?? 5) / 100))
+      gstTotal += Math.round(price * item.quantity * ((item.gst_rate ?? 5) / 100))
     }
     const shipping = subtotal >= freeShippingAbove ? 0 : shippingCharge
     return Math.max(0, subtotal + shipping + gstTotal)
