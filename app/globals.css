@@ -351,11 +351,24 @@ input, select, textarea { font-size: max(16px, 1em); }
    HERO
    ══════════════════════════════ */
 .hero-section {
+  position: relative;
+  overflow: hidden;
   height: 85svh;
   min-height: 480px;
   max-height: 900px;
+  /* Ensure background image fills fully — no grey gaps */
+  width: 100%;
+  display: block;
+}
+/* Ensure all direct children fill the container */
+.hero-section > div {
+  position: absolute;
+  inset: 0;
+}
+/* But the content wrapper (z-10) should be relative, not absolute */
+.hero-section > .relative {
   position: relative;
-  overflow: hidden;
+  height: 100%;
 }
 @supports not (height: 100svh) {
   .hero-section { height: 85vh; }

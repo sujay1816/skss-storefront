@@ -101,9 +101,12 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
 
   return (
     <>
-      <div className="absolute inset-0">
+      {/* Background layer — explicit inline styles prevent Tailwind/Framer conflicts */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={`bg-${current}`} className="absolute inset-0"
+          <motion.div
+            key={`bg-${current}`}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.7, ease: 'easeInOut' }}>
             {isVideo ? (
@@ -114,16 +117,18 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
                 onEnded={() => { if (total > 1) goNext() }}
               />
             ) : slide.imageUrl ? (
-              <Image src={slide.imageUrl} alt={slide.heading || 'Banner'}
-                fill priority quality={85} sizes="100vw" className="object-cover hero-media"
-                style={{ objectPosition: slide.imageFocus || 'center' }} />
+              <img
+                src={slide.imageUrl}
+                alt={slide.heading || 'Banner'}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: slide.imageFocus || 'center' }}
+              />
             ) : (
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#0D0806,#1A0E0A,#2C1810)' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#0D0806,#1A0E0A,#2C1810)' }} />
             )}
           </motion.div>
         </AnimatePresence>
-        <div className="absolute inset-0" style={{ background: overlayGradient }} />
-        <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top,rgba(253,250,247,0.1),transparent)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: overlayGradient, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 128, background: 'linear-gradient(to top,rgba(253,250,247,0.1),transparent)', pointerEvents: 'none' }} />
       </div>
 
       {/* Content */}
