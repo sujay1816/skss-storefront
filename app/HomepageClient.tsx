@@ -1,45 +1,239 @@
 'use client'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight, ChevronLeft } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
-import type { SiteConfig, Category, Product, Banner } from '@/types'
+import type { SiteConfig, Category, Product, Banner, BannerSlide } from '@/types'
 
 const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } }
 
-// Cycles through multiple videos in sequence — each video plays once then moves to the next
-function MultiVideo({ urls, poster, objectPosition }: { urls: string[]; poster?: string; objectPosition?: string }) {
-  const [currentIdx, setCurrentIdx] = useState(0)
+// ── LoopingVideo — loops a single video or cycles through multiple, each looping ──
+function LoopingVideo({ urls, poster, objectPosition }: {
+  urls: string[]; poster?: string; objectPosition?: string
+}) {
+  const [idx, setIdx] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const handleEnded = () => {
-    setCurrentIdx(prev => (prev + 1) % urls.length)
-  }
-
+  // Auto-play on mount and when idx changes
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load()
-      videoRef.current.play().catch(() => {})
-    }
-  }, [currentIdx])
+    const v = videoRef.current
+    if (!v) return
+    v.load()
+    v.play().catch(() => {})
+  }, [idx])
+
+  // When single video — use loop attribute directly (most efficient)
+  // When multiple — each video loops independently; user can also let them cycle
+  const handleEnded = useCallback(() => {
+    if (urls.length > 1) setIdx(i => (i + 1) % urls.length)
+  }, [urls.length])
+
+  if (!urls.length) return null
+  const src = urls[idx]
 
   return (
     <video
       ref={videoRef}
-      key={urls[currentIdx]}
+      key={src}
       autoPlay muted playsInline
+      loop={urls.length === 1}   // loop attribute only when single video
       preload="metadata"
       poster={poster}
       onEnded={handleEnded}
       className="hero-media"
       style={{ objectPosition: objectPosition || 'center' }}
     >
-      <source src={urls[currentIdx]} type="video/mp4" />
-      <source src={urls[currentIdx]} type="video/webm" />
+      <source src={src} type="video/mp4" />
+      <source src={src} type="video/webm" />
     </video>
+  )
+}
+
+// ── HeroSlideshow — cycles through banner slides with individual CTAs ──
+const SLIDE_INTERVAL = 5000  // 5 seconds per slide
+
+function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
+  banner: Banner
+  overlayGradient: string
+  textCol: { primary: string; secondary: string; accent: string; border: string }
+  tagline: string
+}) {
+  // Build slide list — if banner has slides array use those, otherwise use the banner itself as a single slide
+  const slides: BannerSlide[] = banner.slides?.length > 0 ? banner.slides : [{
+    imageUrl: banner.imageUrl,
+    imageFocus: banner.imageFocus,
+    heading: banner.heading,
+    headingItalic: banner.headingItalic,
+    subheading: banner.subheading || '',
+    badgeText: banner.badgeText,
+    ctaLabel: banner.ctaLabel,
+    ctaUrl: banner.ctaUrl,
+    ctaSecondaryLabel: banner.ctaSecondaryLabel,
+    ctaSecondaryUrl: banner.ctaSecondaryUrl,
+  }]
+
+  const [current, setCurrent] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasVideo = banner.videoUrls?.length > 0 || !!banner.videoUrl
+  const videoUrls = banner.videoUrls?.length > 0 ? banner.videoUrls : banner.videoUrl ? [banner.videoUrl] : []
+
+  const goTo = useCallback((idx: number) => {
+    setCurrent(idx)
+    if (timerRef.current) clearTimeout(timerRef.current)
+  }, [])
+
+  const next = useCallback(() => goTo((current + 1) % slides.length), [current, slides.length, goTo])
+  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length), [current, slides.length, goTo])
+
+  // Auto-advance slides (only when multiple slides and no video)
+  useEffect(() => {
+    if (slides.length <= 1 || hasVideo) return
+    timerRef.current = setTimeout(next, SLIDE_INTERVAL)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [current, slides.length, hasVideo, next])
+
+  const slide = slides[current]
+
+  return (
+    <>
+      {/* Background */}
+      <div className="absolute inset-0">
+        {hasVideo ? (
+          <LoopingVideo
+            urls={videoUrls}
+            poster={banner.imageUrl || undefined}
+            objectPosition={banner.imageFocus || 'center'}
+          />
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: 'easeInOut' }}
+            >
+              {slide.imageUrl ? (
+                <Image
+                  src={slide.imageUrl}
+                  alt={slide.heading || 'Banner'}
+                  fill priority quality={85} sizes="100vw"
+                  className="object-cover hero-media"
+                  style={{ objectPosition: slide.imageFocus || 'center' }}
+                />
+              ) : (
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+        <div className="absolute inset-0" style={{ background: overlayGradient }} />
+        <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.1), transparent)' }} />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 h-full flex items-center">
+        <div className="page-container w-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="max-w-xl hero-content-container"
+            >
+              {/* Badge */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
+                <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
+                  {slide.badgeText || 'New Collection 2025'}
+                </span>
+              </div>
+
+              {/* Heading */}
+              <h1 className="hero-heading font-light mb-4" style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}>
+                {slide.heading || 'Draped in'}
+                <em style={{ color: textCol.accent }}>{slide.headingItalic || 'Royal Elegance'}</em>
+              </h1>
+
+              <p className="text-sm font-light mb-2 max-w-sm hero-subtext"
+                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
+                {slide.subheading || 'Discover timeless silk sarees crafted for the modern woman.'}
+              </p>
+
+              <p className="text-xs mb-6 tracking-widest hero-tagline"
+                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
+                &quot;{tagline}&quot;
+              </p>
+
+              {/* CTA — each slide has its own */}
+              <div className="hero-cta-group">
+                <Link href={slide.ctaUrl || '/shop'} className="hero-cta-primary">
+                  {slide.ctaLabel || 'Shop Now'}
+                  <ArrowRight size={13} className="flex-shrink-0" />
+                </Link>
+                {slide.ctaSecondaryLabel && (
+                  <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary">
+                    {slide.ctaSecondaryLabel}
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Slide controls — only shown when multiple slides and no video */}
+      {slides.length > 1 && !hasVideo && (
+        <>
+          {/* Prev / Next arrows */}
+          <button type="button" onClick={prev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+            aria-label="Previous slide">
+            <ChevronLeft size={18} />
+          </button>
+          <button type="button" onClick={next}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all"
+            style={{ background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+            aria-label="Next slide">
+            <ChevronRight size={18} />
+          </button>
+
+          {/* Dot indicators */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            {slides.map((_, i) => (
+              <button key={i} type="button" onClick={() => goTo(i)}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === current ? 24 : 8,
+                  height: 8,
+                  background: i === current ? 'var(--gold-light)' : 'rgba(255,255,255,0.4)',
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 z-20" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <motion.div
+              key={current}
+              className="h-full"
+              style={{ background: 'var(--gold-light)' }}
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: SLIDE_INTERVAL / 1000, ease: 'linear' }}
+            />
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
@@ -47,10 +241,8 @@ export default function HomepageClient({ config, categories, featured, bestselle
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
-  const heroOpacity = 1
   const heroBanner = banners[0]
 
-  // Compute overlay gradient based on admin setting
   const overlayMap: Record<string, string> = {
     dark:  'linear-gradient(105deg, rgba(13,8,6,0.92) 0%, rgba(13,8,6,0.7) 50%, rgba(13,8,6,0.3) 100%)',
     light: 'linear-gradient(105deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
@@ -71,96 +263,19 @@ export default function HomepageClient({ config, categories, featured, bestselle
     <>
       {/* ── HERO ── */}
       <section ref={heroRef} className="hero-section">
-
-        {/* Background — plain div, no motion transform */}
-        <div className="absolute inset-0">
-          {heroBanner?.videoUrls?.length > 0 ? (
-            <MultiVideo
-              urls={heroBanner.videoUrls}
-              poster={heroBanner.imageUrl || undefined}
-              objectPosition={heroBanner.imageFocus || 'center'}
-            />
-          ) : heroBanner?.videoUrl ? (
-            <video
-              key={heroBanner.videoUrl}
-              autoPlay muted loop playsInline
-              preload="metadata"
-              poster={heroBanner.imageUrl || undefined}
-              className="hero-media"
-              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
-            >
-              <source src={heroBanner.videoUrl} type="video/mp4" />
-              <source src={heroBanner.videoUrl} type="video/webm" />
-            </video>
-          ) : heroBanner?.imageUrl ? (
-            <Image
-              src={heroBanner.imageUrl}
-              alt={heroBanner.heading || 'Hero banner'}
-              fill priority quality={85} sizes="100vw"
-              className="object-cover hero-media"
-              style={{ objectPosition: heroBanner.imageFocus || 'center' }}
-            />
-          ) : (
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }} />
-          )}
-          <div className="absolute inset-0" style={{ background: overlayGradient }} />
-          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, rgba(253,250,247,0.1), transparent)' }} />
-        </div>
-
-        {/* Content */}
-        <motion.div style={{ opacity: heroOpacity }} className="relative z-10 h-full flex items-center">
-          <div className="page-container w-full">
-            <motion.div
-              initial="hidden" animate="visible" variants={stagger}
-              className="max-w-xl hero-content-container"
-            >
-              {/* Badge */}
-              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-4">
-                <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
-                <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>
-                  {heroBanner?.badgeText || 'New Collection 2025'}
-                </span>
-              </motion.div>
-
-              {/* Heading */}
-              <motion.h1
-                variants={fadeUp}
-                className="hero-heading font-light mb-4"
-                style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}
-              >
-                {heroBanner?.heading || 'Draped in'}
-                <em style={{ color: textCol.accent }}>
-                  {heroBanner?.headingItalic || 'Royal Elegance'}
-                </em>
-              </motion.h1>
-
-              <motion.p variants={fadeUp} className="text-sm font-light mb-2 max-w-sm hero-subtext"
-                style={{ color: textCol.secondary, fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
-                {heroBanner?.subheading || 'Discover timeless silk sarees crafted for the modern woman.'}
-              </motion.p>
-
-              <motion.p variants={fadeUp} className="text-xs mb-6 tracking-widest hero-tagline"
-                style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>
-                &quot;{config.brand_tagline}&quot;
-              </motion.p>
-
-              {/* CTA Buttons */}
-              <motion.div variants={fadeUp} className="hero-cta-group">
-                <Link href={heroBanner?.ctaUrl || '/shop'} className="hero-cta-primary">
-                  {heroBanner?.ctaLabel || 'Shop Now'}
-                  <ArrowRight size={13} className="flex-shrink-0" />
-                </Link>
-                <Link href={heroBanner?.ctaSecondaryUrl || '/shop?filter=new'} className="hero-cta-secondary">
-                  {heroBanner?.ctaSecondaryLabel || 'New Arrivals'}
-                </Link>
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
+        {heroBanner ? (
+          <HeroSlideshow
+            banner={heroBanner}
+            overlayGradient={overlayGradient}
+            textCol={textCol}
+            tagline={config.brand_tagline || ''}
+          />
+        ) : (
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 30%, #2C1810 60%, #1A0E0A 100%)' }} />
+        )}
       </section>
 
       {/* ── MARQUEE ── */}
-      {/* FIX: CSS marquee — no Framer Motion, only 2 copies needed for seamless loop */}
       <div className="overflow-hidden py-3 relative" style={{ background: 'var(--crimson-dark)', borderBottom: '1px solid rgba(201,168,76,0.3)' }}>
         <div className="marquee-track">
           {[0, 1].map(copy => (
@@ -199,16 +314,15 @@ export default function HomepageClient({ config, categories, featured, bestselle
       </section>
 
       {/* ── CATEGORIES ── */}
-      <section style={{ paddingTop: "var(--space-12)", paddingBottom: "var(--space-12)", background: "var(--ivory)" }}>
+      <section style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)', background: 'var(--ivory)' }}>
         <div className="page-container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
             <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)', fontFamily: 'var(--font-body)' }}>Browse By</p>
             <h2 className="section-heading">Shop Collections</h2>
             <div className="w-16 h-px mx-auto mt-4" style={{ background: 'linear-gradient(to right, transparent, var(--gold), transparent)' }} />
           </motion.div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="category-grid-3col">
-            {categories.map((cat, i) => (
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="category-grid-3col">
+            {categories.map((cat) => (
               <motion.div key={cat.id} variants={fadeUp}>
                 <Link href={`/shop/${cat.slug}`} className="group block">
                   <div className="relative overflow-hidden rounded-lg mb-3 transition-all"
@@ -217,8 +331,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
                       <>
                         <div className="absolute inset-0 skeleton" />
                         <Image src={cat.imageUrl} alt={cat.name} fill
-                          sizes="(max-width: 640px) 50vw, 33vw"
-                          quality={75}
+                          sizes="(max-width: 640px) 50vw, 33vw" quality={75}
                           className="object-cover transition-all duration-700 group-hover:scale-110"
                           style={{ opacity: 0, transition: 'opacity 0.4s ease' }}
                           onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1' }}
@@ -236,8 +349,6 @@ export default function HomepageClient({ config, categories, featured, bestselle
                       <p className="text-xs font-semibold tracking-wide uppercase text-white text-center"
                         style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{cat.name}</p>
                     </div>
-                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-gold transition-all rounded-lg"
-                      style={{ '--tw-border-opacity': 1 } as any} />
                   </div>
                   <p className="text-xs text-center font-medium tracking-wide transition-colors"
                     style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
@@ -268,7 +379,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 View All <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "var(--space-4)" }}>
+            <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 'var(--space-4)' }}>
               {newArrivals.map((p, i) => <ProductCard key={p.id} product={p} userId={userId} index={i} />)}
             </div>
             <div className="mt-8 text-center md:hidden">
@@ -278,13 +389,9 @@ export default function HomepageClient({ config, categories, featured, bestselle
         </section>
       )}
 
-      {/* ── BRAND STATEMENT BANNER ── */}
+      {/* ── BRAND STATEMENT ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="text-center relative overflow-hidden" style={{ paddingTop: "var(--space-16)", paddingBottom: "var(--space-16)", background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 40%, var(--crimson-dark) 70%, #1A0E0A 100%)' }}>
-        <div className="absolute inset-0 opacity-5 flex items-center justify-center pointer-events-none">
-          <Image src={config.logo_url || '/images/logo.png'} alt="" width={120} height={120} className="object-contain" loading="lazy" />
-        </div>
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(139,26,43,0.15) 0%, transparent 50%)' }} />
+        className="text-center relative overflow-hidden" style={{ paddingTop: 'var(--space-16)', paddingBottom: 'var(--space-16)', background: 'linear-gradient(135deg, #0D0806 0%, #1A0E0A 40%, var(--crimson-dark) 70%, #1A0E0A 100%)' }}>
         <div className="page-container relative z-10">
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-4 mb-8">
             <div className="h-px w-16" style={{ background: 'linear-gradient(to right, transparent, var(--gold))' }} />
@@ -298,7 +405,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </motion.h2>
           <motion.p variants={fadeUp} className="text-sm max-w-lg mx-auto mb-10"
             style={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.8 }}>
-            Handpicked from the finest looms across India — Kanjivaram, Banarasi, Chanderi and more. Each piece a masterpiece of centuries-old craftsmanship.
+            Handpicked from the finest looms across India — Kanjivaram, Banarasi, Chanderi and more.
           </motion.p>
           <motion.div variants={fadeUp}>
             <Link href="/shop" className="group inline-flex items-center gap-3 px-10 py-4 text-xs font-medium tracking-widest uppercase transition-all"
@@ -363,7 +470,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
 
       {/* ── ABOUT STRIP ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-        className="border-t" style={{ paddingTop: "var(--space-12)", paddingBottom: "var(--space-12)", borderColor: "var(--border)", background: "var(--ivory)" }}>
+        className="border-t" style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)', borderColor: 'var(--border)', background: 'var(--ivory)' }}>
         <div className="page-container">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
             <div className="md:w-1/3 flex justify-center">
@@ -380,7 +487,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
                 {config.brand_name || 'Our brand'} is a celebration of India's finest weaving traditions. We bring you an exquisite collection of pure silk and traditional sarees, each handpicked to ensure unmatched quality and authenticity.
               </p>
               <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--text-secondary)', lineHeight: 1.9 }}>
-                From the golden looms of Kanjivaram to the royal grandeur of Banarasi — every saree in our collection carries the spirit of timeless elegance. Whether you're dressing for a wedding, festival or everyday grace — find the saree that tells your story.
+                From the golden looms of Kanjivaram to the royal grandeur of Banarasi — every saree in our collection carries the spirit of timeless elegance.
               </p>
               <Link href="/about" className="btn-outline">Our Story <ArrowRight size={14} /></Link>
             </div>

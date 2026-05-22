@@ -39,9 +39,11 @@ const ZoomImage = memo(function ZoomImage({
   // Reset loaded state when image src changes
   useEffect(() => { setLoaded(false) }, [src])
 
-  // Auto-play video when it becomes visible
+  // Video lazy-loads — only play() when user explicitly clicks the video thumbnail
+  // preload="none" on the element means browser fetches 0 bytes until play() called
   useEffect(() => {
     if (showVideo && videoRef.current) {
+      videoRef.current.load()
       videoRef.current.play().catch(() => {})
     }
   }, [showVideo])
@@ -73,20 +75,23 @@ const ZoomImage = memo(function ZoomImage({
       transition={{ duration: 0.3 }}>
 
       {showVideo && videoUrl ? (
-        // ── Video player ────────────────────────────────────────────
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: 'contain', background: '#000' }}
-          controls
-          playsInline
-          preload="auto"
-          poster={posterUrl || undefined}
-          onClick={e => e.stopPropagation()}  // prevent lightbox open on click
-        >
-          <source src={videoUrl} type="video/mp4" />
-          <source src={videoUrl} type="video/webm" />
-        </video>
+        // Video only rendered when user clicks — saves bandwidth on page load
+        // preload="none" until play() is called, then browser fetches the video
+        <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: 'contain' }}
+            controls
+            playsInline
+            preload="none"
+            poster={posterUrl || undefined}
+            onClick={e => e.stopPropagation()}
+          >
+            <source src={videoUrl} type="video/mp4" />
+            <source src={videoUrl} type="video/webm" />
+          </video>
+        </div>
       ) : src ? (
         // ── Product image with zoom ──────────────────────────────────
         <div key={src} className="absolute inset-0 overflow-hidden">

@@ -34,6 +34,18 @@ export interface UserProfile { id:string; email:string; fullName:string; phone:s
 export interface Review { id:string; productId:string; userId:string; userFullName:string; userAvatarUrl:string|null; rating:number; comment:string; isVerifiedPurchase:boolean; createdAt:string; }
 export type CouponType='percentage'|'flat'|'free_shipping';
 export interface Coupon { id:string; code:string; type:CouponType; value:number; minOrderValue:number; maxUsageCount:number; usageCount:number; perUserLimit:number; expiryDate:string|null; isActive:boolean; }
+export interface BannerSlide {
+  imageUrl: string;
+  imageFocus?: string;
+  heading?: string;
+  headingItalic?: string;
+  subheading?: string;
+  badgeText?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  ctaSecondaryLabel?: string;
+  ctaSecondaryUrl?: string;
+}
 export interface Banner {
   id:string;
   imageUrl:string;
@@ -52,6 +64,7 @@ export interface Banner {
   order:number;
   videoUrl:string|null;
   videoUrls:string[];
+  slides:BannerSlide[];
 }
 export interface Category { id:string; name:string; slug:string; description:string; imageUrl:string; isActive:boolean; displayOrder:number; }
 export interface SiteConfig { brand_name:string; brand_tagline:string; brand_subtitle:string; whatsapp_number:string; support_email:string; business_email:string; free_shipping_above:string; default_shipping_charge:string; estimated_delivery_days:string; return_window_days:string; default_gst_rate:string; cod_enabled:string; upi_enabled:string; instagram_url:string; facebook_url:string; youtube_url:string; gstin:string; business_address:string; new_arrivals_days:string; low_stock_threshold:string; [key:string]:string; }

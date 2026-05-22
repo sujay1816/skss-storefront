@@ -183,6 +183,9 @@ export async function getBanners(): Promise<Banner[]> {
       if (r.video_urls) videoUrls = JSON.parse(r.video_urls).filter(Boolean)
       else if (r.video_url) videoUrls = [r.video_url]
     } catch { if (r.video_url) videoUrls = [r.video_url] }
+    let slides: any[] = []
+    try { if (r.slides) slides = JSON.parse(r.slides).filter(Boolean) } catch {}
+
     return {
       id: r.id, imageUrl: r.image_url, imageFocus: r.image_focus || 'center',
       heading: r.heading || '', headingItalic: r.heading_italic || '',
@@ -193,6 +196,7 @@ export async function getBanners(): Promise<Banner[]> {
       isActive: r.is_active, order: r.display_order,
       videoUrl: videoUrls[0] || null,
       videoUrls,
+      slides,
     }
   })
 }

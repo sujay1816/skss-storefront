@@ -93,17 +93,9 @@ const nextConfig = {
   // Redirects for SEO
   async redirects() {
     return [
-      { source: '/index',    destination: '/',      permanent: true },
-      { source: '/home',     destination: '/',      permanent: true },
-      { source: '/products', destination: '/shop',  permanent: true },
-      // Redirect old ?category= query param URLs to clean /shop/[category] URLs
-      // This preserves any existing Google rankings for the old URLs
-      {
-        source: '/shop',
-        has: [{ type: 'query', key: 'category', value: '(?<cat>.+)' }],
-        destination: '/shop/:cat',
-        permanent: true,
-      },
+      { source: '/index', destination: '/', permanent: true },
+      { source: '/home', destination: '/', permanent: true },
+      { source: '/products', destination: '/shop', permanent: true },
     ]
   },
 
