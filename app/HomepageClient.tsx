@@ -131,9 +131,9 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 128, background: 'linear-gradient(to top,rgba(253,250,247,0.1),transparent)', pointerEvents: 'none' }} />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-full flex items-center">
-        <div className="page-container w-full">
+      {/* Content — explicit z-index so CTA links are clickable above background */}
+      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+        <div className="page-container w-full" style={{ pointerEvents: 'auto' }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={`txt-${current}`} className="max-w-xl hero-content-container"
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
