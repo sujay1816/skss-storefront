@@ -249,14 +249,14 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 flex items-start justify-between">
+                <div className="p-4 flex items-start justify-between gap-3 flex-wrap">
                   <div className="text-sm">
                     <p className="font-medium">{a.full_name} · {a.phone}</p>
                     <p style={{ color: 'var(--text-secondary)' }}>{a.address_line1}{a.address_line2 ? `, ${a.address_line2}` : ''}</p>
                     <p style={{ color: 'var(--text-secondary)' }}>{a.city}, {a.state} – {a.pincode}</p>
                     {a.is_default && <span className="text-xs mt-1 inline-block" style={{ color: 'var(--gold)' }}>✓ Default</span>}
                   </div>
-                  <div className="flex flex-col gap-2 ml-4">
+                  <div className="flex flex-col gap-2 flex-shrink-0">
                     {/* FIX: Edit button */}
                     <button onClick={() => { setEditingAddress(a.id); setEditForm({ full_name: a.full_name, phone: a.phone, address_line1: a.address_line1, address_line2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Edit</button>
                     {!a.is_default && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Set Default</button>}

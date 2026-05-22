@@ -305,7 +305,7 @@ export default function CheckoutPage() {
                           setForm(f => ({ ...f, fullName: a.full_name, phone: a.phone, addressLine1: a.address_line1, addressLine2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }))
                           setShowAddressPicker(false)
                         }}
-                        className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-50 border-b last:border-0"
+                        className="w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-gray-50 border-b last:border-0 min-h-[44px]"
                         style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
                         <span className="font-medium">{a.full_name}</span>
                         {a.is_default && <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--cream)', color: 'var(--gold-dark)' }}>Default</span>}

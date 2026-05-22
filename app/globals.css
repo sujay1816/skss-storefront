@@ -542,3 +542,65 @@ input, select, textarea { font-size: max(16px, 1em); }
   .trust-badge-card { animation: none; }
   .whatsapp-float-btn { animation: none; }
 }
+
+/* ══════════════════════════════
+   320px / EXTRA NARROW SCREENS
+   ══════════════════════════════ */
+
+/* Navbar: hide subtitle on very narrow screens to prevent brand name truncation */
+@media (max-width: 360px) {
+  .navbar-brand-subtitle { display: none !important; }
+  .navbar-brand-name { max-width: 120px !important; font-size: 12px !important; }
+}
+
+/* Hero CTA: always stack vertically on phones < 480px */
+@media (max-width: 479px) {
+  .hero-cta-group { flex-direction: column !important; max-width: 100% !important; }
+  .hero-cta-primary, .hero-cta-secondary { width: 100% !important; text-align: center; }
+}
+
+/* Cart: item row stacks on very small screens */
+@media (max-width: 360px) {
+  .cart-item-row { flex-direction: column !important; }
+  .cart-item-image { width: 100% !important; height: 200px !important; }
+}
+
+/* Product detail: delivery check row stacks */
+@media (max-width: 360px) {
+  .pdp-delivery-row { flex-direction: column !important; }
+  .pdp-delivery-row button { width: 100% !important; }
+}
+
+/* Shop toolbar: stacks on very small screens */
+@media (max-width: 360px) {
+  .shop-mobile-toolbar { flex-direction: column !important; }
+  .shop-mobile-toolbar > * { width: 100% !important; }
+}
+
+/* Footer: social icons wrap properly */
+@media (max-width: 360px) {
+  .footer-social-row { flex-wrap: wrap !important; }
+}
+
+/* Checkout: payment method label text wraps at 320px */
+@media (max-width: 360px) {
+  .payment-method-label { flex-wrap: wrap !important; gap: 8px !important; }
+}
+
+/* Prevent any fixed-width element from causing horizontal scroll */
+@media (max-width: 400px) {
+  .page-container { padding-left: 12px !important; padding-right: 12px !important; }
+  h1 { font-size: clamp(1.3rem, 6vw, 1.8rem) !important; }
+  .section-heading { font-size: clamp(1.2rem, 5.5vw, 1.75rem) !important; }
+}
+
+/* Product card grid: ensure 2-col never overflows */
+@media (max-width: 360px) {
+  .grid.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* Sticky product bar: ensure content doesn't overflow */
+@media (max-width: 360px) {
+  .sticky-product-bar { gap: 8px !important; padding-left: 12px !important; padding-right: 12px !important; }
+  .sticky-product-bar .btn-primary { padding: 0 12px !important; font-size: 10px !important; }
+}

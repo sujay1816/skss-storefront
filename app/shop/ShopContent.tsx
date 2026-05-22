@@ -236,9 +236,9 @@ export default function ShopContent({ products, categories, config, userId, init
         <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
           <h1 className="section-heading">Our Collection</h1>
           {/* Mobile: sort + filter buttons only */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-2 lg:hidden shop-mobile-toolbar">
             <select value={sortBy} onChange={e => setSortByAndNav(e.target.value)}
-              className="text-xs border px-2 outline-none flex-1" style={{ borderColor: 'var(--border)', height: 40, color: 'var(--text-primary)', background: 'white', minWidth: 130 }}>
+              className="text-xs border px-2 outline-none flex-1 min-w-0" style={{ borderColor: 'var(--border)', height: 40, color: 'var(--text-primary)', background: 'white' }}>
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <button onClick={() => setFiltersOpen(true)}

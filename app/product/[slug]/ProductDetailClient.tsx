@@ -603,8 +603,8 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
           )}
 
-          <div className="flex items-center gap-4 mb-6">
-            <p className="text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--text-primary)' }}>Quantity</p>
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <p className="text-xs font-medium tracking-wide uppercase flex-shrink-0" style={{ color: 'var(--text-primary)' }}>Quantity</p>
             <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
               <button onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} className="w-9 h-9 flex items-center justify-center text-lg disabled:opacity-30" style={{ color: 'var(--text-primary)' }}>−</button>
               <span className="w-10 text-center text-sm font-medium">{qty}</span>
@@ -645,7 +645,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-6 trust-badges-grid">
+          <div className="grid grid-cols-3 gap-1.5 mb-6 trust-badges-grid">
             {[{ icon: <Truck size={16} />, text: `Free Shipping above ₹${Number(config.free_shipping_above).toLocaleString('en-IN')}` }, { icon: <RotateCcw size={16} />, text: `${config.return_window_days}-Day Returns` }, { icon: <Shield size={16} />, text: '100% Authentic' }].map((b, i) => (
               <div key={i} className="flex flex-col items-center gap-1 p-3 text-center border" style={{ borderColor: 'var(--border)' }}>
                 <span style={{ color: 'var(--crimson)' }}>{b.icon}</span>
