@@ -123,7 +123,24 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.8, ease: 'easeInOut' }}
             >
-              {slide.imageUrl ? (
+              {/* Video slide */}
+              {slide.videoUrl ? (
+                <video
+                  key={slide.videoUrl}
+                  autoPlay muted loop playsInline
+                  preload="metadata"
+                  poster={slide.imageUrl || banner.imageUrl || undefined}
+                  className="hero-media"
+                  style={{ objectPosition: slide.imageFocus || 'center', objectFit: 'cover', width: '100%', height: '100%' }}
+                >
+                  <source
+                    src={slide.videoUrl.includes('cloudinary.com')
+                      ? slide.videoUrl.replace('/upload/', '/upload/q_auto,f_auto/')
+                      : slide.videoUrl}
+                    type="video/mp4"
+                  />
+                </video>
+              ) : slide.imageUrl ? (
                 <Image
                   src={slide.imageUrl}
                   alt={slide.heading || 'Banner'}

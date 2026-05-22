@@ -35,8 +35,10 @@ export interface Review { id:string; productId:string; userId:string; userFullNa
 export type CouponType='percentage'|'flat'|'free_shipping';
 export interface Coupon { id:string; code:string; type:CouponType; value:number; minOrderValue:number; maxUsageCount:number; usageCount:number; perUserLimit:number; expiryDate:string|null; isActive:boolean; }
 export interface BannerSlide {
-  imageUrl: string;
+  mediaType?: 'image' | 'video';
+  imageUrl?: string;
   imageFocus?: string;
+  videoUrl?: string;
   heading?: string;
   headingItalic?: string;
   subheading?: string;
