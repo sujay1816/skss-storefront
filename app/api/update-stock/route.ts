@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getCfg } from '@/lib/get-config'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(request: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
   const secret = request.headers.get('x-internal-secret')
   const expectedSecret = await getCfg('setup_internal_api_secret', process.env.INTERNAL_API_SECRET)
   if (!secret || secret !== expectedSecret) {

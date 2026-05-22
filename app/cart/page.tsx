@@ -159,7 +159,7 @@ export default function CartPage() {
                             <p className="font-medium" style={{ color: 'var(--crimson)' }}>{formatPrice(price * item.quantity)}</p>
                             {isOnSale && <p className="text-xs line-through" style={{ color: 'var(--text-secondary)' }}>{formatPrice(item.originalPrice * item.quantity)}</p>}
                           </div>
-                          <button onClick={() => { removeItem(item.productId, item.colour, userId || undefined); toast.success('Item removed') }} className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
+                          <button onClick={() => { removeItem(item.productId, item.colour, userId || undefined); toast.success('Item removed') }} aria-label="Remove item from cart" className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
                         </div>
                       </div>
                     </div>

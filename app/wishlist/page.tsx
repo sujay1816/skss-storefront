@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useWishlistStore } from '@/lib/store/wishlist'
 import ProductCard from '@/components/product/ProductCard'
 import type { Product } from '@/types'
+import { useRouter } from 'next/navigation'
 
 export default function WishlistPage() {
+  const router = useRouter()
   const { ids } = useWishlistStore()
   const [products, setProducts] = useState<Product[]>([])
   const [user, setUser] = useState<any>(null)
@@ -17,6 +19,7 @@ export default function WishlistPage() {
     const load = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login?redirect=/wishlist'); return }
       setUser(user)
       if (ids.length === 0) { setLoading(false); return }
       const { data } = await supabase.from('products').select('*, categories(slug,name), product_images(id,url,public_id,alt_text,is_primary,order_index), product_variants(id,colour,colour_hex,stock,sku)').in('id', ids).eq('is_active', true)

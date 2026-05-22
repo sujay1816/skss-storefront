@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Package, ChevronRight, Search as SearchIcon } from 'lucide-react'
+import { Package, ChevronRight, Search as SearchIcon, X } from 'lucide-react'
 
 const OrderSkeleton = () => (
   <div className="card p-4 space-y-3">
@@ -85,7 +85,14 @@ export default function OrdersPage() {
           <div className="relative flex-1">
             <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by order number or product..." className="input-base pl-9 w-full" style={{ height: 40 }} />
+              placeholder="Search by order number or product..." className="input-base pl-9 pr-8 w-full" style={{ height: 40 }} />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-gray-100"
+                style={{ color: 'var(--text-secondary)' }}>
+                <X size={14} />
+              </button>
+            )}
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="input-base" style={{ height: 40, minWidth: 160 }}>

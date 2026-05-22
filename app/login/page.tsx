@@ -15,7 +15,7 @@ function LoginForm() {
   const redirect = searchParams.get('redirect') || '/'
   const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
-  const [logoUrl, setLogoUrl] = useState('/images/logo.png')
+  const [logoUrl, setLogoUrl] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -91,7 +91,9 @@ function LoginForm() {
         <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 48, textAlign: 'center' }}>
           <div style={{ position: 'relative', marginBottom: 24 }}>
             <div style={{ position: 'absolute', inset: -32, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.3) 0%, transparent 70%)' }} />
-            <Image src={logoUrl} alt={brandName} width={90} height={90} style={{ objectFit: 'contain', position: 'relative' }} />
+            {logoUrl
+            ? <Image src={logoUrl} alt={brandName} width={90} height={90} style={{ objectFit: 'contain', position: 'relative' }} />
+            : <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'rgba(139,26,43,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: 'white', fontFamily: 'Cormorant Garamond, serif', position: 'relative' }}>S</div>}
           </div>
           <h1 style={{ fontSize: 48, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>{brandName}</h1>
           <p style={{ color: '#C9A84C', fontSize: 10, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20 }}>{`✦ ${brandSubtitle} ✦`}</p>
@@ -107,7 +109,9 @@ function LoginForm() {
         </div>
         <div style={{ width: '100%', maxWidth: 360, paddingTop: 40 }}>
           <div className="lg:hidden" style={{ textAlign: 'center', marginBottom: 32 }}>
-            <Image src={logoUrl} alt={brandName} width={50} height={50} style={{ objectFit: 'contain', margin: '0 auto 8px' }} />
+            {logoUrl
+            ? <Image src={logoUrl} alt={brandName} width={50} height={50} style={{ objectFit: 'contain', margin: '0 auto 8px' }} />
+            : <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(139,26,43,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'white', margin: '0 auto 8px' }}>S</div>}
           </div>
           <h2 style={{ fontSize: 30, fontWeight: 300, color: 'white', marginBottom: 8, fontFamily: 'Cormorant Garamond, serif' }}>Welcome back</h2>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 28 }}>Sign in to your account</p>
