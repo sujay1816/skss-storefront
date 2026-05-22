@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const token = await getShiprocketToken(email, password)
     if (!token) throw new Error('Auth failed')
     const checkRes = await fetch(
-      `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=500001&delivery_postcode=${pincode}&cod=1&weight=0.5`,
+      `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=560064&delivery_postcode=${pincode}&cod=1&weight=0.5`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const data = await checkRes.json()
