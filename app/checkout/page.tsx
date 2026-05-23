@@ -274,7 +274,7 @@ export default function CheckoutPage() {
   if (items.length === 0) return (
     <div className="page-container py-20 text-center">
       <p className="text-lg mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>Your cart is empty</p>
-      <button onClick={() => router.push('/shop')} className="btn-primary">Browse Collection</button>
+      <button type="button" onClick={() => router.push('/shop')} className="btn-primary">Browse Collection</button>
     </div>
   )
 
@@ -424,7 +424,7 @@ export default function CheckoutPage() {
                 <span>Total</span><span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
-            <button onClick={createOrder} disabled={loading || !!phoneError}
+            <button type="button" onClick={createOrder} disabled={loading || !!phoneError}
               className="btn-primary w-full mt-4 justify-center"
               style={{ opacity: loading || phoneError ? 0.7 : 1 }}>
               {loading

@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [actionId, setActionId] = useState<string | null>(null)
   const [tab, setTab] = useState<'profile' | 'addresses'>('profile')
   const [userId, setUserId] = useState('')
   const [email, setEmail] = useState('')
@@ -86,6 +87,7 @@ export default function ProfilePage() {
   }
 
   const setDefault = async (id: string) => {
+    setActionId(id)
     const supabase = createClient()
     const { error } = await supabase.rpc('set_default_address', {
       p_user_id: userId,
@@ -97,13 +99,16 @@ export default function ProfilePage() {
     }
     setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === id })))
     toast.success('Default address set')
+    setActionId(null)
   }
 
   const remove = async (id: string) => {
+    setActionId(id)
     const supabase = createClient()
     await supabase.from('addresses').delete().eq('id', id)
     setAddresses(prev => prev.filter(a => a.id !== id))
     toast.success('Address removed')
+    setActionId(null)
   }
 
   // FIX: Save edited address
@@ -148,7 +153,7 @@ export default function ProfilePage() {
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
       {/* FIX: safe back — if user opened profile directly (bookmark/email), back() goes
           to external sites. Check history length first, fall back to homepage. */}
-      <button onClick={() => window.history.length > 1 ? router.back() : router.push('/')}
+      <button type="button" onClick={() => window.history.length > 1 ? router.back() : router.push('/')}
         className="flex items-center gap-2 text-sm mb-6 transition-colors"
         style={{ color: 'var(--text-secondary)' }}
         onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')}
@@ -159,7 +164,7 @@ export default function ProfilePage() {
       <h1 className="section-heading mb-8">My Profile</h1>
       <div className="flex gap-4 mb-6 border-b profile-tabs" style={{ borderColor: 'var(--border)' }}>
         {(['profile', 'addresses'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+          <button type="button" key={t} onClick={() => setTab(t)}
             className="pb-3 text-xs font-semibold tracking-widest uppercase border-b-2 transition-all"
             style={{ borderColor: tab === t ? 'var(--crimson)' : 'transparent', color: tab === t ? 'var(--crimson)' : 'var(--text-secondary)' }}>
             {t === 'profile' ? 'Account Details' : 'Saved Addresses'}
@@ -194,7 +199,7 @@ export default function ProfilePage() {
             <input type="checkbox" checked={whatsapp} onChange={e => setWhatsapp(e.target.checked)} className="w-4 h-4" style={{ accentColor: 'var(--crimson)' }} />
             <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Receive WhatsApp updates</span>
           </label>
-          <button onClick={save} disabled={saving || !!phoneError} className="btn-primary flex items-center gap-2"
+          <button type="button" onClick={save} disabled={saving || !!phoneError} className="btn-primary flex items-center gap-2"
             style={{ opacity: saving || phoneError ? 0.6 : 1 }}>
             {saving && <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {saving ? 'Saving...' : 'Save Changes'}
@@ -244,8 +249,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => saveEditedAddress(a.id)} className="btn-primary text-sm">Save</button>
-                    <button onClick={() => setEditingAddress(null)} className="btn-outline text-sm">Cancel</button>
+                    <button type="button" onClick={() => saveEditedAddress(a.id)} className="btn-primary text-sm">Save</button>
+                    <button type="button" onClick={() => setEditingAddress(null)} className="btn-outline text-sm">Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -258,9 +263,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex flex-col gap-2 flex-shrink-0">
                     {/* FIX: Edit button */}
-                    <button onClick={() => { setEditingAddress(a.id); setEditForm({ full_name: a.full_name, phone: a.phone, address_line1: a.address_line1, address_line2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Edit</button>
-                    {!a.is_default && <button onClick={() => setDefault(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Set Default</button>}
-                    <button onClick={() => remove(a.id)} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
+                    <button type="button" onClick={() => { setEditingAddress(a.id); setEditForm({ full_name: a.full_name, phone: a.phone, address_line1: a.address_line1, address_line2: a.address_line2 || '', city: a.city, state: a.state, pincode: a.pincode }) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Edit</button>
+                    {!a.is_default && <button type="button" onClick={() => setDefault(a.id)} disabled={actionId === a.id} className="text-xs disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>Set Default</button>}
+                    <button type="button" onClick={() => remove(a.id)} disabled={actionId === a.id} className="text-xs disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>Remove</button>
                   </div>
                 </div>
               )}

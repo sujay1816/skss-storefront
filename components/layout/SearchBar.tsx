@@ -121,7 +121,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
           autoComplete="off"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus() }}
+          <button type="button" onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus() }}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100"
             aria-label="Clear search">
             <X size={14} style={{ color: 'var(--text-secondary)' }} />
@@ -140,11 +140,11 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Recent</p>
-                  <button onClick={() => { localStorage.removeItem(RECENT_KEY); setRecent([]) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear</button>
+                  <button type="button" onClick={() => { localStorage.removeItem(RECENT_KEY); setRecent([]) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recent.map(r => (
-                    <button key={r} onClick={() => { setQuery(r); search(r) }}
+                    <button type="button" key={r} onClick={() => { setQuery(r); search(r) }}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-full transition-all"
                       style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)'; (e.currentTarget as HTMLElement).style.color = 'var(--crimson)' }}
@@ -159,7 +159,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
               <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Popular Searches</p>
               <div className="flex flex-wrap gap-2">
                 {POPULAR_SEARCHES.map(s => (
-                  <button key={s} onClick={() => { setQuery(s); search(s) }}
+                  <button type="button" key={s} onClick={() => { setQuery(s); search(s) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-full transition-all"
                     style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)'; (e.currentTarget as HTMLElement).style.color = 'var(--crimson)' }}
@@ -199,7 +199,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
               const price = r.salePrice ?? r.originalPrice
               const isOnSale = !!r.salePrice
               return (
-                <button key={r.id} onClick={() => goProduct(r.slug)}
+                <button type="button" key={r.id} onClick={() => goProduct(r.slug)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all"
                   style={{ background: i === activeIdx ? 'var(--cream)' : 'transparent' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--cream)'; setActiveIdx(i) }}
@@ -221,7 +221,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
               )
             })}
             <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-              <button onClick={() => go(query)}
+              <button type="button" onClick={() => go(query)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium rounded-lg transition-all"
                 style={{ background: 'var(--cream)', color: 'var(--crimson)', border: '1px solid var(--border)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)'}
@@ -239,7 +239,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
             <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>Try different keywords or browse our collections.</p>
             <div className="flex flex-wrap justify-center gap-2">
               {POPULAR_SEARCHES.slice(0, 3).map(s => (
-                <button key={s} onClick={() => { setQuery(s); search(s) }}
+                <button type="button" key={s} onClick={() => { setQuery(s); search(s) }}
                   className="px-3 py-1.5 text-xs border rounded-full"
                   style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
                   {s}

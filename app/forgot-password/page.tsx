@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
               Click the link in the email to set a new password. The link expires in 1 hour. Check your spam folder if you don't see it.
             </p>
             <div className="space-y-3">
-              <button onClick={() => { setSent(false); setEmail('') }} className="btn-outline w-full justify-center text-xs">
+              <button type="button" onClick={() => { setSent(false); setEmail('') }} className="btn-outline w-full justify-center text-xs">
                 Try a different email
               </button>
               <Link href="/login" className="block text-center text-xs" style={{ color: 'var(--text-secondary)' }}>

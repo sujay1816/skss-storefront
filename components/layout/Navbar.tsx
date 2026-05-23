@@ -185,7 +185,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
             </nav>
 
             <div className="flex items-center gap-1">
-              <button onClick={() => setSearchOpen(!searchOpen)} className="flex items-center justify-center w-10 h-10" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} style={{ color: 'var(--text-primary)' }}>
+              <button type="button" onClick={() => setSearchOpen(!searchOpen)} className="flex items-center justify-center w-10 h-10" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} style={{ color: 'var(--text-primary)' }}>
                 <Search size={18} />
               </button>
               <Link href="/wishlist" className="relative flex items-center justify-center w-10 h-10" aria-label="Wishlist">
@@ -198,7 +198,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
               </Link>
 
               <div className="relative" ref={profileRef}>
-                <button onClick={() => setProfileOpen(!profileOpen)} aria-label={user ? `${user.fullName || "Account"} menu` : "Account menu"} aria-expanded={profileOpen}
+                <button type="button" onClick={() => setProfileOpen(!profileOpen)} aria-label={user ? `${user.fullName || "Account"} menu` : "Account menu"} aria-expanded={profileOpen}
                   className="flex items-center justify-center w-10 h-10 rounded-full transition-all"
                   style={{ background: profileOpen ? 'var(--cream)' : 'transparent' }}>
                   {user ? (
@@ -260,7 +260,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                             ))}
                           </div>
                           <div className="border-t p-2" style={{ borderColor: 'var(--border)' }}>
-                            <button onClick={handleLogout}
+                            <button type="button" onClick={handleLogout}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                               style={{ color: '#DC2626' }}
                               onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
@@ -329,7 +329,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
                     <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', fontSize: '9px' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>
                   </div>
                 </div>
-                <button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
+                <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={22} style={{ color: 'var(--text-primary)' }} /></button>
               </div>
 
               {user && (
@@ -397,7 +397,7 @@ export default function Navbar({ categories, config, user: serverUser }: NavbarP
 
               {user && (
                 <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <button onClick={handleLogout}
+                  <button type="button" onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-lg transition-all"
                     style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FCA5A5' }}>
                     <LogOut size={15} /> Sign Out

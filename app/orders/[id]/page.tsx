@@ -473,7 +473,7 @@ export default function OrderDetailPage() {
                   style={{ opacity: returnSubmitting || !returnReason.trim() ? 0.6 : 1 }}>
                   {returnSubmitting ? 'Submitting...' : 'Submit Request'}
                 </button>
-                <button onClick={() => setShowReturnForm(false)} className="btn-outline text-sm">Cancel</button>
+                <button type="button" onClick={() => setShowReturnForm(false)} className="btn-outline text-sm">Cancel</button>
               </div>
             </div>
           )}
@@ -517,7 +517,7 @@ export default function OrderDetailPage() {
               <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
                 You can cancel this order as it hasn't been shipped yet. Once shipped, cancellation is not possible.
               </p>
-              <button onClick={() => setShowCancelForm(true)} className="btn-outline text-sm"
+              <button type="button" onClick={() => setShowCancelForm(true)} className="btn-outline text-sm"
                 style={{ color: '#DC2626', borderColor: '#DC2626' }}>
                 Cancel Order
               </button>
@@ -533,11 +533,11 @@ export default function OrderDetailPage() {
                 style={{ height: 72, padding: '10px 12px', resize: 'none', fontSize: 13 }}
               />
               <div className="flex gap-2">
-                <button onClick={submitCancellation} disabled={cancelling || !cancelReason.trim()}
+                <button type="button" onClick={submitCancellation} disabled={cancelling || !cancelReason.trim()}
                   className="btn-primary text-sm" style={{ background: '#DC2626', borderColor: '#DC2626', opacity: cancelling || !cancelReason.trim() ? 0.6 : 1 }}>
                   {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
                 </button>
-                <button onClick={() => setShowCancelForm(false)} className="btn-outline text-sm">Keep Order</button>
+                <button type="button" onClick={() => setShowCancelForm(false)} className="btn-outline text-sm">Keep Order</button>
               </div>
             </div>
           )}

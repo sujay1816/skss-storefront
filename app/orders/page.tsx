@@ -115,7 +115,7 @@ export default function OrdersPage() {
           {filteredOrders.length === 0 && (
             <div className="text-center py-12">
               <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>No orders match your search.</p>
-              <button onClick={() => { setSearch(''); setStatusFilter('') }} className="btn-outline text-xs">Clear filters</button>
+              <button type="button" onClick={() => { setSearch(''); setStatusFilter('') }} className="btn-outline text-xs">Clear filters</button>
             </div>
           )}
           {filteredOrders.map(order => {

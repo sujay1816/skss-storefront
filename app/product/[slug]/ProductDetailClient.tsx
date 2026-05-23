@@ -141,7 +141,7 @@ function Accordion({ id, title, children, openSection, setOpenSection }: {
 }) {
   return (
     <div className="border-t" style={{ borderColor: 'var(--border)' }}>
-      <button className="w-full flex items-center justify-between py-4" onClick={() => setOpenSection(openSection === id ? null : id)}>
+      <button type="button" className="w-full flex items-center justify-between py-4" onClick={() => setOpenSection(openSection === id ? null : id)}>
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
         {openSection === id ? <ChevronUp size={16} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />}
       </button>
@@ -390,12 +390,12 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
               onClick={() => setLightboxOpen(false)}
               onTouchStart={handleLightboxTouchStart}
               onTouchEnd={handleLightboxTouchEnd}>
-              <button className="lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
+              <button type="button" className="lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
               {/* Desktop nav arrows */}
               {product.images.length > 1 && (
                 <>
-                  <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(0, i-1)) }}>‹</button>
-                  <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(product.images.length-1, i+1)) }}>›</button>
+                  <button type="button" className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.max(0, i-1)) }}>‹</button>
+                  <button type="button" className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightboxIdx(i => Math.min(product.images.length-1, i+1)) }}>›</button>
                 </>
               )}
               {/* Image — stopPropagation so tapping image doesn't close lightbox */}
@@ -447,7 +447,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           {(product.images.length > 1 || product.videoUrl) && (
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
               {product.images.map((img, i) => (
-                <button key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null); setShowVideo(false) }}
+                <button type="button" key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null); setShowVideo(false) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: !showVideo && activeImage === i && !variantImageOverride ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
                   {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
@@ -483,7 +483,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         <div className="lg:w-1/2 pdp-info-col">
           <div className="flex items-start justify-between gap-4 mb-2">
             <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)' }}>{product.fabric}{product.weaveType ? ` · ${product.weaveType}` : ''}{product.originRegion ? ` · ${product.originRegion}` : ''}</p>
-            <button onClick={handleShare} className="p-1.5" style={{ color: 'var(--text-secondary)' }}><Share2 size={16} /></button>
+            <button type="button" onClick={handleShare} className="p-1.5" style={{ color: 'var(--text-secondary)' }}><Share2 size={16} /></button>
           </div>
           <h1 className="text-3xl md:text-4xl font-light mb-3 pdp-title" style={{ fontFamily: 'var(--font-heading)' }}>{product.name}</h1>
 
@@ -587,7 +587,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                         className="input-base flex-1"
                         style={{ height: 34, fontSize: 12, padding: '0 10px' }}
                       />
-                      <button onClick={submitRestockNotify} disabled={notifyLoading || !notifyEmail.trim()}
+                      <button type="button" onClick={submitRestockNotify} disabled={notifyLoading || !notifyEmail.trim()}
                         className="btn-primary text-xs flex-shrink-0"
                         style={{ height: 34, padding: '0 12px', opacity: notifyLoading || !notifyEmail.trim() ? 0.6 : 1 }}>
                         {notifyLoading ? '...' : 'Notify me'}
@@ -606,9 +606,9 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <p className="text-xs font-medium tracking-wide uppercase flex-shrink-0" style={{ color: 'var(--text-primary)' }}>Quantity</p>
             <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
-              <button onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} className="w-9 h-9 flex items-center justify-center text-lg disabled:opacity-30" style={{ color: 'var(--text-primary)' }}>−</button>
+              <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} className="w-9 h-9 flex items-center justify-center text-lg disabled:opacity-30" style={{ color: 'var(--text-primary)' }}>−</button>
               <span className="w-10 text-center text-sm font-medium">{qty}</span>
-              <button onClick={() => setQty(Math.min(selectedVariant?.stock || 1, qty + 1))} className="w-9 h-9 flex items-center justify-center text-lg" style={{ color: 'var(--text-primary)' }}>+</button>
+              <button type="button" onClick={() => setQty(Math.min(selectedVariant?.stock || 1, qty + 1))} className="w-9 h-9 flex items-center justify-center text-lg" style={{ color: 'var(--text-primary)' }}>+</button>
             </div>
           </div>
 
@@ -620,7 +620,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             <div className="flex gap-2">
               <input type="text" maxLength={6} value={pincode} onChange={e => { setPincode(e.target.value.replace(/\D/g,'')); setPincodeResult(null) }}
                 placeholder="Enter pincode" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} />
-              <button onClick={checkPincode} disabled={pincode.length !== 6 || checkingPincode} className="btn-primary disabled:opacity-50" style={{ height: 36, padding: '0 16px', fontSize: 11, minWidth: 70 }}>
+              <button type="button" onClick={checkPincode} disabled={pincode.length !== 6 || checkingPincode} className="btn-primary disabled:opacity-50" style={{ height: 36, padding: '0 16px', fontSize: 11, minWidth: 70 }}>
                 {checkingPincode ? '...' : 'Check'}
               </button>
             </div>
@@ -636,11 +636,11 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
 
           <div className="flex gap-3 mb-6">
             {/* FIX: CSS :active scale instead of motion.button whileTap */}
-            <button className="btn-primary flex-1 justify-center btn-tap" onClick={handleAddToCart}
+            <button type="button" className="btn-primary flex-1 justify-center btn-tap" onClick={handleAddToCart}
               disabled={!selectedVariant || selectedVariant.stock === 0} style={{ opacity: !selectedVariant || selectedVariant.stock === 0 ? 0.5 : 1 }}>
               {!selectedVariant || selectedVariant.stock === 0 ? 'Out of Stock' : addedToCart ? <><Check size={14} /> Added!</> : <><ShoppingBag size={14} /> Add to Cart</>}
             </button>
-            <button className="btn-outline px-4 btn-tap" onClick={handleWishlist}>
+            <button type="button" className="btn-outline px-4 btn-tap" onClick={handleWishlist}>
               <Heart size={16} fill={wishlisted ? 'var(--crimson)' : 'none'} stroke={wishlisted ? 'var(--crimson)' : 'currentColor'} style={{ color: wishlisted ? 'var(--crimson)' : 'inherit' }} />
             </button>
           </div>
@@ -710,9 +710,9 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 {hasVerifiedPurchase && (
                   <p className="text-xs mb-4" style={{ color: '#1B7A3E' }}>✔ You purchased this product — your review will be marked as verified.</p>
                 )}
-                <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, i) => <button key={i} onClick={() => setReviewRating(i + 1)}><Star size={22} fill={i < reviewRating ? 'var(--gold)' : 'none'} stroke="var(--gold)" /></button>)}</div>
+                <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, i) => <button type="button" key={i} onClick={() => setReviewRating(i + 1)}><Star size={22} fill={i < reviewRating ? 'var(--gold)' : 'none'} stroke="var(--gold)" /></button>)}</div>
                 <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Share your experience with this saree..." className="input-base w-full mb-3" style={{ height: 100, padding: '12px 14px', resize: 'none' }} />
-                <button className="btn-primary" onClick={submitReview} disabled={reviewSubmitting || !reviewText.trim()}>
+                <button type="button" className="btn-primary" onClick={submitReview} disabled={reviewSubmitting || !reviewText.trim()}>
                   {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
                 </button>
               </div>

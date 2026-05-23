@@ -38,7 +38,7 @@ const FilterSection = ({ title, children }: { title: string; children: React.Rea
 )
 
 const FilterChip = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
-  <button onClick={onClick} className="px-3 py-1.5 text-xs border transition-all duration-150"
+  <button type="button" onClick={onClick} className="px-3 py-1.5 text-xs border transition-all duration-150"
     style={{ borderColor: active ? 'var(--crimson)' : 'var(--border)', background: active ? 'var(--crimson)' : 'transparent', color: active ? 'white' : 'var(--text-secondary)' }}>
     {label}
   </button>
@@ -78,7 +78,7 @@ function FiltersContent({ activeCount, categories, fabrics, selectedCategory, se
     <div>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>Filters {activeCount > 0 && `(${activeCount})`}</h3>
-        {activeCount > 0 && <button onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear All</button>}
+        {activeCount > 0 && <button type="button" onClick={clearAll} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear All</button>}
       </div>
       <FilterSection title="Category">
         <div className="flex flex-wrap gap-2">
@@ -241,7 +241,7 @@ export default function ShopContent({ products, categories, config, userId, init
               className="text-xs border px-2 outline-none flex-1 min-w-0" style={{ borderColor: 'var(--border)', height: 40, color: 'var(--text-primary)', background: 'white' }}>
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button onClick={() => setFiltersOpen(true)}
+            <button type="button" onClick={() => setFiltersOpen(true)}
               className="flex items-center gap-2 text-xs border px-3 font-medium"
               style={{ borderColor: activeCount > 0 ? 'var(--crimson)' : 'var(--border)', height: 40, color: activeCount > 0 ? 'var(--crimson)' : 'var(--text-primary)', background: activeCount > 0 ? 'var(--cream)' : 'white' }}>
               <SlidersHorizontal size={14} />
@@ -256,7 +256,7 @@ export default function ShopContent({ products, categories, config, userId, init
             onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
             placeholder="Search sarees..." className="text-sm outline-none bg-transparent flex-1"
             style={{ color: 'var(--text-primary)' }} />
-          {searchInput && <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={14} /></button>}
+          {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={14} /></button>}
         </div>
         {/* Desktop: original inline toolbar */}
         <div className="hidden lg:flex items-center gap-3">
@@ -266,13 +266,13 @@ export default function ShopContent({ products, categories, config, userId, init
               onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
               placeholder="Search sarees..." className="text-xs outline-none bg-transparent"
               style={{ width: 160, color: 'var(--text-primary)' }} />
-            {searchInput && <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={12} /></button>}
+            {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={12} /></button>}
           </div>
           <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
             className="text-xs border px-2 outline-none" style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)', background: 'white' }}>
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <button onClick={() => setFiltersOpen(!filtersOpen)} className="flex items-center gap-2 text-xs border px-3"
+          <button type="button" onClick={() => setFiltersOpen(!filtersOpen)} className="flex items-center gap-2 text-xs border px-3"
             style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)' }}>
             <SlidersHorizontal size={14} />
             Filters {activeCount > 0 && `(${activeCount})`}
@@ -321,10 +321,10 @@ export default function ShopContent({ products, categories, config, userId, init
               </p>
               {activeCount > 0 && (
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button onClick={clearAll} className="btn-primary">
+                  <button type="button" onClick={clearAll} className="btn-primary">
                     Clear All Filters
                   </button>
-                  <button onClick={() => setSelectedCategory('')} className="btn-outline">
+                  <button type="button" onClick={() => setSelectedCategory('')} className="btn-outline">
                     Browse All Categories
                   </button>
                 </div>
@@ -339,7 +339,7 @@ export default function ShopContent({ products, categories, config, userId, init
           {/* FIX #7: smart pagination with ellipsis — no overflow on mobile */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-1 mt-10">
-              <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
+              <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
                 className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
                 style={{ borderColor: 'var(--border)' }}>
                 <ChevronLeft size={14} />
@@ -349,7 +349,7 @@ export default function ShopContent({ products, categories, config, userId, init
                   <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-xs"
                     style={{ color: 'var(--text-secondary)' }}>…</span>
                 ) : (
-                  <button key={p} onClick={() => setPage(Number(p))}
+                  <button type="button" key={p} onClick={() => setPage(Number(p))}
                     className="w-9 h-9 text-xs border font-medium"
                     style={{
                       borderColor: page === p ? 'var(--crimson)' : 'var(--border)',
@@ -360,7 +360,7 @@ export default function ShopContent({ products, categories, config, userId, init
                   </button>
                 )
               )}
-              <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+              <button type="button" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
                 className="w-9 h-9 flex items-center justify-center border disabled:opacity-30"
                 style={{ borderColor: 'var(--border)' }}>
                 <ChevronRightIcon size={14} />
@@ -393,7 +393,7 @@ export default function ShopContent({ products, categories, config, userId, init
                 <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   Filters {activeCount > 0 && `(${activeCount})`}
                 </span>
-                <button onClick={() => setFiltersOpen(false)} style={{ color: 'var(--text-secondary)' }}>
+                <button type="button" onClick={() => setFiltersOpen(false)} style={{ color: 'var(--text-secondary)' }}>
                   <X size={20} />
                 </button>
               </div>
@@ -412,12 +412,12 @@ export default function ShopContent({ products, categories, config, userId, init
               <div className="px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex gap-3">
                   {activeCount > 0 && (
-                    <button onClick={() => { clearAll(); setFiltersOpen(false) }}
+                    <button type="button" onClick={() => { clearAll(); setFiltersOpen(false) }}
                       className="btn-outline flex-1 justify-center" style={{ height: 48 }}>
                       Clear All
                     </button>
                   )}
-                  <button onClick={() => setFiltersOpen(false)}
+                  <button type="button" onClick={() => setFiltersOpen(false)}
                     className="btn-primary flex-1 justify-center" style={{ height: 48 }}>
                     Show {filtered.length} Results
                   </button>

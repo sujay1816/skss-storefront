@@ -16,6 +16,7 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1999)
   const [shippingCharge, setShippingCharge] = useState(99)
   const [gstRate, setGstRate] = useState(5)
@@ -165,16 +166,16 @@ export default function CartPage() {
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center border" style={{ borderColor: 'var(--border)' }}>
                           {/* FIX #3: w-11 h-11 on mobile (44px touch target), w-8 h-8 on sm+ */}
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined)} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={16} /></button>
+                          <button type="button" disabled={updatingId === item.productId + item.colour} onClick={() => { setUpdatingId(item.productId + item.colour); updateQty(item.productId, item.colour, item.quantity - 1, userId || undefined) }} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center" style={{ color: 'var(--text-primary)' }}><Minus size={16} /></button>
                           <span className="w-10 text-center font-medium" style={{ fontSize: 15 }}>{item.quantity}</span>
-                          <button onClick={() => updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined)} disabled={item.quantity >= item.stock} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={16} /></button>
+                          <button type="button" disabled={updatingId === item.productId + item.colour || item.quantity >= item.stock} onClick={() => { setUpdatingId(item.productId + item.colour); updateQty(item.productId, item.colour, item.quantity + 1, userId || undefined) }} className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center disabled:opacity-30" style={{ color: 'var(--text-primary)' }}><Plus size={16} /></button>
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
                             <p className="font-medium" style={{ color: 'var(--crimson)' }}>{formatPrice(price * item.quantity)}</p>
                             {isOnSale && <p className="text-xs line-through" style={{ color: 'var(--text-secondary)' }}>{formatPrice(item.originalPrice * item.quantity)}</p>}
                           </div>
-                          <button onClick={() => { removeItem(item.productId, item.colour, userId || undefined); toast.success('Item removed') }} aria-label="Remove item from cart" className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
+                          <button type="button" disabled={updatingId === item.productId + item.colour} onClick={() => { setUpdatingId(item.productId + item.colour); removeItem(item.productId, item.colour, userId || undefined); toast.success('Item removed') }} aria-label="Remove item from cart" className="p-1" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}><Trash2 size={16} /></button>
                         </div>
                       </div>
                     </div>
@@ -197,12 +198,12 @@ export default function CartPage() {
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between p-3 border" style={{ borderColor: 'var(--gold)', background: 'var(--cream)' }}>
                     <div className="flex items-center gap-2"><Tag size={14} style={{ color: 'var(--gold)' }} /><span className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{appliedCoupon.code}</span></div>
-                    <button onClick={() => { setAppliedCoupon(null); setStoreCoupon(null) }} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
+                    <button type="button" onClick={() => { setAppliedCoupon(null); setStoreCoupon(null) }} className="text-xs" style={{ color: 'var(--text-secondary)' }}>Remove</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
                     <input type="text" value={coupon} onChange={e => { setCoupon(e.target.value.toUpperCase()); setCouponError('') }} placeholder="Enter code" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} onKeyDown={e => e.key === 'Enter' && applyCoupon()} />
-                    <button onClick={applyCoupon} disabled={couponLoading} className="btn-outline flex-shrink-0" style={{ height: 36, padding: '0 12px', fontSize: 11 }}>Apply</button>
+                    <button type="button" onClick={applyCoupon} disabled={couponLoading} className="btn-outline flex-shrink-0" style={{ height: 36, padding: '0 12px', fontSize: 11 }}>Apply</button>
                   </div>
                 )}
                 {couponError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{couponError}</p>}

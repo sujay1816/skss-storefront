@@ -98,7 +98,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
               <CheckCircle size={48} className="mx-auto mb-4" style={{ color: '#16A34A' }} />
               <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Message Sent!</p>
               <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>We'll get back to you within 24 hours.</p>
-              <button onClick={() => { setFormSent(false); setFormName(''); setFormEmail(''); setFormMessage('') }} className="btn-outline text-xs">Send Another Message</button>
+              <button type="button" onClick={() => { setFormSent(false); setFormName(''); setFormEmail(''); setFormMessage('') }} className="btn-outline text-xs">Send Another Message</button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
