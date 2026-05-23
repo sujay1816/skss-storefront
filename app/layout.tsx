@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const name = cfg.brand_name || BRAND_NAME
     const tagline = cfg.brand_tagline || 'Pure Silk. Timeless Tradition. Royal Elegance.'
-    const logo = cfg.logo_url || `${SITE_URL}/images/logo.png`
+    const logo = cfg.logo_url || ''
     const desc = `Shop the finest silk and traditional sarees at ${name}. ${tagline} Kanjivaram, Banarasi, Chanderi and more. Free shipping above ₹1,999.`
 
     return {
@@ -147,7 +147,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     url: SITE_URL,
     logo: {
       '@type': 'ImageObject',
-      url: b.logo_url || `${SITE_URL}/images/logo.png`,
+      url: b.logo_url || '',
       width: 512,
       height: 512,
     },
@@ -166,7 +166,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     '@type': 'ClothingStore',
     name: b.brand_name || BRAND_NAME,
     url: SITE_URL,
-    image: b.logo_url || `${SITE_URL}/images/logo.png`,
+    image: b.logo_url || '',
     description: `Premium silk sarees — Kanjivaram, Banarasi, Chanderi and more. Shop online with free shipping.`,
     priceRange: '₹₹₹',
     currenciesAccepted: 'INR',
@@ -214,8 +214,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Non-blocking: load as print, swap to all on load — prevents render-blocking on slow 3G */}
         <link rel="stylesheet" href={fontsUrl} media="print" />
         <noscript><link rel="stylesheet" href={fontsUrl} /></noscript>
-        <link rel="icon" href={brand.logo_url || '/images/logo.png'} />
-        <link rel="apple-touch-icon" href={brand.logo_url || '/images/logo.png'} />
+        <link rel="icon" href={brand.logo_url || ''} />
+        <link rel="apple-touch-icon" href={brand.logo_url || ''} />
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />

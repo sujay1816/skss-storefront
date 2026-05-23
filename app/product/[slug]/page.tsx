@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     const brandName = config.brand_name || BRAND_NAME
     const price = product.salePrice || product.originalPrice
     const primaryImage = product.images?.find((i: any) => i.isPrimary) || product.images?.[0]
-    const imageUrl = primaryImage?.url || `${SITE_URL}/images/logo.png`
+    const imageUrl = primaryImage?.url || ''
 
     // Rich product description for SEO
     const descParts = [

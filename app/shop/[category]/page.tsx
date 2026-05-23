@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: { category: string 
       openGraph: {
         title: `${title} | ${brandName}`, description: desc,
         type: 'website', url: `${SITE_URL}/shop/${params.category}`,
-        images: [{ url: cat.image_url || `${SITE_URL}/images/logo.png`, width: 800, height: 600 }],
+        images: [{ url: cat.image_url || '', width: 800, height: 600 }],
       },
     }
   } catch { return { title: 'Shop Sarees' } }

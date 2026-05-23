@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email address</label>
-                <input type="email" className="input-base" value={email} onChange={e => setEmail(e.target.value)}
+                <input type="email" autoComplete="email" className="input-base" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com" required autoFocus />
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full justify-center" style={{ opacity: loading ? 0.7 : 1 }}>

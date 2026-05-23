@@ -109,7 +109,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
                 </div>
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Email Address *</label>
-                  <input type="email" className="input-base" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="you@example.com" required disabled={formSending} />
+                  <input type="email" autoComplete="email" className="input-base" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="you@example.com" required disabled={formSending} />
                 </div>
               </div>
               <div>
