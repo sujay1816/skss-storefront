@@ -166,7 +166,7 @@ export default function CheckoutPage() {
       }
 
       const receipt = `order_${Date.now()}`
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
+      const { data: { session: currentSession } } = await supabase.auth.refreshSession()
       const res = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession?.access_token || ''}` },
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
         currency: 'INR',
         name: document.title.split(' – ')[0] || 'Our Store',
         description: `Order for ${items.length} item(s)`,
-        image: (document.querySelector('link[rel="icon"]') as HTMLLinkElement)?.href || '/images/logo.png',
+        image: (document.querySelector('link[rel="icon"]') as HTMLLinkElement)?.href || '',
         order_id: razorpayOrder.id,
         handler: async (response: any) => {
           const verify = await fetch('/api/verify-payment', {
@@ -216,7 +216,7 @@ export default function CheckoutPage() {
   const placeOrder = async (razorpayOrderId: string | null, razorpayPaymentId: string | null) => {
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.refreshSession()
       const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
 
       // Single atomic server call — handles stock lock, order creation, and stock deduction

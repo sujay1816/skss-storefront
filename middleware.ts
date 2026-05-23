@@ -21,7 +21,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Supabase unavailable — fail open for public pages, block protected routes only
+    const path = request.nextUrl.pathname
+    if (PROTECTED.some(r => path.startsWith(r))) {
+      return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(path)}`, request.url))
+    }
+    return response
+  }
   const path = request.nextUrl.pathname
 
   // FIX: redirect already-logged-in users away from auth pages

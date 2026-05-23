@@ -140,7 +140,7 @@ export default function SearchBar({ onClose }: { onClose: () => void }) {
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Recent</p>
-                  <button type="button" onClick={() => { localStorage.removeItem(RECENT_KEY); setRecent([]) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear</button>
+                  <button type="button" onClick={() => { try { localStorage.removeItem(RECENT_KEY) } catch {} setRecent([]) }} className="text-xs" style={{ color: 'var(--crimson)' }}>Clear</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recent.map(r => (

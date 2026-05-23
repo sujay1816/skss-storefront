@@ -14,7 +14,6 @@ async function sendSMS(phone: string, message: string) {
     return { success: false, error: 'API key not configured' }
   }
 
-  console.log('[SMS] Sending to:', clean, '| Message length:', message.length)
 
   const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
     method: 'POST',
@@ -32,7 +31,6 @@ async function sendSMS(phone: string, message: string) {
   })
 
   const data = await res.json()
-  console.log('[SMS] Fast2SMS response:', JSON.stringify(data))
   return { success: data.return === true, data }
 }
 
@@ -67,7 +65,6 @@ export async function POST(request: Request) {
 
     if (!message) return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
 
-    console.log('[SMS] type:', type, '| phone:', phone)
     const result = await sendSMS(phone, message)
     return NextResponse.json(result)
 
