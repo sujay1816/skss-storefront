@@ -201,9 +201,88 @@ function shippingUpdateHtml(order: any, trackingId: string, courierName: string,
 </html>`
 }
 
+function restockConfirmationHtml(productName: string, colour: string, brandName: string, siteUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#FDFAF7;font-family:'DM Sans',Arial,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:white;border:1px solid #E8DDD4;">
+    <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:28px 32px;text-align:center;">
+      <h1 style="color:white;font-size:22px;font-weight:300;margin:0;font-family:Georgia,serif;">${brandName}</h1>
+      <p style="color:rgba(201,168,76,0.9);font-size:10px;letter-spacing:0.3em;text-transform:uppercase;margin:6px 0 0;">✦ SILKS &amp; SAREES ✦</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin:0 0 12px;font-family:Georgia,serif;">We'll let you know!</h2>
+      <p style="font-size:14px;color:#5A4A3A;line-height:1.7;margin:0 0 20px;">
+        You're now on the waitlist for:
+      </p>
+      <div style="background:#FFF8F0;border-left:3px solid #C9A84C;padding:14px 18px;margin-bottom:24px;">
+        <p style="margin:0;font-size:15px;font-weight:500;color:#1A1A1A;">${productName}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#5A4A3A;">Colour: ${colour}</p>
+      </div>
+      <p style="font-size:14px;color:#5A4A3A;line-height:1.7;margin:0 0 24px;">
+        As soon as this item is back in stock, you'll be the first to know. We'll send you an email with a direct link so you can grab it before it sells out again.
+      </p>
+      <div style="text-align:center;margin-bottom:28px;">
+        <a href="${siteUrl}/shop" style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#8B1A2B,#6B1220);color:white;text-decoration:none;font-size:12px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;">
+          Browse Other Sarees
+        </a>
+      </div>
+      <p style="font-size:12px;color:#9A8A7A;text-align:center;margin:0;">
+        If you didn't request this notification, please ignore this email.
+      </p>
+    </div>
+    <div style="background:#F5EDE3;padding:16px 32px;text-align:center;">
+      <p style="font-size:11px;color:#9A8A7A;margin:0;">&copy; ${new Date().getFullYear()} ${brandName}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+function restockAvailableHtml(productName: string, colour: string, productUrl: string, brandName: string, siteUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#FDFAF7;font-family:'DM Sans',Arial,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:white;border:1px solid #E8DDD4;">
+    <div style="background:linear-gradient(135deg,#8B1A2B,#6B1220);padding:28px 32px;text-align:center;">
+      <h1 style="color:white;font-size:22px;font-weight:300;margin:0;font-family:Georgia,serif;">${brandName}</h1>
+      <p style="color:rgba(201,168,76,0.9);font-size:10px;letter-spacing:0.3em;text-transform:uppercase;margin:6px 0 0;">✦ SILKS &amp; SAREES ✦</p>
+    </div>
+    <div style="padding:32px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <span style="display:inline-block;background:#EAF6ED;color:#15803D;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:5px 14px;border-radius:99px;">Back in Stock!</span>
+      </div>
+      <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin:0 0 12px;font-family:Georgia,serif;">Great news — it's available again!</h2>
+      <p style="font-size:14px;color:#5A4A3A;line-height:1.7;margin:0 0 20px;">
+        The saree you were waiting for is back in stock. Grab it before it sells out again!
+      </p>
+      <div style="background:#FFF8F0;border-left:3px solid #C9A84C;padding:14px 18px;margin-bottom:24px;">
+        <p style="margin:0;font-size:15px;font-weight:500;color:#1A1A1A;">${productName}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#5A4A3A;">Colour: ${colour}</p>
+      </div>
+      <div style="text-align:center;margin-bottom:28px;">
+        <a href="${productUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#8B1A2B,#6B1220);color:white;text-decoration:none;font-size:13px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;box-shadow:0 4px 14px rgba(139,26,43,0.35);">
+          Shop Now →
+        </a>
+      </div>
+      <p style="font-size:12px;color:#9A8A7A;text-align:center;margin:0;">
+        Hurry — limited stock available. This item may sell out quickly.
+      </p>
+    </div>
+    <div style="background:#F5EDE3;padding:16px 32px;text-align:center;">
+      <p style="font-size:11px;color:#9A8A7A;margin:0;">&copy; ${new Date().getFullYear()} ${brandName}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+
 export async function POST(request: Request) {
   try {
-    const { type, order, items, trackingId, courierName, customerEmail } = await request.json()
+    const { type, order, items, trackingId, courierName, customerEmail, productName, colour, productUrl, productSlug } = await request.json()
     const { resend, adminEmail: ADMIN_EMAIL, fromEmail: FROM_EMAIL } = await getEmailConfig()
 
     if (type === 'order_confirmation') {
@@ -232,6 +311,33 @@ export async function POST(request: Request) {
         to: customerEmail,
         subject: `Your order has been shipped! #${String(order.id).slice(0,8).toUpperCase()}`,
         html: shippingUpdateHtml(order, trackingId, courierName, brandName),
+      })
+      return NextResponse.json({ success: true })
+    }
+
+    // Restock: sent immediately when customer registers for notification
+    if (type === 'restock_confirmation') {
+      const brandName = await getCfg('brand_name', process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
+      const siteUrl = await getCfg('setup_site_url', process.env.NEXT_PUBLIC_SITE_URL || '')
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: customerEmail,
+        subject: `We'll notify you when ${productName} is back — ${brandName}`,
+        html: restockConfirmationHtml(productName, colour, brandName, siteUrl),
+      })
+      return NextResponse.json({ success: true })
+    }
+
+    // Restock: sent when admin restocks and customers are waiting
+    if (type === 'restock_available') {
+      const brandName = await getCfg('brand_name', process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
+      const siteUrl = await getCfg('setup_site_url', process.env.NEXT_PUBLIC_SITE_URL || '')
+      const fullProductUrl = productUrl || (productSlug ? `${siteUrl}/product/${productSlug}` : `${siteUrl}/shop`)
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: customerEmail,
+        subject: `${productName} is back in stock! — ${brandName}`,
+        html: restockAvailableHtml(productName, colour, fullProductUrl, brandName, siteUrl),
       })
       return NextResponse.json({ success: true })
     }

@@ -171,14 +171,37 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     setNotifyLoading(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('restock_requests').upsert({
+
+    // Save request to DB
+    const { error: upsertErr } = await supabase.from('restock_requests').upsert({
       product_id: product.id,
       colour: selectedVariant.colour,
       email: notifyEmail.trim().toLowerCase(),
       user_id: user?.id || null,
     }, { onConflict: 'product_id,colour,email' })
+
+    if (upsertErr) {
+      toast.error('Could not save your request. Please try again.')
+      setNotifyLoading(false)
+      return
+    }
+
+    // Send confirmation email to customer (non-blocking — don't fail if email fails)
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'restock_confirmation',
+        customerEmail: notifyEmail.trim().toLowerCase(),
+        productName: product.name,
+        colour: selectedVariant.colour,
+        productSlug: product.slug,
+      }),
+    }).catch(() => {}) // Non-blocking — user sees success even if email fails
+
     setNotifySubmitted(true)
     setNotifyLoading(false)
+    toast.success("You're on the waitlist! We'll email you when it's back.")
   }
   const [addedToCart, setAddedToCart] = useState(false)
   const [openSection, setOpenSection] = useState<string | null>('details')
