@@ -9,9 +9,9 @@ async function getEmailConfig() {
   const [apiKey, adminEmail, fromEmail] = await Promise.all([
     getCfg('setup_resend_api_key', process.env.RESEND_API_KEY),
     getCfg('setup_admin_email',    process.env.ADMIN_EMAIL || ''),
-    getCfg('setup_from_email',     process.env.FROM_EMAIL  || 'onboarding@resend.dev'),
+    getCfg('setup_from_email',     process.env.FROM_EMAIL  || ''),
   ])
-  return { resend: new Resend(apiKey), adminEmail, fromEmail }
+  return { resend: new Resend(apiKey || ''), adminEmail, fromEmail, apiKey }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -340,9 +340,21 @@ export async function POST(request: Request) {
       newStatus,
     } = body
 
-    const { resend, adminEmail: ADMIN_EMAIL, fromEmail: FROM_EMAIL } = await getEmailConfig()
+    const { resend, adminEmail: ADMIN_EMAIL, fromEmail: FROM_EMAIL, apiKey: RESEND_KEY } = await getEmailConfig()
     const brandName = await getCfg('brand_name', process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
     const siteUrl   = await getCfg('setup_site_url', process.env.NEXT_PUBLIC_SITE_URL || SITE_URL)
+
+    // Guard: fail fast with a clear error instead of silently sending to wrong address
+    if (!RESEND_KEY) {
+      return NextResponse.json({
+        error: 'Email not configured. Set RESEND_API_KEY in Vercel env vars or the admin Config tab.',
+      }, { status: 503 })
+    }
+    if (!FROM_EMAIL) {
+      return NextResponse.json({
+        error: 'FROM_EMAIL not configured. Set it in Vercel env vars or the admin Config → Setup tab.',
+      }, { status: 503 })
+    }
 
     // ── 1. ORDER CONFIRMATION ─────────────────────────────────
     if (type === 'order_confirmation') {
