@@ -103,6 +103,7 @@ const ZoomImage = memo(function ZoomImage({
           <Image
             src={src} alt={alt} fill
             className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 50vw"
             style={{
               transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
               transform: !isTouchDevice && isZooming ? 'scale(2)' : 'scale(1)',
@@ -472,7 +473,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 <button type="button" key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null); setShowVideo(false) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: !showVideo && activeImage === i && !variantImageOverride ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
-                  {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
+                  {img.url ? <Image src={img.url} alt={img.altText} fill sizes="80px" className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
               {product.videoUrl && (
@@ -482,7 +483,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: showVideo ? 'var(--crimson)' : 'var(--border)', background: '#111', flexShrink: 0 }}>
                   {/* Show first product image as video poster thumbnail */}
                   {product.images?.[0]?.url && (
-                    <Image src={product.images[0].url} alt="Video" fill className="object-cover opacity-40" />
+                    <Image src={product.images[0].url} alt="Video" fill sizes="80px" className="object-cover opacity-40" />
                   )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center"

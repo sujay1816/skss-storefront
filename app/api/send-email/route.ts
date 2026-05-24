@@ -189,6 +189,18 @@ function orderStatusUpdateHtml(order: any, newStatus: string, trackingId: string
       body: 'Your return request has been approved. Please ship the item back to us. Once received and inspected, your refund will be processed within 5&#8211;7 business days.',
       color: '#9333EA',
     },
+    return_rejected: {
+      emoji: '&#9888;&#65039;',
+      heading: 'Return request not approved',
+      body: 'We were unable to approve your return request. This may be because the item does not meet our return criteria. Please contact our support team if you have questions.',
+      color: '#DC2626',
+    },
+    refunded: {
+      emoji: '&#128176;',
+      heading: 'Refund processed',
+      body: 'Your refund has been processed and will reflect in your original payment method within 5&#8211;7 business days.',
+      color: '#15803D',
+    },
   }
   const cfg: StatusInfo = statusMap[newStatus] || {
     emoji: '&#128230;',

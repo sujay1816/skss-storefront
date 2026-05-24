@@ -29,7 +29,6 @@ export const useWishlistStore = create<WishlistStore>()(
             const { error } = await supabase.from('wishlists').delete()
               .eq('user_id', userId).eq('product_id', productId)
             if (error) {
-              console.error('Wishlist remove error:', error.message)
               // Revert optimistic update
               set(state => ({ ids: [...state.ids, productId] }))
             }
@@ -38,7 +37,6 @@ export const useWishlistStore = create<WishlistStore>()(
               user_id: userId, product_id: productId
             })
             if (error) {
-              console.error('Wishlist add error:', error.message)
               // Revert optimistic update
               set(state => ({ ids: state.ids.filter(id => id !== productId) }))
             }
@@ -52,7 +50,7 @@ export const useWishlistStore = create<WishlistStore>()(
         const supabase = createClient()
         const { data, error } = await supabase.from('wishlists')
           .select('product_id').eq('user_id', userId)
-        if (error) { console.error('Wishlist sync error:', error.message); return }
+        if (error) { ; return }
         if (data) set({ ids: data.map((r: any) => r.product_id) })
       },
 

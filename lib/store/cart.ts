@@ -54,7 +54,6 @@ export const useCartStore = create<CartStore>()(
               .eq('user_id', userId)
               .eq('product_id', productId)
               .eq('colour', colour)
-            if (error) console.error('Cart remove error:', error.message)
           })
         }
       },
@@ -82,7 +81,6 @@ export const useCartStore = create<CartStore>()(
           import('@/lib/supabase/client').then(async ({ createClient }) => {
             const supabase = createClient()
             const { error } = await supabase.from('carts').delete().eq('user_id', userId)
-            if (error) console.error('Cart clear error:', error.message)
           })
         }
       },
@@ -119,7 +117,6 @@ export const useCartStore = create<CartStore>()(
         )
         if (error) {
           // Fallback to delete+insert if upsert fails (e.g. no unique constraint yet)
-          console.warn('Cart upsert failed, falling back to delete+insert:', error.message)
           await supabase.from('carts').delete().eq('user_id', userId)
           await supabase.from('carts').insert(
             items.map(item => ({
@@ -136,7 +133,7 @@ export const useCartStore = create<CartStore>()(
         const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
         const { data, error } = await supabase.from('carts').select('*').eq('user_id', userId)
-        if (error) { console.error('Cart sync error:', error.message); return }
+        if (error) { ; return }
         if (!data || data.length === 0) return
         const dbItems: CartItem[] = data.map((r: any) => ({
           productId: r.product_id, productName: r.product_name, productSlug: r.product_slug,

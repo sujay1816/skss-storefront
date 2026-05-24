@@ -427,7 +427,7 @@ export default function CheckoutPage() {
                 <div key={i} className="flex gap-3">
                   {item.productImage && (
                     <div className="relative w-14 h-16 flex-shrink-0 overflow-hidden rounded">
-                      <Image src={item.productImage} alt={item.productName || ''} fill sizes="10vw" className="object-cover" />
+                      <Image src={item.productImage} alt={item.productName || ''} fill sizes="56px" className="object-cover" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">

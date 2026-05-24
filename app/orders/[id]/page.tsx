@@ -354,8 +354,8 @@ export default function OrderDetailPage() {
               <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 last:pb-0 order-item-row" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3">
                   {item.product_image ? (
-                    <img src={item.product_image} alt={item.product_name}
-                      loading="lazy" decoding="async"
+                    <img src={item.product_image} alt={item.product_name || "Product image"}
+                      loading="lazy" decoding="async" width="56" height="64"
                       className="w-14 object-cover rounded flex-shrink-0" style={{ height: 64 }} />
                   ) : (
                     <div className="w-14 flex items-center justify-center rounded flex-shrink-0 text-2xl"

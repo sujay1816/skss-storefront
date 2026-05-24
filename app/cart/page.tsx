@@ -146,7 +146,7 @@ export default function CartPage() {
                     className="flex gap-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div className="w-24 h-32 flex-shrink-0 border overflow-hidden cart-item-image" style={{ background: 'var(--cream)', borderColor: 'var(--border)' }}>
                       {item.productImage ? (
-                        <Image src={item.productImage} alt={item.productName} width={96} height={128} className="w-full h-full object-cover" />
+                        <Image src={item.productImage} alt={item.productName} width={96} height={128} sizes="96px" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center" style={{ background: item.colourHex, opacity: 0.4 }}><span className="text-3xl">🥻</span></div>
                       )}

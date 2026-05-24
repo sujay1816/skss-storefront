@@ -444,7 +444,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               <div className="relative">
                 <div className="absolute -inset-4 border opacity-20 rotate-3" style={{ borderColor: 'var(--gold)' }} />
                 <div className="absolute -inset-4 border opacity-10 -rotate-3" style={{ borderColor: 'var(--crimson)' }} />
-                <Image src={config.logo_url || ''} alt={config.brand_name || ''} width={140} height={140} className="object-contain relative z-10 md:w-[200px] md:h-[200px]" />
+                <Image src={config.logo_url || ''} alt={config.brand_name || ''} width={140} height={140} sizes="(max-width: 768px) 140px, 200px" className="object-contain relative z-10 md:w-[200px] md:h-[200px]" />
               </div>
             </div>
             <div className="md:w-2/3 text-center md:text-left">
