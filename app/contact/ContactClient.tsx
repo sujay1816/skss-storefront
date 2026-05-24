@@ -33,7 +33,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'contact_message', name: formName.trim(), email: formEmail.trim(), message: formMessage.trim() }),
+        body: JSON.stringify({ type: 'contact_message', name: formName.trim(), customerEmail: formEmail.trim(), message: formMessage.trim() }),
       }).catch(() => {})
       setFormSent(true)
     } catch {
