@@ -581,6 +581,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                     <div className="flex gap-2">
                       <input
                         type="email"
+                        autoComplete="email"
                         value={notifyEmail}
                         onChange={e => setNotifyEmail(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && submitRestockNotify()}
@@ -620,7 +621,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
             <div className="flex gap-2">
               <input type="text" maxLength={6} value={pincode} onChange={e => { setPincode(e.target.value.replace(/\D/g,'')); setPincodeResult(null) }}
-                placeholder="Enter pincode" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} />
+                placeholder="Enter pincode" className="input-base flex-1" inputMode="numeric" pattern="[0-9]*" style={{ height: 36, fontSize: 13 }} />
               <button type="button" onClick={checkPincode} disabled={pincode.length !== 6 || checkingPincode} className="btn-primary disabled:opacity-50" style={{ height: 36, padding: '0 16px', fontSize: 11, minWidth: 70 }}>
                 {checkingPincode ? '...' : 'Check'}
               </button>

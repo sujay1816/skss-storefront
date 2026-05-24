@@ -355,6 +355,7 @@ export default function OrderDetailPage() {
                 <div className="flex items-center gap-3">
                   {item.product_image ? (
                     <img src={item.product_image} alt={item.product_name}
+                      loading="lazy" decoding="async"
                       className="w-14 object-cover rounded flex-shrink-0" style={{ height: 64 }} />
                   ) : (
                     <div className="w-14 flex items-center justify-center rounded flex-shrink-0 text-2xl"

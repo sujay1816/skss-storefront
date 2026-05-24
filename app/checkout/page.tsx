@@ -327,6 +327,7 @@ export default function CheckoutPage() {
                   className="input-base"
                   value={form.phone}
                   autoComplete="tel"
+                  inputMode="tel"
                   onChange={e => handlePhoneChange(e.target.value)}
                   placeholder="+91 XXXXX XXXXX"
                   type="tel"

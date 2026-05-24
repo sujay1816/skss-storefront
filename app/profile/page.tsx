@@ -189,6 +189,7 @@ export default function ProfilePage() {
               value={phone}
               onChange={e => handlePhoneChange(e.target.value)}
               placeholder="+91 XXXXX XXXXX"
+              inputMode="tel"
               type="tel"
               style={{ borderColor: phoneError ? 'var(--crimson)' : undefined }}
             />
