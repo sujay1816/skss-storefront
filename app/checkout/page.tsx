@@ -217,6 +217,9 @@ export default function CheckoutPage() {
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.refreshSession()
+      // Use session email as the authoritative address — the email state variable
+      // may still be '' if the getUser() useEffect hasn't resolved yet (race condition).
+      const confirmedEmail = session?.user?.email || email
       const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
 
       // Single atomic server call — handles stock lock, order creation, and stock deduction
@@ -281,11 +284,11 @@ export default function CheckoutPage() {
             original_price: item.originalPrice,
             total: (item.salePrice ?? item.originalPrice) * item.quantity,
           })),
-          customerEmail: email,
+          customerEmail: confirmedEmail,
         }),
       }).catch(() => {})
 
-      await clearCart()
+      await clearCart(userId || undefined)
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
       router.push(`/orders/${result.orderId}`)
     } catch (error: any) {
