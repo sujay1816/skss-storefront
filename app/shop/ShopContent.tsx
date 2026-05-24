@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useTransition } from 'react'
+import { useState, useCallback, useTransition, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 // FIX: framer-motion removed from filter animations — replaced with CSS
 import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
@@ -131,7 +131,7 @@ interface InitialFilters {
   onlyNew: boolean; sortBy: string
 }
 
-export default function ShopContent({ products, categories, config, userId, initialCategory, initialSearch,
+export default function ShopContent({ products, categories, config, userId: serverUserId, initialCategory, initialSearch,
   isLoading, fabrics: fabricsProp, totalProducts = 0, currentPage = 1, pageSize = 16, initialFilters
 }: {
   products: Product[]; categories: Category[]; config: SiteConfig; userId?: string
@@ -141,6 +141,15 @@ export default function ShopContent({ products, categories, config, userId, init
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
+  // ISR page passes userId=undefined — resolve client-side for immediate cart/wishlist DB sync
+  const [userId, setUserId] = useState<string | undefined>(serverUserId)
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      createClient().auth.getUser().then(({ data: { user } }) => {
+        setUserId(user?.id ?? undefined)
+      })
+    })
+  }, [])
   const fabrics = fabricsProp && fabricsProp.length > 0 ? fabricsProp : DEFAULT_FABRICS
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchInput, setSearchInput] = useState(initialSearch || '')

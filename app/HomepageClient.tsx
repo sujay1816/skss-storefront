@@ -204,7 +204,7 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   )
 }
 
-export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId }: {
+export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId: serverUserId }: {
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
@@ -225,6 +225,17 @@ export default function HomepageClient({ config, categories, featured, bestselle
     dark:  { primary: '#1A0E0A', secondary: 'rgba(26,14,10,0.7)', accent: 'var(--crimson)', border: 'rgba(26,14,10,0.3)' },
   }
   const textCol = textColMap[heroBanner?.textColor || 'white'] || textColMap.white
+
+  // ISR page passes userId=undefined — resolve client-side for immediate cart/wishlist DB sync
+  const [clientUserId, setClientUserId] = useState<string | undefined>(serverUserId)
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      createClient().auth.getUser().then(({ data: { user } }) => {
+        setClientUserId(user?.id ?? undefined)
+      })
+    })
+  }, [])
+  const userId = clientUserId
 
   return (
     <>
