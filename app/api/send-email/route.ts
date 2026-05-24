@@ -70,7 +70,7 @@ function orderConfirmationHtml(order: any, items: any[], brandName: string) {
           <span style="color:${Number(order.shipping_charge)===0?'#16A34A':'#1A1A1A'};font-size:14px">${Number(order.shipping_charge)===0?'FREE':'₹'+Number(order.shipping_charge).toLocaleString('en-IN')}</span>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-          <span style="color:#5A4A3A;font-size:14px">GST (5%)</span>
+          <span style="color:#5A4A3A;font-size:14px">GST</span>
           <span style="color:#1A1A1A;font-size:14px">₹${Number(order.total_gst||order.gst_amount||0).toLocaleString('en-IN')}</span>
         </div>
         ${order.coupon_code ? `
@@ -109,7 +109,7 @@ function orderConfirmationHtml(order: any, items: any[], brandName: string) {
 
       <!-- Delivery info -->
       <div style="background:#EFF6FF;border-radius:8px;padding:16px;margin-top:20px;text-align:center">
-        <p style="color:#1D4ED8;margin:0;font-size:14px">📦 Estimated delivery in <strong>5-7 business days</strong></p>
+        <p style="color:#1D4ED8;margin:0;font-size:14px">📦 Estimated delivery in <strong>${order.estimated_delivery || '5-7 business days'}</strong></p>
         <p style="color:#3B82F6;margin:8px 0 0;font-size:13px">You will receive a shipping confirmation once your order is dispatched</p>
       </div>
 

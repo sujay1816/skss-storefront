@@ -246,16 +246,39 @@ export default function CheckoutPage() {
         return
       }
 
-      // Send confirmation email (non-blocking)
+      // Send confirmation email (non-blocking) — pass full order data for rich email
       fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'order_confirmation',
-          order: { id: result.orderId, total_amount: total },
+          order: {
+            id: result.orderId,
+            total_amount: total,
+            subtotal: sub,
+            shipping_charge: shipping,
+            total_gst: gst,
+            coupon_code: appliedCoupon?.code || null,
+            coupon_discount: discount || 0,
+            payment_method: paymentMethod,
+            payment_status: paymentMethod === 'cod' ? 'pending' : 'paid',
+            razorpay_payment_id: razorpayPaymentId || null,
+            address_snapshot: {
+              full_name: form.fullName,
+              phone: form.phone,
+              address_line1: form.addressLine1,
+              address_line2: form.addressLine2 || '',
+              city: form.city,
+              state: form.state,
+              pincode: form.pincode,
+            },
+          },
           items: items.map(item => ({
-            product_name: item.productName, colour: item.colour, quantity: item.quantity,
-            sale_price: item.salePrice ?? item.originalPrice, original_price: item.originalPrice,
+            product_name: item.productName,
+            colour: item.colour,
+            quantity: item.quantity,
+            sale_price: item.salePrice ?? item.originalPrice,
+            original_price: item.originalPrice,
             total: (item.salePrice ?? item.originalPrice) * item.quantity,
           })),
           customerEmail: email,
