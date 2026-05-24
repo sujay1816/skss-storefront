@@ -120,6 +120,9 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
               <img
                 src={slide.imageUrl}
                 alt={slide.heading || 'Banner'}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: slide.imageFocus || 'center' }}
               />
             ) : (

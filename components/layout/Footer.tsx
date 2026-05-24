@@ -45,6 +45,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
           <form onSubmit={handleSubscribe} className="newsletter-input-group">
             <input
               type="email"
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="Your email address"

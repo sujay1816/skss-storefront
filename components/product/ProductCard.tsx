@@ -206,6 +206,7 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
             {/* Wishlist + Quick view */}
             <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
               <button
+                type="button"
                 className="w-9 h-9 md:w-8 md:h-8 bg-white flex items-center justify-center shadow-sm transition-all md:opacity-0 md:translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
                 style={{ border: '1px solid var(--border)', opacity: wishlistLoading ? 0.5 : 1, cursor: wishlistLoading ? 'not-allowed' : 'pointer' }}
                 onClick={handleWishlist}
@@ -223,6 +224,7 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
                 Mobile — compact button below the image (not overlaying it) */}
             {!selectedVariantOutOfStock && (
               <button
+                type="button"
                 className="absolute bottom-0 left-0 right-0 py-2.5 text-xs font-medium tracking-widest uppercase text-white items-center justify-center gap-2 transition-all duration-300 hidden md:flex md:translate-y-full md:group-hover:translate-y-0"
                 style={{ background: 'var(--crimson)', zIndex: 10 }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--gold)')}

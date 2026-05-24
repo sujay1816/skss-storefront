@@ -84,7 +84,7 @@ const ZoomImage = memo(function ZoomImage({
             style={{ objectFit: 'contain' }}
             controls
             playsInline
-            preload="none"
+            preload="metadata"
             poster={posterUrl || undefined}
             onClick={e => e.stopPropagation()}
           >
@@ -454,7 +454,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 </button>
               ))}
               {product.videoUrl && (
-                <button
+                <button type="button"
                   onClick={() => { setShowVideo(true); setVariantImageOverride(null) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all flex items-center justify-center"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: showVideo ? 'var(--crimson)' : 'var(--border)', background: '#111', flexShrink: 0 }}>
@@ -540,6 +540,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                     onClick={() => handleVariantSelect(v)}
                     disabled={v.stock === 0}
                     title={v.colour}
+                    aria-label={`Select colour: ${v.colour}${v.stock === 0 ? ' (out of stock)' : ''}`}
                     className="relative flex-shrink-0 border-2 rounded overflow-hidden transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
                       width: 56, height: 70,
@@ -710,7 +711,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 {hasVerifiedPurchase && (
                   <p className="text-xs mb-4" style={{ color: '#1B7A3E' }}>✔ You purchased this product — your review will be marked as verified.</p>
                 )}
-                <div className="flex gap-1 mb-4">{Array.from({ length: 5 }).map((_, i) => <button type="button" key={i} onClick={() => setReviewRating(i + 1)}><Star size={22} fill={i < reviewRating ? 'var(--gold)' : 'none'} stroke="var(--gold)" /></button>)}</div>
+                <div className="flex gap-1 mb-4" role="group" aria-label="Rating">{Array.from({ length: 5 }).map((_, i) => <button type="button" key={i} aria-label={`Rate ${i + 1} star${i > 0 ? 's' : ''}`} aria-pressed={i < reviewRating} onClick={() => setReviewRating(i + 1)}><Star size={22} fill={i < reviewRating ? 'var(--gold)' : 'none'} stroke="var(--gold)" /></button>)}</div>
                 <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Share your experience with this saree..." className="input-base w-full mb-3" style={{ height: 100, padding: '12px 14px', resize: 'none' }} />
                 <button type="button" className="btn-primary" onClick={submitReview} disabled={reviewSubmitting || !reviewText.trim()}>
                   {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
