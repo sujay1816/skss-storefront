@@ -34,7 +34,8 @@ function VideoSlide({ src, poster, objectPosition, onEnded }: {
       poster={poster} onEnded={onEnded}
       className="absolute inset-0 w-full h-full object-cover hero-media"
       style={{ objectPosition: objectPosition || 'center' }}>
-      <source src={optimised} type="video/mp4" />
+      {/* No type attribute — browser picks best format Cloudinary f_auto serves */}
+      <source src={optimised} />
     </video>
   )
 }

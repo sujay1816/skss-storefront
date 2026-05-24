@@ -88,12 +88,11 @@ const ZoomImage = memo(function ZoomImage({
             poster={posterUrl || undefined}
             onClick={e => e.stopPropagation()}
           >
-            {/* Single source — browser picks the format it supports */}
+            {/* No type attribute — lets Cloudinary f_auto serve best format (webm/mp4) */}
             <source
               src={videoUrl.includes('cloudinary.com')
                 ? videoUrl.replace('/upload/', '/upload/q_auto,f_auto/')
                 : videoUrl}
-              type="video/mp4"
             />
           </video>
         </div>

@@ -217,7 +217,7 @@ export default function CartPage() {
               <div className="cart-total-row">
                 <span className="text-sm font-medium tracking-wide uppercase">Total</span>
                 <span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 300 }}>
-                  {formatPrice(total)}
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '16px', fontWeight: 400 }}>₹</span>{total.toLocaleString('en-IN')}
                 </span>
               </div>
               <Link href="/checkout" className="btn-primary w-full justify-center mt-4" style={{ display: 'flex' }}>

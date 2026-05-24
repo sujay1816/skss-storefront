@@ -59,7 +59,7 @@ html { scroll-behavior: smooth; font-size: 16px; -webkit-text-size-adjust: 100%;
 body {
   background-color: var(--ivory);
   color: var(--text-primary);
-  font-family: var(--font-body);
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   font-size: var(--text-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -113,7 +113,7 @@ img, video, canvas, svg { min-width: unset; }
 .btn-primary {
   background: linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%);
   color: white; border: none; height: var(--btn-h); padding: 0 var(--btn-px);
-  font-family: var(--font-body); font-size: var(--btn-font); font-weight: 500;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif; font-size: var(--btn-font); font-weight: 500;
   letter-spacing: var(--btn-tracking); text-transform: uppercase; cursor: pointer;
   transition: all 0.25s; display: inline-flex; align-items: center; gap: var(--space-2);
   box-shadow: 0 2px 8px rgba(139,26,43,0.3); min-height: 44px; white-space: nowrap;
@@ -126,7 +126,7 @@ img, video, canvas, svg { min-width: unset; }
 .btn-gold {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   color: white; border: none; height: var(--btn-h); padding: 0 var(--btn-px);
-  font-family: var(--font-body); font-size: var(--btn-font); font-weight: 500;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif; font-size: var(--btn-font); font-weight: 500;
   letter-spacing: var(--btn-tracking); text-transform: uppercase; cursor: pointer;
   transition: all 0.25s; display: inline-flex; align-items: center; gap: var(--space-2);
   min-height: 44px; white-space: nowrap; flex-shrink: 0;
@@ -136,7 +136,7 @@ img, video, canvas, svg { min-width: unset; }
 .btn-outline {
   background: transparent; color: var(--text-primary); border: 1px solid var(--border);
   height: var(--btn-h); padding: 0 var(--btn-px);
-  font-family: var(--font-body); font-size: var(--btn-font); font-weight: 500;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif; font-size: var(--btn-font); font-weight: 500;
   letter-spacing: var(--btn-tracking); text-transform: uppercase; cursor: pointer;
   transition: all 0.2s; display: inline-flex; align-items: center; gap: var(--space-2);
   min-height: 44px; white-space: nowrap; flex-shrink: 0;
@@ -149,7 +149,7 @@ img, video, canvas, svg { min-width: unset; }
 .input-base {
   width: 100%; height: var(--input-h); min-height: 44px;
   border: 1px solid var(--border); background: white; padding: 0 var(--space-3);
-  font-family: var(--font-body); font-size: max(16px, var(--text-sm));
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif; font-size: max(16px, var(--text-sm));
   color: var(--text-primary); outline: none; transition: border-color 0.2s; border-radius: 2px;
 }
 .input-base:focus { border-color: var(--crimson); }

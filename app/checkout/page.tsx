@@ -410,7 +410,7 @@ export default function CheckoutPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.productName}</p>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.colour} · Qty: {item.quantity}</p>
-                    <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)' }}>₹{((item.salePrice ?? item.originalPrice) * item.quantity).toLocaleString('en-IN')}</p>
+                    <p className="text-sm font-semibold mt-1" style={{ color: 'var(--crimson)', fontFamily: 'var(--font-body)' }}>₹{((item.salePrice ?? item.originalPrice) * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               ))}
@@ -422,7 +422,7 @@ export default function CheckoutPage() {
               {/* FIX #3: show dynamic GST rate */}
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>₹{gst.toLocaleString('en-IN')}</span></div>
               <div className="flex justify-between font-semibold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-                <span>Total</span><span style={{ color: 'var(--crimson)' }}>₹{total.toLocaleString('en-IN')}</span>
+                <span>Total</span><span style={{ color: 'var(--crimson)', fontFamily: 'var(--font-body)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
             <button type="button" onClick={createOrder} disabled={loading || !!phoneError}

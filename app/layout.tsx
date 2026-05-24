@@ -5,6 +5,7 @@ import AuthListener from '@/components/AuthListener'
 import PageProgress from '@/components/layout/PageProgress'
 import PullToRefresh from '@/components/layout/PullToRefresh'
 import { Suspense } from 'react'
+import FontLoader from '@/components/layout/FontLoader'
 import { createClient } from '@/lib/supabase/server'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://skss-storefront.vercel.app'
@@ -48,13 +49,13 @@ export async function generateMetadata(): Promise<Metadata> {
         siteName: name,
         title: `${name} — ${tagline}`,
         description: desc,
-        images: [{ url: logo, width: 1200, height: 630, alt: name }],
+        images: logo ? [{ url: logo, width: 1200, height: 630, alt: name }] : [],
       },
       twitter: {
         card: 'summary_large_image',
         title: `${name} — ${tagline}`,
         description: desc,
-        images: [logo],
+        images: logo ? [logo] : [],
       },
       robots: {
         index: true,
@@ -214,8 +215,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Non-blocking: load as print, swap to all on load — prevents render-blocking on slow 3G */}
         <link rel="stylesheet" href={fontsUrl} media="print" />
         <noscript><link rel="stylesheet" href={fontsUrl} /></noscript>
-        <link rel="icon" href={brand.logo_url || ''} />
-        <link rel="apple-touch-icon" href={brand.logo_url || ''} />
+        {brand.logo_url && <link rel="icon" href={brand.logo_url} />}
+        {brand.logo_url && <link rel="apple-touch-icon" href={brand.logo_url} />}
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
@@ -232,6 +233,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'var(--font-body)', fontSize: '13px' } }} />
         <Suspense fallback={null}><PageProgress /></Suspense>
         <PullToRefresh />
+        <FontLoader />
         <AuthListener />
         {/* GA4 / Meta Pixel: Add your tracking scripts here once you have your IDs.
             Use next/script with strategy="afterInteractive" so they don't block render.
