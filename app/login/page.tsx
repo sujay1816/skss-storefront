@@ -13,9 +13,16 @@ function LoginForm() {
   // window.location.search is read before hydration in App Router so the
   // redirect param is always empty — user gets stuck on the login page after signing in
   const redirect = searchParams.get('redirect') || '/'
+  const authError = searchParams.get('error')
   const [brandName, setBrandName] = useState(process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store')
   const [brandSubtitle, setBrandSubtitle] = useState('SILKS & SAREES')
   const [logoUrl, setLogoUrl] = useState('')
+
+  useEffect(() => {
+    if (authError === 'link_expired') {
+      toast.error('Your sign-in link has expired. Please request a new one.')
+    }
+  }, [authError])
 
   useEffect(() => {
     const supabase = createClient()

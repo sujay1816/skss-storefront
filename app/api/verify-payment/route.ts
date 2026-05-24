@@ -9,7 +9,11 @@ export async function POST(request: Request) {
     if (!keySecret) return NextResponse.json({ verified: false }, { status: 400 })
     const body = razorpay_order_id + '|' + razorpay_payment_id
     const expectedSignature = crypto.createHmac('sha256', keySecret).update(body).digest('hex')
-    const isValid = expectedSignature === razorpay_signature
+    // Use timingSafeEqual to prevent timing attacks on HMAC comparison
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, 'hex'),
+      Buffer.from(razorpay_signature, 'hex')
+    )
     if (isValid) return NextResponse.json({ verified: true })
     return NextResponse.json({ verified: false }, { status: 400 })
   } catch (error: any) {

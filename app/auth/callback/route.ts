@@ -25,7 +25,11 @@ export async function GET(request: Request) {
       }
     )
 
-    const { data: { session } } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) {
+      // Token already used or expired — redirect to login
+      return NextResponse.redirect(new URL('/login?error=link_expired', request.url))
+    }
 
     // Fix — create profile row if it doesn't exist
     // This ensures customers who sign up via Google OAuth or email
