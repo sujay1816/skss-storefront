@@ -149,7 +149,7 @@ function LoginForm() {
                 <Link href="/forgot-password" style={{ fontSize: 12, color: '#C9A84C', textDecoration: 'none' }}>Forgot?</Link>
               </div>
               <div style={{ position: 'relative' }}>
-                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" autoComplete="current-password"
+                <input type={showPass ? 'text' : 'password'} aria-label="Password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" autoComplete="current-password"
                   style={{ width: '100%', padding: '12px 44px 12px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white', fontSize: 16, outline: 'none' }} onFocus={e => e.currentTarget.style.boxShadow='0 0 0 2px #C9A84C'} onBlur={e => e.currentTarget.style.boxShadow='none'} />
                 <button type="button" onClick={() => setShowPass(!showPass)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)' }}>

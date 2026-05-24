@@ -202,7 +202,7 @@ export default function CartPage() {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <input type="text" value={coupon} onChange={e => { setCoupon(e.target.value.toUpperCase()); setCouponError('') }} placeholder="Enter code" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} onKeyDown={e => e.key === 'Enter' && applyCoupon()} />
+                    <input type="text" aria-label="Coupon code" value={coupon} onChange={e => { setCoupon(e.target.value.toUpperCase()); setCouponError('') }} placeholder="Enter code" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} onKeyDown={e => e.key === 'Enter' && applyCoupon()} />
                     <button type="button" onClick={applyCoupon} disabled={couponLoading} className="btn-outline flex-shrink-0" style={{ height: 36, padding: '0 12px', fontSize: 11 }}>Apply</button>
                   </div>
                 )}

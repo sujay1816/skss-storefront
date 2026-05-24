@@ -84,7 +84,7 @@ export default function OrdersPage() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6 orders-filter-bar">
           <div className="relative flex-1">
             <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" aria-label="Search orders" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by order number or product..." className="input-base pl-9 pr-8 w-full" style={{ height: 40 }} />
             {search && (
               <button type="button" onClick={() => setSearch('')} aria-label="Clear search"

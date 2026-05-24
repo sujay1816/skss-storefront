@@ -98,15 +98,15 @@ function FiltersContent({ activeCount, categories, fabrics, selectedCategory, se
             <span>₹{Number(priceMin || 0).toLocaleString('en-IN')}</span>
             <span>₹{Number(priceMax || 50000).toLocaleString('en-IN')}</span>
           </div>
-          <input type="range" min={0} max={50000} step={500} value={priceMin || 0}
+          <input type="range" min={0} max={50000} step={500} aria-label="Price range" value={priceMin || 0}
             onChange={e => { const v = Number(e.target.value); if (v <= Number(priceMax || 50000) - 500) { setPriceMin(v === 0 ? '' : String(v)); setPage(1) } }}
             className="price-slider w-full" />
-          <input type="range" min={0} max={50000} step={500} value={priceMax || 50000}
+          <input type="range" min={0} max={50000} step={500} aria-label="Price range" value={priceMax || 50000}
             onChange={e => { const v = Number(e.target.value); if (v >= Number(priceMin || 0) + 500) { setPriceMax(v === 50000 ? '' : String(v)); setPage(1) } }}
             className="price-slider w-full" />
           <div className="flex gap-2 mt-1">
-            <input type="number" placeholder="Min ₹" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
-            <input type="number" placeholder="Max ₹" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Min ₹" aria-label="Minimum price" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Max ₹" aria-label="Maximum price" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
           </div>
         </div>
       </FilterSection>
@@ -252,7 +252,7 @@ export default function ShopContent({ products, categories, config, userId, init
         {/* Mobile: full-width search bar */}
         <div className="flex items-center gap-2 border px-3 lg:hidden" style={{ borderColor: 'var(--border)', height: 40 }}>
           <Search size={14} style={{ color: 'var(--text-secondary)' }} />
-          <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+          <input type="text" aria-label="Search products" value={searchInput} onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
             placeholder="Search sarees..." className="text-sm outline-none bg-transparent flex-1"
             style={{ color: 'var(--text-primary)' }} />

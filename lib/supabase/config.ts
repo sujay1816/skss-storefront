@@ -137,7 +137,7 @@ export async function getProducts(filters?: ProductFilters): Promise<{ products:
   q = q.range(offset, offset + limit - 1)
 
   const { data, error, count } = await q
-  if (error) { console.error('getProducts error:', error.message); return { products: [], total: 0 } }
+  if (error) { return { products: [], total: 0 } }
   return { products: (data || []).map(mapProduct), total: count ?? 0 }
 }
 

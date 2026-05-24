@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
+  try {
   const { orderId, phone, orderNumber, trackingId, courierName } = await req.json()
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
   const { data: cfg } = await supabase.from('site_config').select('key,value').in('key', ['fast2sms_key', 'brand_name'])
@@ -30,4 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   }
   return NextResponse.json({ success: false, error: data.message })
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 })
+  }
 }
