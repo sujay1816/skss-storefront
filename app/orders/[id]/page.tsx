@@ -82,6 +82,18 @@ export default function OrderDetailPage() {
       return
     }
     setOrder((o: any) => ({ ...o, status: 'return_requested', return_reason: returnReason }))
+
+    // Notify admin of return request (non-blocking)
+    supabase.from('admin_notifications').insert({
+      type: 'return_request',
+      title: 'Return Request',
+      message: `Order ${String(id).slice(0,8).toUpperCase()}: ${returnReason.slice(0, 120)}`,
+      reference_type: 'order',
+      reference_id: id,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }).then(() => {})
+
     setShowReturnForm(false)
     setReturnSubmitting(false)
   }

@@ -79,6 +79,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: rpcError.message }, { status: 400 })
     }
 
+    // Notify admin of new order
+    try {
+      await supabase.from('admin_notifications').insert({
+        type: 'new_order',
+        title: 'New Order Received',
+        message: `Order ${orderNumber} · ₹${total.toLocaleString('en-IN')} · ${paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}`,
+        reference_type: 'order',
+        reference_id: result,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      })
+    } catch {}
+
     // Increment coupon usage if applicable
     if (couponCode) {
       const { error: _couponErr } = await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode })
@@ -103,6 +116,8 @@ export async function POST(request: Request) {
           type: 'low_stock',
           title: 'Low Stock Alert',
           message: `After order ${orderNumber}: ${messages}`,
+          reference_type: variants.length === 1 ? 'product' : 'stock',
+          reference_id:   variants.length === 1 ? variants[0].product_id : null,
           is_read: false,
           created_at: new Date().toISOString(),
         })
@@ -121,6 +136,8 @@ export async function POST(request: Request) {
           type: 'low_stock',
           title: 'Out of Stock',
           message: `After order ${orderNumber}: ${names} is now out of stock`,
+          reference_type: outOfStock.length === 1 ? 'product' : 'stock',
+          reference_id:   outOfStock.length === 1 ? outOfStock[0].product_id : null,
           is_read: false,
           created_at: new Date().toISOString(),
         })
