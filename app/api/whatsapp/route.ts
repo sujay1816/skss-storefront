@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
+  // Require x-internal-secret — prevents public abuse of SMS sending
+  const supabaseAuth = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const { data: secretCfg } = await supabaseAuth.from('site_config').select('value').eq('key', 'setup_internal_api_secret').maybeSingle()
+  const expectedSecret = (secretCfg as any)?.value || process.env.INTERNAL_API_SECRET || ''
+  const providedSecret = req.headers.get('x-internal-secret') || ''
+  if (!expectedSecret || providedSecret !== expectedSecret) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { orderId, phone, orderNumber, trackingId, courierName } = await req.json()
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
   const { data: cfg } = await supabase.from('site_config').select('key,value').in('key', ['fast2sms_key', 'brand_name'])

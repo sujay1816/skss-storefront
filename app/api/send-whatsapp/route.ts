@@ -5,12 +5,10 @@ const FAST2SMS_KEY = process.env.FAST2SMS_API_KEY!
 async function sendSMS(phone: string, message: string) {
   const clean = phone.replace(/\D/g, '').replace(/^91/, '').slice(-10)
   if (clean.length !== 10) {
-    console.error('[SMS] Invalid phone number:', phone, '→', clean)
     return { success: false, error: 'Invalid phone number' }
   }
 
   if (!FAST2SMS_KEY) {
-    console.error('[SMS] FAST2SMS_API_KEY is not set')
     return { success: false, error: 'API key not configured' }
   }
 
@@ -36,6 +34,16 @@ async function sendSMS(phone: string, message: string) {
 
 export async function POST(request: Request) {
   try {
+    // Require x-internal-secret to prevent abuse — only admin or internal services call this
+    const { createClient: createSB } = await import('@supabase/supabase-js')
+    const sb = createSB(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data: secretCfg } = await sb.from('site_config').select('value').eq('key', 'setup_internal_api_secret').maybeSingle()
+    const expectedSecret = (secretCfg as any)?.value || process.env.INTERNAL_API_SECRET || ''
+    const providedSecret = request.headers.get('x-internal-secret') || ''
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { type, order, phone, trackingId, courierName } = await request.json()
 
     let brandName = 'Sai Krishna Silks & Sarees'
@@ -69,7 +77,6 @@ export async function POST(request: Request) {
     return NextResponse.json(result)
 
   } catch (error: any) {
-    console.error('[SMS] Error:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
