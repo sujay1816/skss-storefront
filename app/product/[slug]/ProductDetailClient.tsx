@@ -153,9 +153,29 @@ function Accordion({ id, title, children, openSection, setOpenSection }: {
   )
 }
 
-export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId }: {
+export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId: serverUserId }: {
   product: Product; reviews: Review[]; relatedProducts: Product[]; config: SiteConfig; userId?: string
 }) {
+  // The server always passes userId=undefined (ISR-cached page cannot read auth cookies).
+  // We resolve the real user client-side on mount so the review form works correctly.
+  const [clientUserId, setClientUserId] = useState<string | undefined>(serverUserId)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setClientUserId(user?.id ?? undefined)
+    })
+    // Re-sync on auth state changes (login/logout in another tab)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setClientUserId(session?.user?.id ?? undefined)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Use clientUserId everywhere so the review form, wishlist, and verified purchase check
+  // all reflect the real auth state, even though the page was server-rendered without auth.
+  const userId = clientUserId
+
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
   const [activeImage, setActiveImage] = useState(0)
   const [showVideo, setShowVideo] = useState(false)
