@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sentTo, setSentTo] = useState('')
+  const [cooldown, setCooldown] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,9 +58,10 @@ export default function ForgotPasswordPage() {
                 <input type="email" autoComplete="email" className="input-base" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com" required autoFocus />
               </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full justify-center" style={{ opacity: loading ? 0.7 : 1 }}>
+              <button type="submit" disabled={loading || cooldown > 0} className="btn-primary w-full justify-center" style={{ opacity: loading || cooldown > 0 ? 0.6 : 1 }}>
                 {loading
                   ? <><span className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> Sending...</>
+                  : cooldown > 0 ? `Resend in ${cooldown}s`
                   : 'Send Reset Link'
                 }
               </button>

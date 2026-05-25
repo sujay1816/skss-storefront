@@ -133,7 +133,7 @@ export default function OrdersPage() {
                       <div key={i} className="relative border overflow-hidden rounded flex-shrink-0"
                         style={{ width: 56, height: 64, background: 'var(--cream)', borderColor: 'var(--border)' }}>
                         {item.product_image
-                          ? <Image src={item.product_image} alt={item.product_name || ''} fill sizes="10vw" className="object-cover" />
+                          ? <Image src={item.product_image} alt={item.product_name || ''} fill sizes="56px" className="object-cover" />
                           : <div className="w-full h-full flex items-center justify-center text-base">🥻</div>}
                         {i === previewItems.length - 1 && extraCount > 0 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

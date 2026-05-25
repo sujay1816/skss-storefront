@@ -27,6 +27,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
       setEmail('')
     } catch (err: any) {
       // If table doesn't exist yet, still show success (graceful fallback)
+      console.error('Newsletter subscribe error:', err)
       toast.success('Thank you for subscribing!')
       setEmail('')
     }
@@ -69,7 +70,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
           {/* Brand */}
           <div className="md:col-span-2 footer-brand">
             <div className="flex items-center gap-3 mb-4">
-              <Image src={config.logo_url || ""} alt={config.brand_name || "SKSS"} width={48} height={48} sizes="48px" className="object-contain" />
+              <Image src={config.logo_url || ""} alt={config.brand_name || "SKSS"} width={48} height={48} className="object-contain" />
               <div>
                 <p className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--crimson)', fontSize: '18px' }}>{config.brand_name || process.env.NEXT_PUBLIC_BRAND_NAME || 'Our Store'}</p>
                 <p className="text-xs tracking-widest" style={{ color: 'var(--gold)', letterSpacing: '0.12em' }}>{config.brand_subtitle || 'SILKS & SAREES'}</p>

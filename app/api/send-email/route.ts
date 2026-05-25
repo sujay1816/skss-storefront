@@ -229,7 +229,7 @@ function orderStatusUpdateHtml(order: any, newStatus: string, trackingId: string
 </body></html>`
 }
 
-function contactMessageAdminHtml(name: string, email: string, message: string, brandName: string) {
+function contactMessageAdminHtml(name: string, email: string, message: string, brandName: string, phone = '') {
   return `<!DOCTYPE html><html>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:'DM Sans',Arial,sans-serif;">
   <div style="max-width:560px;margin:32px auto;background:white;border-radius:8px;overflow:hidden;">
@@ -240,6 +240,7 @@ function contactMessageAdminHtml(name: string, email: string, message: string, b
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:8px 0;color:#5A4A3A;font-size:13px;width:80px;">Name</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#1A1A1A;">${name}</td></tr>
         <tr><td style="padding:8px 0;color:#5A4A3A;font-size:13px;">Email</td><td style="padding:8px 0;font-size:14px;"><a href="mailto:${email}" style="color:#8B1A2B;">${email}</a></td></tr>
+        ${phone ? `<tr><td style="padding:8px 0;color:#5A4A3A;font-size:13px;">Phone</td><td style="padding:8px 0;font-size:14px;">${phone}</td></tr>` : ''}
       </table>
       <div style="background:#F5EDE3;border-radius:6px;padding:16px;margin-top:16px;">
         <p style="margin:0;font-size:14px;color:#1A1A1A;white-space:pre-wrap;">${message}</p>
@@ -337,6 +338,7 @@ export async function POST(request: Request) {
       productSlug,
       name,
       message,
+      phone,
       newStatus,
     } = body
 
@@ -422,7 +424,7 @@ export async function POST(request: Request) {
           from: FROM_EMAIL,
           to: ADMIN_EMAIL,
           subject: `New contact message from ${name || contactEmail || 'a visitor'} — ${brandName}`,
-          html: contactMessageAdminHtml(name || '', contactEmail || '', message || '', brandName),
+          html: contactMessageAdminHtml(name || '', contactEmail || '', message || '', brandName, phone || ''),
         })
       }
       return NextResponse.json({ success: true })

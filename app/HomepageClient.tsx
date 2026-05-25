@@ -34,8 +34,7 @@ function VideoSlide({ src, poster, objectPosition, onEnded }: {
       poster={poster} onEnded={onEnded}
       className="absolute inset-0 w-full h-full object-cover hero-media"
       style={{ objectPosition: objectPosition || 'center' }}>
-      {/* No type attribute — browser picks best format Cloudinary f_auto serves */}
-      <source src={optimised} />
+      <source src={optimised} type="video/mp4" />
     </video>
   )
 }
@@ -204,7 +203,7 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   )
 }
 
-export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId: serverUserId }: {
+export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId }: {
   config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
@@ -225,17 +224,6 @@ export default function HomepageClient({ config, categories, featured, bestselle
     dark:  { primary: '#1A0E0A', secondary: 'rgba(26,14,10,0.7)', accent: 'var(--crimson)', border: 'rgba(26,14,10,0.3)' },
   }
   const textCol = textColMap[heroBanner?.textColor || 'white'] || textColMap.white
-
-  // ISR page passes userId=undefined — resolve client-side for immediate cart/wishlist DB sync
-  const [clientUserId, setClientUserId] = useState<string | undefined>(serverUserId)
-  useEffect(() => {
-    import('@/lib/supabase/client').then(({ createClient }) => {
-      createClient().auth.getUser().then(({ data: { user } }) => {
-        setClientUserId(user?.id ?? undefined)
-      })
-    })
-  }, [])
-  const userId = clientUserId
 
   return (
     <>
@@ -455,7 +443,7 @@ export default function HomepageClient({ config, categories, featured, bestselle
               <div className="relative">
                 <div className="absolute -inset-4 border opacity-20 rotate-3" style={{ borderColor: 'var(--gold)' }} />
                 <div className="absolute -inset-4 border opacity-10 -rotate-3" style={{ borderColor: 'var(--crimson)' }} />
-                <Image src={config.logo_url || ''} alt={config.brand_name || ''} width={140} height={140} sizes="(max-width: 768px) 140px, 200px" className="object-contain relative z-10 md:w-[200px] md:h-[200px]" />
+                <Image src={config.logo_url || ''} alt={config.brand_name || ''} width={140} height={140} className="object-contain relative z-10 md:w-[200px] md:h-[200px]" />
               </div>
             </div>
             <div className="md:w-2/3 text-center md:text-left">

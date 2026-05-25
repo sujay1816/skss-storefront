@@ -380,6 +380,7 @@ export default function CheckoutPage() {
                   value={form.pincode}
                   onChange={e => setForm(f => ({ ...f, pincode: e.target.value.replace(/\D/g, '') }))}
                   placeholder="6-digit pincode" autoComplete="postal-code"
+                  inputMode="numeric" pattern="[0-9]*"
                   maxLength={6}
                   type="tel"
                 />

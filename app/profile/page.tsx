@@ -342,7 +342,7 @@ export default function ProfilePage() {
                   </div>
                   {/* Strength indicator */}
                   {newPass.length > 0 && (
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2" role="meter" aria-label="Password strength">
                       <div className="flex gap-1 flex-1">
                         {[1,2,3,4].map(level => (
                           <div key={level} className="h-1 flex-1 rounded-full transition-colors"

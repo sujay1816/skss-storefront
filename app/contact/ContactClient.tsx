@@ -14,6 +14,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
   const [formName, setFormName] = useState('')
   const [formEmail, setFormEmail] = useState('')
   const [formMessage, setFormMessage] = useState('')
+  const [formPhone, setFormPhone] = useState('')
   const [formSending, setFormSending] = useState(false)
   const [formSent, setFormSent] = useState(false)
 
@@ -26,6 +27,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
       const { error } = await supabase.from('contact_messages').insert({
         name: formName.trim(),
         email: formEmail.trim(),
+        phone: formPhone.trim() || null,
         message: formMessage.trim(),
         created_at: new Date().toISOString(),
       })
@@ -33,7 +35,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'contact_message', name: formName.trim(), customerEmail: formEmail.trim(), message: formMessage.trim() }),
+        body: JSON.stringify({ type: 'contact_message', name: formName.trim(), customerEmail: formEmail.trim(), phone: formPhone.trim() || undefined, message: formMessage.trim() }),
       }).catch(() => {})
       setFormSent(true)
     } catch {
@@ -98,7 +100,7 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
               <CheckCircle size={48} className="mx-auto mb-4" style={{ color: '#16A34A' }} />
               <p className="text-lg font-light mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Message Sent!</p>
               <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>We'll get back to you within 24 hours.</p>
-              <button type="button" onClick={() => { setFormSent(false); setFormName(''); setFormEmail(''); setFormMessage('') }} className="btn-outline text-xs">Send Another Message</button>
+              <button type="button" onClick={() => { setFormSent(false); setFormName(''); setFormEmail(''); setFormPhone(''); setFormMessage('') }} className="btn-outline text-xs">Send Another Message</button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -113,6 +115,10 @@ export default function ContactClient({ cfg }: { cfg: Record<string, string> }) 
                 </div>
               </div>
               <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone <span style={{ color: 'var(--text-secondary)', fontWeight: 400, fontSize: 11 }}>(optional)</span></label>
+                <input type="tel" autoComplete="tel" inputMode="tel" className="input-base" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" disabled={formSending} />
+              </div>
+              <div className="sm:col-span-2">
                 <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Message *</label>
                 <textarea className="input-base" value={formMessage} onChange={e => setFormMessage(e.target.value)} placeholder="How can we help you?" required disabled={formSending} style={{ height: 120, padding: '12px 14px', resize: 'none' }} />
               </div>

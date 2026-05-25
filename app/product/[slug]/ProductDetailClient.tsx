@@ -88,11 +88,12 @@ const ZoomImage = memo(function ZoomImage({
             poster={posterUrl || undefined}
             onClick={e => e.stopPropagation()}
           >
-            {/* No type attribute — lets Cloudinary f_auto serve best format (webm/mp4) */}
+            {/* Single source — browser picks the format it supports */}
             <source
               src={videoUrl.includes('cloudinary.com')
                 ? videoUrl.replace('/upload/', '/upload/q_auto,f_auto/')
                 : videoUrl}
+              type="video/mp4"
             />
           </video>
         </div>
@@ -103,7 +104,6 @@ const ZoomImage = memo(function ZoomImage({
           <Image
             src={src} alt={alt} fill
             className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 50vw"
             style={{
               transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
               transform: !isTouchDevice && isZooming ? 'scale(2)' : 'scale(1)',
@@ -153,28 +153,9 @@ function Accordion({ id, title, children, openSection, setOpenSection }: {
   )
 }
 
-export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId: serverUserId }: {
+export default function ProductDetailClient({ product, reviews, relatedProducts, config, userId }: {
   product: Product; reviews: Review[]; relatedProducts: Product[]; config: SiteConfig; userId?: string
 }) {
-  // The server page is ISR-cached and cannot read auth cookies, so it always passes
-  // userId=undefined. We resolve the real user client-side on mount so the review
-  // form, wishlist, verified purchase check, and restock notify all work correctly.
-  const [clientUserId, setClientUserId] = useState<string | undefined>(serverUserId)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setClientUserId(user?.id ?? undefined)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setClientUserId(session?.user?.id ?? undefined)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
-  // Alias so all existing code below works without changes
-  const userId = clientUserId
-
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
   const [activeImage, setActiveImage] = useState(0)
   const [showVideo, setShowVideo] = useState(false)
@@ -191,37 +172,14 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
     setNotifyLoading(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    // Save request to DB
-    const { error: upsertErr } = await supabase.from('restock_requests').upsert({
+    await supabase.from('restock_requests').upsert({
       product_id: product.id,
       colour: selectedVariant.colour,
       email: notifyEmail.trim().toLowerCase(),
       user_id: user?.id || null,
     }, { onConflict: 'product_id,colour,email' })
-
-    if (upsertErr) {
-      toast.error('Could not save your request. Please try again.')
-      setNotifyLoading(false)
-      return
-    }
-
-    // Send confirmation email to customer (non-blocking — don't fail if email fails)
-    fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'restock_confirmation',
-        customerEmail: notifyEmail.trim().toLowerCase(),
-        productName: product.name,
-        colour: selectedVariant.colour,
-        productSlug: product.slug,
-      }),
-    }).catch(() => {}) // Non-blocking — user sees success even if email fails
-
     setNotifySubmitted(true)
     setNotifyLoading(false)
-    toast.success("You're on the waitlist! We'll email you when it's back.")
   }
   const [addedToCart, setAddedToCart] = useState(false)
   const [openSection, setOpenSection] = useState<string | null>('details')
@@ -492,7 +450,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                 <button type="button" key={img.id} onClick={() => { setActiveImage(i); setVariantImageOverride(null); setShowVideo(false) }}
                   className="relative flex-shrink-0 border-2 overflow-hidden transition-all pdp-thumb"
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: !showVideo && activeImage === i && !variantImageOverride ? 'var(--crimson)' : 'var(--border)', background: 'var(--cream)' }}>
-                  {img.url ? <Image src={img.url} alt={img.altText} fill sizes="80px" className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
+                  {img.url ? <Image src={img.url} alt={img.altText} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🥻</div>}
                 </button>
               ))}
               {product.videoUrl && (
@@ -502,7 +460,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                   style={{ width: 60, height: 72, borderRadius: 2, borderColor: showVideo ? 'var(--crimson)' : 'var(--border)', background: '#111', flexShrink: 0 }}>
                   {/* Show first product image as video poster thumbnail */}
                   {product.images?.[0]?.url && (
-                    <Image src={product.images[0].url} alt="Video" fill sizes="80px" className="object-cover opacity-40" />
+                    <Image src={product.images[0].url} alt="Video" fill className="object-cover opacity-40" />
                   )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center"
@@ -623,7 +581,6 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
                     <div className="flex gap-2">
                       <input
                         type="email"
-                        autoComplete="email"
                         value={notifyEmail}
                         onChange={e => setNotifyEmail(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && submitRestockNotify()}
@@ -663,7 +620,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
             </div>
             <div className="flex gap-2">
               <input type="text" maxLength={6} value={pincode} onChange={e => { setPincode(e.target.value.replace(/\D/g,'')); setPincodeResult(null) }}
-                placeholder="Enter pincode" className="input-base flex-1" inputMode="numeric" pattern="[0-9]*" style={{ height: 36, fontSize: 13 }} />
+                placeholder="Enter pincode" className="input-base flex-1" style={{ height: 36, fontSize: 13 }} />
               <button type="button" onClick={checkPincode} disabled={pincode.length !== 6 || checkingPincode} className="btn-primary disabled:opacity-50" style={{ height: 36, padding: '0 16px', fontSize: 11, minWidth: 70 }}>
                 {checkingPincode ? '...' : 'Check'}
               </button>
