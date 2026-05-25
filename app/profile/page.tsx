@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // FIX #9: reuse the same phone validation as checkout
@@ -29,6 +29,19 @@ export default function ProfilePage() {
   const [editingAddress, setEditingAddress] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Record<string,string>>({})
 
+  // ── Password change ──────────────────────────────────────────────────────
+  // isGoogleUser: if the user signed up via Google they have no password to change
+  const [isGoogleUser, setIsGoogleUser]       = useState(false)
+  const [currentPass, setCurrentPass]         = useState('')
+  const [newPass, setNewPass]                 = useState('')
+  const [confirmPass, setConfirmPass]         = useState('')
+  const [showCurrentPass, setShowCurrentPass] = useState(false)
+  const [showNewPass, setShowNewPass]         = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
+  const [passError, setPassError]             = useState('')
+  const [passLoading, setPassLoading]         = useState(false)
+  const [passSuccess, setPassSuccess]         = useState(false)
+
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
@@ -41,6 +54,11 @@ export default function ProfilePage() {
       const userEmail = user.email || ''
       const metaName = user.user_metadata?.full_name || user.user_metadata?.name || ''
       setUserId(uid); setEmail(userEmail)
+      // If the user signed in with Google, identities will contain a 'google' provider.
+      // In that case we hide the password change section entirely.
+      const identities = user.identities || []
+      const isGoogle = identities.length > 0 && identities.every((id: any) => id.provider === 'google')
+      setIsGoogleUser(isGoogle)
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', uid).single()
       if (profile) {
         setName(profile.full_name || metaName)
@@ -129,6 +147,66 @@ export default function ProfilePage() {
     toast.success('Address updated!')
   }
 
+  // ── Change password ──────────────────────────────────────────────────────
+  const changePassword = async () => {
+    setPassError('')
+    setPassSuccess(false)
+
+    // Validate current password is entered
+    if (!currentPass) {
+      setPassError('Please enter your current password.')
+      return
+    }
+    // Validate new password length
+    if (newPass.length < 8) {
+      setPassError('New password must be at least 8 characters.')
+      return
+    }
+    // Validate passwords match
+    if (newPass !== confirmPass) {
+      setPassError('New passwords do not match.')
+      return
+    }
+    // Prevent using same password
+    if (currentPass === newPass) {
+      setPassError('New password must be different from your current password.')
+      return
+    }
+
+    setPassLoading(true)
+    const supabase = createClient()
+
+    // Step 1: Verify current password by re-signing in
+    // This is the safest way to confirm they know their current password.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPass,
+    })
+    if (signInError) {
+      setPassError('Current password is incorrect.')
+      setPassLoading(false)
+      return
+    }
+
+    // Step 2: Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPass,
+    })
+    if (updateError) {
+      setPassError(updateError.message || 'Failed to update password. Please try again.')
+      setPassLoading(false)
+      return
+    }
+
+    // Success — clear the form
+    setCurrentPass('')
+    setNewPass('')
+    setConfirmPass('')
+    setPassSuccess(true)
+    setPassLoading(false)
+    toast.success('Password updated successfully!')
+  }
+
   if (loading) return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
       <div className="skeleton h-4 w-16 rounded mb-6" />
@@ -205,6 +283,144 @@ export default function ProfilePage() {
             {saving && <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
+
+          {/* ── Change Password section — hidden for Google users ── */}
+          {!isGoogleUser && (
+            <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2 mb-5">
+                <Lock size={15} style={{ color: 'var(--crimson)' }} />
+                <h2 className="text-sm font-semibold tracking-widest uppercase"
+                  style={{ color: 'var(--text-primary)' }}>Change Password</h2>
+              </div>
+
+              {/* Current password */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPass ? 'text' : 'password'}
+                      className="input-base pr-10"
+                      value={currentPass}
+                      onChange={e => { setCurrentPass(e.target.value); setPassError(''); setPassSuccess(false) }}
+                      autoComplete="current-password"
+                      placeholder="Enter your current password"
+                    />
+                    <button type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-secondary)' }}
+                      aria-label={showCurrentPass ? 'Hide current password' : 'Show current password'}
+                      onClick={() => setShowCurrentPass(v => !v)}>
+                      {showCurrentPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New password */}
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                    New Password <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(min. 8 characters)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPass ? 'text' : 'password'}
+                      className="input-base pr-10"
+                      value={newPass}
+                      onChange={e => { setNewPass(e.target.value); setPassError(''); setPassSuccess(false) }}
+                      autoComplete="new-password"
+                      placeholder="Enter new password"
+                    />
+                    <button type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-secondary)' }}
+                      aria-label={showNewPass ? 'Hide new password' : 'Show new password'}
+                      onClick={() => setShowNewPass(v => !v)}>
+                      {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {/* Strength indicator */}
+                  {newPass.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex gap-1 flex-1">
+                        {[1,2,3,4].map(level => (
+                          <div key={level} className="h-1 flex-1 rounded-full transition-colors"
+                            style={{ background: newPass.length >= level * 2
+                              ? level <= 1 ? '#EF4444'
+                              : level <= 2 ? '#F59E0B'
+                              : level <= 3 ? '#3B82F6'
+                              : '#10B981'
+                              : 'var(--border)' }} />
+                        ))}
+                      </div>
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {newPass.length < 2 ? 'Too short'
+                         : newPass.length < 4 ? 'Weak'
+                         : newPass.length < 6 ? 'Fair'
+                         : newPass.length < 8 ? 'Good'
+                         : 'Strong'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm new password */}
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPass ? 'text' : 'password'}
+                      className="input-base pr-10"
+                      value={confirmPass}
+                      onChange={e => { setConfirmPass(e.target.value); setPassError(''); setPassSuccess(false) }}
+                      autoComplete="new-password"
+                      placeholder="Re-enter new password"
+                      style={{ borderColor: confirmPass && confirmPass !== newPass ? 'var(--crimson)' : undefined }}
+                    />
+                    <button type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-secondary)' }}
+                      aria-label={showConfirmPass ? 'Hide confirm password' : 'Show confirm password'}
+                      onClick={() => setShowConfirmPass(v => !v)}>
+                      {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {confirmPass && confirmPass !== newPass && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>Passwords do not match</p>
+                  )}
+                </div>
+
+                {/* Error message */}
+                {passError && (
+                  <p className="text-sm px-3 py-2 rounded" style={{ color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                    {passError}
+                  </p>
+                )}
+
+                {/* Success message */}
+                {passSuccess && (
+                  <p className="text-sm px-3 py-2 rounded" style={{ color: '#15803D', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                    ✓ Password updated successfully!
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={changePassword}
+                  disabled={passLoading || !currentPass || !newPass || !confirmPass}
+                  className="btn-primary flex items-center gap-2"
+                  style={{ opacity: passLoading || !currentPass || !newPass || !confirmPass ? 0.6 : 1 }}>
+                  {passLoading && (
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {passLoading ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
