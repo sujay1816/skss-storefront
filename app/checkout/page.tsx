@@ -452,14 +452,23 @@ export default function CheckoutPage() {
                 <span>Total</span><span style={{ color: 'var(--crimson)', fontFamily: 'var(--font-body)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
+            {/* Trust seals — only real facts, above the payment button */}
+            <div className="flex items-center justify-center gap-4 mt-4 mb-3 py-2.5 rounded"
+              style={{ background: 'var(--cream)', border: '1px solid var(--border)' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>🔒 Secure</span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>✅ 100% Authentic</span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>↩️ Easy Returns</span>
+            </div>
             <button type="button" onClick={createOrder} disabled={loading || !!phoneError}
-              className="btn-primary w-full mt-4 justify-center"
+              className="btn-primary w-full justify-center"
               style={{ opacity: loading || phoneError ? 0.7 : 1 }}>
               {loading
                 ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</>
                 : paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')}`}
             </button>
-            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>🔒 Secured by Razorpay</p>
+            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-secondary)' }}>🔒 Secured by Razorpay · 256-bit SSL</p>
           </div>
         </div>
       </div>

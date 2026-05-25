@@ -247,6 +247,33 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
               {product.name}
             </p>
 
+            {/* Colour swatches — Myntra/Ajio style */}
+            {product.variants && product.variants.length > 1 &&
+             !(product.variants.length === 1 && product.variants[0].colour === 'Single Piece') && (
+              <div className="flex items-center gap-1.5 mb-2 flex-wrap" onClick={e => e.preventDefault()}>
+                {product.variants.slice(0, 5).map((v, i) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    aria-label={`Select colour: ${v.colour}`}
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedVariantIdx(i) }}
+                    style={{
+                      width: 13, height: 13, borderRadius: '50%', flexShrink: 0, padding: 0,
+                      background: v.colourHex || '#bbb',
+                      border: selectedVariantIdx === i
+                        ? '2px solid var(--crimson)' : '1.5px solid rgba(0,0,0,0.15)',
+                      opacity: v.stock === 0 ? 0.3 : 1,
+                      cursor: 'pointer', outline: 'none',
+                      boxShadow: selectedVariantIdx === i ? '0 0 0 1px white inset' : 'none',
+                    }}
+                  />
+                ))}
+                {product.variants.length > 5 && (
+                  <span style={{ fontSize: 9, color: 'var(--text-secondary)' }}>+{product.variants.length - 5}</span>
+                )}
+              </div>
+            )}
+
             {/* #12 — Gold SVG stars */}
             {product.reviewCount > 0 && (
               <div className="flex items-center gap-1 mb-2">
@@ -295,15 +322,7 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
             </div>
           </div>
 
-          {/* Show colour count if multiple variants — no tiny dots */}
-          {product.variants && product.variants.length > 1 &&
-           !(product.variants.length === 1 && product.variants[0].colour === 'Single Piece') && (
-            <div className="px-3 pb-2.5">
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {product.variants.length} colours available
-              </p>
-            </div>
-          )}
+
         </div>
       </Link>
     </div>

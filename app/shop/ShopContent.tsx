@@ -305,6 +305,47 @@ export default function ShopContent({ products, categories, config, userId: serv
           )}
 
         <div className="flex-1">
+          {/* Active filter chips — shows what's filtering, each removable */}
+          {activeCount > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {selectedCategory && (
+                <button type="button" onClick={() => setSelectedCategoryAndNav('')}
+                  className="active-filter-chip">
+                  {categories.find(cat => cat.slug === selectedCategory)?.name || selectedCategory} ×
+                </button>
+              )}
+              {selectedFabrics.map(f => (
+                <button key={f} type="button"
+                  onClick={() => { toggleFilter(selectedFabrics, f, setSelectedFabrics, 'fabrics'); setPage(1) }}
+                  className="active-filter-chip">{f} ×</button>
+              ))}
+              {selectedOccasions.map(o => (
+                <button key={o} type="button"
+                  onClick={() => { toggleFilter(selectedOccasions, o, setSelectedOccasions, 'occasions'); setPage(1) }}
+                  className="active-filter-chip">{o} ×</button>
+              ))}
+              {(priceMin || priceMax) && (
+                <button type="button" onClick={() => { setPriceMin(''); setPriceMax(''); setPage(1) }}
+                  className="active-filter-chip">
+                  &#8377;{priceMin || '0'} – &#8377;{priceMax || '∞'} ×
+                </button>
+              )}
+              {onlyNew && (
+                <button type="button" onClick={() => { setOnlyNew(false); setPage(1) }}
+                  className="active-filter-chip">New Arrivals ×</button>
+              )}
+              {onlyInStock && (
+                <button type="button" onClick={() => { setOnlyInStock(false); setPage(1) }}
+                  className="active-filter-chip">In Stock ×</button>
+              )}
+              <button type="button" onClick={clearAll}
+                className="text-xs font-medium"
+                style={{ color: 'var(--crimson)', padding: '3px 6px' }}>
+                Clear All
+              </button>
+            </div>
+          )}
+
           <p className="text-xs mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
             {isPending && (
               <span className="inline-block w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0"

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight, ChevronLeft, Play, Pause } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
+import RecentlyViewed from '@/components/product/RecentlyViewed'
 import type { SiteConfig, Category, Product, Banner, BannerSlide } from '@/types'
 
 const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } } }
@@ -339,6 +340,31 @@ export default function HomepageClient({ config, categories, featured, bestselle
         </div>
       </div>
 
+      {/* ── HONEST TRUST STRIP — only facts that are always true ── */}
+      <div style={{ background: 'var(--ivory)', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container py-3">
+          <div className="flex items-center justify-center flex-wrap gap-x-5 gap-y-1">
+            {[
+              { icon: '🤝', text: 'Cash on Delivery available' },
+              { icon: '🔒', text: '100% secure payments' },
+              { icon: '↩️', text: `${config.return_window_days || 7}-day easy returns` },
+              { icon: '✅', text: 'Pure silk, certified authentic' },
+              { icon: '📦', text: `Free shipping above ₹${Number(config.free_shipping_above || 1999).toLocaleString('en-IN')}` },
+            ].map((item, i, arr) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span style={{ fontSize: 13 }}>{item.icon}</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  {item.text}
+                </span>
+                {i < arr.length - 1 && (
+                  <span className="hidden sm:inline text-xs ml-1" style={{ color: 'var(--border)' }}>·</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── TRUST BADGES ── */}
       <section style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container py-8">
@@ -520,6 +546,9 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </div>
         </section>
       )}
+
+      {/* ── RECENTLY VIEWED — personalised, hidden when empty ── */}
+      <RecentlyViewed />
 
       {/* ── ABOUT STRIP ── */}
       <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}

@@ -697,3 +697,18 @@ video {
 @media (max-width: 380px) {
   .hero-video-heading { font-size: clamp(1.2rem, 7vw, 2rem); }
 }
+
+/* ── ACTIVE FILTER CHIPS ────────────────────────────────────────────────── */
+.active-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; font-size: 11px; font-weight: 500;
+  color: var(--crimson); background: var(--cream);
+  border: 1px solid var(--crimson); border-radius: 99px;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  white-space: nowrap; line-height: 1.6;
+}
+.active-filter-chip:hover { background: var(--crimson); color: white; }
+
+/* ── SWATCH DOT ─────────────────────────────────────────────────────────── */
+.swatch-dot { flex-shrink: 0; transition: transform 0.15s; }
+.swatch-dot:hover { transform: scale(1.25); }

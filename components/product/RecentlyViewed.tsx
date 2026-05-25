@@ -35,9 +35,15 @@ export default function RecentlyViewed({ currentProductId }: { currentProductId?
   if (products.length === 0) return null
 
   return (
-    <section className="mt-16">
-      <h2 className="section-heading mb-8">Recently Viewed</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <section style={{ background: 'var(--ivory)', paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)' }}>
+      <div className="page-container">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'var(--gold)' }}>Your History</p>
+            <h2 className="section-heading">Recently Viewed</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {products.map(product => {
           const effectivePrice = getEffectivePrice(product)
           const isOnSale = effectivePrice < product.originalPrice
@@ -78,6 +84,7 @@ export default function RecentlyViewed({ currentProductId }: { currentProductId?
             </Link>
           )
         })}
+      </div>
       </div>
     </section>
   )
