@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight, ChevronLeft } from 'lucide-react'
+import { ArrowRight, Shield, Truck, RotateCcw, Award, ChevronRight, ChevronLeft, Play, Pause } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import type { SiteConfig, Category, Product, Banner, BannerSlide } from '@/types'
 
@@ -16,12 +16,13 @@ const optimiseVideo = (url: string) =>
     ? url.replace('/upload/', '/upload/q_auto,f_auto/')
     : url
 
-// ── VideoSlide — plays one video, calls onEnded when done ─────────────────────
-function VideoSlide({ src, poster, objectPosition, onEnded }: {
-  src: string; poster?: string; objectPosition?: string; onEnded: () => void
+// ── VideoSlide — plays one video, loops it, honours pause from parent ─────────
+function VideoSlide({ src, poster, objectPosition, onEnded, isPaused }: {
+  src: string; poster?: string; objectPosition?: string; onEnded: () => void; isPaused?: boolean
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const optimised = optimiseVideo(src)
+
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
@@ -29,12 +30,20 @@ function VideoSlide({ src, poster, objectPosition, onEnded }: {
     const p = v.play()
     if (p) p.catch(() => {})
   }, [optimised])
+
+  // Honour pause/play toggle
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (isPaused) { v.pause() } else { v.play().catch(() => {}) }
+  }, [isPaused])
+
   return (
-    <video ref={videoRef} autoPlay muted playsInline preload="auto"
+    <video ref={videoRef} autoPlay muted playsInline preload="auto" loop
       poster={poster} onEnded={onEnded}
       className="absolute inset-0 w-full h-full object-cover hero-media"
       style={{ objectPosition: objectPosition || 'center' }}>
-      <source src={optimised} type="video/mp4" />
+      <source src={optimised} />
     </video>
   )
 }
@@ -81,6 +90,8 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
 
   const total = slides.length
   const [current, setCurrent] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const videoRef2 = useRef<HTMLVideoElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const slide = slides[current]
   const isVideo = slide.mediaType === 'video' && !!slide.videoUrl
@@ -91,17 +102,17 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   const goNext = useCallback(() => goTo((current + 1) % total), [current, total])
   const goPrev = useCallback(() => goTo((current - 1 + total) % total), [current, total])
 
-  // Image slides: auto-advance after slideDuration seconds
+  // Image slides: auto-advance after slideDuration seconds (skip when paused)
   useEffect(() => {
-    if (isVideo || total <= 1) return
+    if (isVideo || total <= 1 || isPaused) return
     const ms = ((slide.slideDuration ?? DEFAULT_DURATION)) * 1000
     timerRef.current = setTimeout(goNext, ms)
     return clearTimer
-  }, [current, isVideo, total, slide.slideDuration])
+  }, [current, isVideo, total, slide.slideDuration, isPaused])
 
   return (
     <>
-      {/* Background layer — explicit inline styles prevent Tailwind/Framer conflicts */}
+      {/* ── BACKGROUND ── */}
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -114,6 +125,7 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
                 src={slide.videoUrl!}
                 poster={slide.imageUrl || banner.imageUrl || undefined}
                 objectPosition={slide.imageFocus || 'center'}
+                isPaused={isPaused}
                 onEnded={() => { if (total > 1) goNext() }}
               />
             ) : slide.imageUrl ? (
@@ -130,47 +142,122 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
             )}
           </motion.div>
         </AnimatePresence>
-        <div style={{ position: 'absolute', inset: 0, background: overlayGradient, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 128, background: 'linear-gradient(to top,rgba(253,250,247,0.1),transparent)', pointerEvents: 'none' }} />
+
+        {/* OPTION A — VIDEO: thin bottom-only gradient so the full video is visible.
+            IMAGE: original left-side gradient for text contrast. */}
+        {isVideo ? (
+          /* Bottom gradient only — covers bottom 40%, max opacity 0.80 */
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'linear-gradient(to top, rgba(10,5,3,0.82) 0%, rgba(10,5,3,0.55) 28%, rgba(10,5,3,0.15) 50%, transparent 70%)',
+          }} />
+        ) : (
+          /* Original left gradient for image slides — unchanged */
+          <div style={{ position: 'absolute', inset: 0, background: overlayGradient, pointerEvents: 'none' }} />
+        )}
       </div>
 
-      {/* Content — explicit z-index so CTA links are clickable above background */}
-      <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-        <div className="page-container w-full" style={{ pointerEvents: 'auto' }}>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={`txt-${current}`} className="max-w-xl hero-content-container"
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
-              {slide.badgeText && (
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
-                  <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>{slide.badgeText}</span>
-                </div>
-              )}
-              <h1 className="hero-heading font-light mb-4" style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}>
-                {slide.heading || 'Draped in'}
-                <em style={{ color: textCol.accent }}>{slide.headingItalic || ' Royal Elegance'}</em>
-              </h1>
-              {slide.subheading && (
-                <p className="text-sm font-light mb-2 max-w-sm hero-subtext" style={{ color: textCol.secondary, lineHeight: 1.7 }}>{slide.subheading}</p>
-              )}
-              {tagline && (
-                <p className="text-xs mb-6 tracking-widest hero-tagline" style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>&quot;{tagline}&quot;</p>
-              )}
-              <div className="hero-cta-group">
-                <Link href={slide.ctaUrl || '/shop'} className="hero-cta-primary">
-                  {slide.ctaLabel || 'Shop Now'}<ArrowRight size={13} className="flex-shrink-0" />
-                </Link>
-                {slide.ctaSecondaryLabel && (
-                  <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary">{slide.ctaSecondaryLabel}</Link>
+      {/* ── CONTENT ── */}
+      {isVideo ? (
+        /* OPTION A — VIDEO: content anchored to BOTTOM-LEFT, compact, unobstructed view above */
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+          paddingBottom: total > 1 ? '56px' : '32px', pointerEvents: 'none',
+        }}>
+          <div className="page-container w-full" style={{ pointerEvents: 'auto' }}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={`txt-${current}`}
+                className="hero-video-content"
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+
+                {/* Badge */}
+                {slide.badgeText && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px w-8 flex-shrink-0" style={{ background: textCol.accent }} />
+                    <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)', fontSize: 10 }}>{slide.badgeText}</span>
+                  </div>
                 )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
 
-      {/* Controls */}
+                {/* Compact heading — smaller than image layout to give video maximum room */}
+                <h1 className="hero-video-heading font-light" style={{ color: 'white', fontFamily: 'var(--font-heading)', marginBottom: 12 }}>
+                  {slide.heading || 'Draped in'}
+                  <em style={{ color: 'var(--gold-light)' }}>{slide.headingItalic ? ` ${slide.headingItalic}` : ' Royal Elegance'}</em>
+                </h1>
+
+                {/* CTA buttons — horizontal always */}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Link href={slide.ctaUrl || '/shop'} className="hero-cta-primary" style={{ padding: '10px 20px' }}>
+                    {slide.ctaLabel || 'Shop Now'}<ArrowRight size={13} className="flex-shrink-0" />
+                  </Link>
+                  {slide.ctaSecondaryLabel && (
+                    <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary" style={{ padding: '10px 20px' }}>
+                      {slide.ctaSecondaryLabel}
+                    </Link>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      ) : (
+        /* Original IMAGE layout — vertically centred, full heading + subheading */
+        <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+          <div className="page-container w-full" style={{ pointerEvents: 'auto' }}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={`txt-${current}`} className="max-w-xl hero-content-container"
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
+                {slide.badgeText && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-px w-10 flex-shrink-0" style={{ background: textCol.accent }} />
+                    <span className="text-xs tracking-widest uppercase" style={{ color: textCol.accent, fontFamily: 'var(--font-body)' }}>{slide.badgeText}</span>
+                  </div>
+                )}
+                <h1 className="hero-heading font-light mb-4" style={{ color: textCol.primary, fontFamily: 'var(--font-heading)' }}>
+                  {slide.heading || 'Draped in'}
+                  <em style={{ color: textCol.accent }}>{slide.headingItalic || ' Royal Elegance'}</em>
+                </h1>
+                {slide.subheading && (
+                  <p className="text-sm font-light mb-2 max-w-sm hero-subtext" style={{ color: textCol.secondary, lineHeight: 1.7 }}>{slide.subheading}</p>
+                )}
+                {tagline && (
+                  <p className="text-xs mb-6 tracking-widest hero-tagline" style={{ color: textCol.accent, fontFamily: 'var(--font-heading)', fontStyle: 'italic' }}>&quot;{tagline}&quot;</p>
+                )}
+                <div className="hero-cta-group">
+                  <Link href={slide.ctaUrl || '/shop'} className="hero-cta-primary">
+                    {slide.ctaLabel || 'Shop Now'}<ArrowRight size={13} className="flex-shrink-0" />
+                  </Link>
+                  {slide.ctaSecondaryLabel && (
+                    <Link href={slide.ctaSecondaryUrl || '/shop'} className="hero-cta-secondary">{slide.ctaSecondaryLabel}</Link>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* ── Controls ── */}
+      {/* Pause/play button — always shown on video slides (single or multi) */}
+      {isVideo && (
+        <button
+          type="button"
+          onClick={() => setIsPaused(p => !p)}
+          aria-label={isPaused ? 'Play video' : 'Pause video'}
+          className="absolute z-20 flex items-center justify-center rounded-full transition-opacity"
+          style={{
+            bottom: total > 1 ? 56 : 20,
+            right: 16,
+            width: 36, height: 36,
+            background: 'rgba(0,0,0,0.45)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: 'white',
+          }}>
+          {isPaused ? <Play size={14} fill="white" /> : <Pause size={14} />}
+        </button>
+      )}
+
       {total > 1 && (
         <>
           <button type="button" onClick={goPrev} aria-label="Previous"

@@ -670,3 +670,30 @@ video {
   height: 100%;
   object-fit: contain;
 }
+
+/* ── HERO OPTION A — VIDEO BOTTOM LAYOUT ────────────────────────────────── */
+/* Compact heading used only on video slides (bottom-anchored layout) */
+.hero-video-heading {
+  font-size: clamp(1.4rem, 4vw + 0.5rem, 3.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  margin-bottom: 0;
+}
+.hero-video-heading em { font-style: italic; }
+
+/* Content block on video slides — sits at the bottom, text is compact */
+.hero-video-content {
+  max-width: 560px;
+  padding-bottom: 4px;
+}
+
+/* On landscape mobile hide tagline/subheading — they're already hidden on video */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-video-heading { font-size: clamp(1rem, 3.5vh, 1.8rem); }
+  .hero-video-content { max-width: 420px; }
+}
+
+/* On very small phones make heading slightly smaller */
+@media (max-width: 380px) {
+  .hero-video-heading { font-size: clamp(1.2rem, 7vw, 2rem); }
+}
