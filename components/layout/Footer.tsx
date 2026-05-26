@@ -113,7 +113,7 @@ export default function Footer({ config, categories }: { config: SiteConfig; cat
           <div>
             <h4 className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'var(--text-primary)' }}>Help</h4>
             <ul className="space-y-2">
-              {[['FAQ', '/faq'], ['Shipping Info', '/shipping'], ['Return & Refund', '/policy'], ['Track Order', '/orders'], ['Contact Us', '/contact']].map(([label, url]) => (
+              {[['FAQ', '/faq'], ['Fabric Guide', '/fabric-guide'], ['Lookbook', '/lookbook'], ['Our Weavers', '/weavers'], ['Shipping Info', '/shipping'], ['Return & Refund', '/policy'], ['Track Order', '/orders'], ['Contact Us', '/contact']].map(([label, url]) => (
                 <li key={url}><Link href={url} className="text-xs transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--crimson)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}>{label}</Link></li>
               ))}
             </ul>

@@ -7,6 +7,7 @@ import type { Product } from '@/types'
 import { formatPrice, getEffectivePrice } from '@/lib/utils'
 import { useCartStore } from '@/lib/store/cart'
 import { useWishlistStore } from '@/lib/store/wishlist'
+import { useCompareStore } from '@/lib/store/compare'
 import toast from 'react-hot-toast'
 
 // #12 — Custom gold SVG star
@@ -39,6 +40,9 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
 
   const addItem = useCartStore(s => s.addItem)
   const { toggle, isWishlisted } = useWishlistStore()
+  const { add: addToCompare, remove: removeFromCompare, has: inCompare, items: compareItems } = useCompareStore()
+  const isInCompare = inCompare(product.id)
+  const compareMaxed = compareItems.length >= 3 && !isInCompare
   const wishlisted = isWishlisted(product.id)
 
   const effectivePrice = getEffectivePrice(product)
@@ -216,6 +220,19 @@ export default function ProductCard({ product, userId, index = 99 }: { product: 
                   fill={wishlisted ? 'var(--crimson)' : 'none'}
                   stroke={wishlisted ? 'var(--crimson)' : 'currentColor'}
                   style={{ color: wishlisted ? 'var(--crimson)' : 'var(--text-primary)' }} />
+              </button>
+              {/* Compare toggle */}
+              <button
+                type="button"
+                aria-label={isInCompare ? 'Remove from comparison' : compareMaxed ? 'Max 3 products' : 'Add to comparison'}
+                title={isInCompare ? 'Remove from comparison' : compareMaxed ? 'Max 3 products for comparison' : 'Compare'}
+                disabled={compareMaxed}
+                className="w-9 h-9 md:w-8 md:h-8 bg-white flex items-center justify-center shadow-sm transition-all md:opacity-0 md:translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                style={{ border: `1px solid ${isInCompare ? 'var(--crimson)' : 'var(--border)'}`, opacity: compareMaxed ? 0.4 : 1, cursor: compareMaxed ? 'not-allowed' : 'pointer' }}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); isInCompare ? removeFromCompare(product.id) : addToCompare(product) }}
+                onMouseEnter={e => !compareMaxed && ((e.currentTarget as HTMLElement).style.borderColor = 'var(--crimson)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = isInCompare ? 'var(--crimson)' : 'var(--border)')}>
+                <Eye size={13} style={{ color: isInCompare ? 'var(--crimson)' : 'var(--text-primary)' }} />
               </button>
             </div>
 

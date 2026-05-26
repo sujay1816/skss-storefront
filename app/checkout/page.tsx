@@ -26,6 +26,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online')
   const [isBusinessPurchase, setIsBusinessPurchase] = useState(false)
+  const [giftWrap, setGiftWrap] = useState(false)
+  const [giftNote, setGiftNote] = useState('')
+  const GIFT_WRAP_FEE = 99
   const [gstin, setGstin] = useState('')
   const [gstinError, setGstinError] = useState('')
   const [form, setForm] = useState({
@@ -112,7 +115,8 @@ export default function CheckoutPage() {
   const gstRate = defaultGstRate
   const gst = Math.round((sub - discount) * (gstRate / 100))
   // FIX #5: cap total at 0 — a large flat coupon could make total negative
-  const total = Math.max(0, sub - discount + shipping + gst)
+  const giftWrapFee = giftWrap ? GIFT_WRAP_FEE : 0
+  const total = Math.max(0, sub - discount + shipping + gst + giftWrapFee)
 
   // FIX #4: stock check BEFORE opening Razorpay modal (quick pre-check only)
   // The actual atomic stock deduction happens server-side in /api/place-order
@@ -231,7 +235,7 @@ export default function CheckoutPage() {
       // Use session email as the authoritative address — the email state variable
       // may still be '' if the getUser() useEffect hasn't resolved yet (race condition).
       const confirmedEmail = session?.user?.email || email
-      const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode, gstin: isBusinessPurchase && gstin ? gstin.trim().toUpperCase() : null }
+      const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode, gstin: isBusinessPurchase && gstin ? gstin.trim().toUpperCase() : null, gift_wrap: giftWrap, gift_note: giftNote.trim() || null, gift_wrap_fee: giftWrapFee }
 
       // Single atomic server call — handles stock lock, order creation, and stock deduction
       // in one Postgres transaction. Prevents overselling even with simultaneous orders.
@@ -441,6 +445,44 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* Gift Wrap option */}
+          <div className="card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xl">🎁</span>
+              <h2 className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Gift Wrapping</h2>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors"
+              style={{ borderColor: giftWrap ? 'var(--crimson)' : 'var(--border)', background: giftWrap ? 'var(--cream)' : 'transparent' }}>
+              <input type="checkbox" checked={giftWrap} onChange={e => setGiftWrap(e.target.checked)}
+                className="mt-0.5 flex-shrink-0" style={{ accentColor: 'var(--crimson)' }} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Add gift wrapping</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--crimson)' }}>+₹{GIFT_WRAP_FEE}</p>
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Premium wrapping with a ribbon — perfect for gifting</p>
+              </div>
+            </label>
+            {giftWrap && (
+              <div className="mt-3">
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Gift message <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional, max 150 characters)</span>
+                </label>
+                <textarea
+                  value={giftNote}
+                  onChange={e => setGiftNote(e.target.value.slice(0, 150))}
+                  placeholder="e.g. Happy Birthday! Wishing you joy and elegance always."
+                  className="input-base w-full"
+                  rows={3}
+                  style={{ resize: 'none', fontSize: 13 }}
+                />
+                <p className="text-xs text-right mt-1" style={{ color: giftNote.length >= 140 ? 'var(--crimson)' : 'var(--text-secondary)' }}>
+                  {giftNote.length}/150
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="card p-5">
             <h2 className="font-semibold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: 18 }}>Payment Method</h2>
             <div className="space-y-3">
@@ -488,6 +530,9 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Subtotal</span><span>₹{sub.toLocaleString('en-IN')}</span></div>
               {discount > 0 && <div className="flex justify-between text-sm"><span style={{ color: '#16A34A' }}>Coupon ({appliedCoupon?.code})</span><span style={{ color: '#16A34A' }}>−₹{discount.toLocaleString('en-IN')}</span></div>}
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>Shipping</span><span style={{ color: shipping === 0 ? '#16A34A' : 'inherit' }}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+              {giftWrap && (
+                <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>🎁 Gift Wrap</span><span>₹{GIFT_WRAP_FEE}</span></div>
+              )}
               {/* FIX #3: show dynamic GST rate */}
               <div className="flex justify-between text-sm"><span style={{ color: 'var(--text-secondary)' }}>GST ({gstRate}%)</span><span>₹{gst.toLocaleString('en-IN')}</span></div>
               <div className="flex justify-between font-semibold text-base border-t pt-2" style={{ borderColor: 'var(--border)' }}>

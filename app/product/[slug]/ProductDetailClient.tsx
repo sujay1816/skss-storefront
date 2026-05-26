@@ -3,13 +3,14 @@ import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, ShoppingBag, Star, ChevronDown, ChevronUp, MapPin, RotateCcw, Shield, Truck, Share2, Check, Play } from 'lucide-react'
+import { Heart, ShoppingBag, Star, ChevronDown, ChevronUp, MapPin, RotateCcw, Shield, Truck, Share2, Check, Play, Info } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import RecentlyViewed, { recordRecentlyViewed } from '@/components/product/RecentlyViewed'
 import { formatPrice, getEffectivePrice } from '@/lib/utils'
 import { useCartStore } from '@/lib/store/cart'
 import { useWishlistStore } from '@/lib/store/wishlist'
 import { createClient } from '@/lib/supabase/client'
+import FabricInfoLoader from '@/components/product/FabricInfoLoader'
 import Breadcrumb from '@/components/layout/Breadcrumb'
 import type { Product, ProductVariant, Review, SiteConfig } from '@/types'
 import toast from 'react-hot-toast'
@@ -370,6 +371,7 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
   }
 
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [fabricModalOpen, setFabricModalOpen] = useState(false)
 
   const submitReview = async () => {
     if (!userId) { toast.error('Please sign in to leave a review'); return }
@@ -506,7 +508,32 @@ export default function ProductDetailClient({ product, reviews, relatedProducts,
         {/* Info */}
         <div className="lg:w-1/2 pdp-info-col">
           <div className="flex items-start justify-between gap-4 mb-2">
-            <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)' }}>{product.fabric}{product.weaveType ? ` · ${product.weaveType}` : ''}{product.originRegion ? ` · ${product.originRegion}` : ''}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--gold)' }}>{product.fabric}{product.weaveType ? ` · ${product.weaveType}` : ''}{product.originRegion ? ` · ${product.originRegion}` : ''}</p>
+              <button type="button" onClick={() => setFabricModalOpen(true)}
+                className="flex-shrink-0 transition-colors"
+                aria-label={`Learn about ${product.fabric}`}
+                style={{ color: 'var(--gold)', opacity: 0.7 }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '0.7')}>
+                <Info size={12} />
+              </button>
+            </div>
+
+            {/* Fabric info quick modal */}
+            {fabricModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+                onClick={e => { if (e.target === e.currentTarget) setFabricModalOpen(false) }}>
+                <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-xl overflow-hidden" style={{ background: 'white', maxHeight: '90vh' }}>
+                  <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <h3 className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>About {product.fabric}</h3>
+                    <button type="button" onClick={() => setFabricModalOpen(false)} className="p-1.5 rounded-full" style={{ color: 'var(--text-secondary)' }}>✕</button>
+                  </div>
+                  <FabricInfoLoader fabric={product.fabric} onClose={() => setFabricModalOpen(false)} />
+                </div>
+              </div>
+            )}
             <div className="relative">
               <button type="button" onClick={() => setShareMenuOpen(v => !v)}
                 className="p-1.5 transition-colors"

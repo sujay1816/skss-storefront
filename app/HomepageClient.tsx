@@ -291,8 +291,8 @@ function HeroSlideshow({ banner, overlayGradient, textCol, tagline }: {
   )
 }
 
-export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, userId }: {
-  config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; userId?: string
+export default function HomepageClient({ config, categories, featured, bestsellers, newArrivals, banners, occasions = [], userId }: {
+  config: SiteConfig; categories: Category[]; featured: Product[]; bestsellers: Product[]; newArrivals: Product[]; banners: Banner[]; occasions?: any[]; userId?: string
 }) {
   const heroRef = useRef<HTMLDivElement>(null)
   const heroBanner = banners[0]
@@ -391,6 +391,49 @@ export default function HomepageClient({ config, categories, featured, bestselle
           </div>
         </div>
       </section>
+
+      {/* ── SHOP BY OCCASION — shown only when admin has configured occasions ── */}
+      {occasions.length > 0 && (
+        <section style={{ background: 'white', paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)' }}>
+          <div className="page-container">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-10">
+              <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'var(--gold)', fontFamily: 'var(--font-body)' }}>Curated Collections</p>
+              <h2 className="section-heading">Shop by Occasion</h2>
+              <div className="w-16 h-px mx-auto mt-4" style={{ background: 'linear-gradient(to right, transparent, var(--gold), transparent)' }} />
+            </motion.div>
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+              {occasions.map((occ: any) => (
+                <motion.div key={occ.id} variants={fadeUp}>
+                  <a href={`/shop?occasion=${encodeURIComponent(occ.slug)}`} className="group block">
+                    <div className="relative overflow-hidden rounded-xl mb-2"
+                      style={{ aspectRatio: '3/4', background: 'var(--cream)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                      {occ.image_url ? (
+                        <>
+                          <div className="absolute inset-0 skeleton" />
+                          <Image src={occ.image_url} alt={occ.name} fill
+                            sizes="(max-width: 640px) 50vw, 25vw"
+                            className="object-cover transition-all duration-700 group-hover:scale-110"
+                            style={{ opacity: 0, transition: 'opacity 0.4s ease' }}
+                            onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1' }} />
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><span className="text-4xl">🥻</span></div>
+                      )}
+                      <div className="absolute inset-0 transition-all duration-300 group-hover:bg-black/10"
+                        style={{ background: 'linear-gradient(to top, rgba(139,26,43,0.65) 0%, transparent 55%)' }} />
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="text-xs font-semibold tracking-wide uppercase text-white text-center"
+                          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>{occ.name}</p>
+                      </div>
+                    </div>
+                  </a>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* ── CATEGORIES ── */}
       <section style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-12)', background: 'var(--ivory)' }}>

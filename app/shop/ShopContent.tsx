@@ -1,8 +1,8 @@
 'use client'
-import { useState, useCallback, useTransition, useEffect } from 'react'
+import { useState, useCallback, useTransition, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 // FIX: framer-motion removed from filter animations — replaced with CSS
-import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon , Mic, MicOff, AlertCircle } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
 import Breadcrumb from '@/components/layout/Breadcrumb'
 import { getEffectivePrice } from '@/lib/utils'
@@ -142,6 +142,9 @@ export default function ShopContent({ products, categories, config, userId: serv
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
+  const [voiceActive, setVoiceActive] = useState(false)
+  const [voiceError, setVoiceError] = useState('')
+  const recognitionRef = useRef<any>(null)
   // ISR page passes userId=undefined — resolve client-side for immediate cart/wishlist DB sync
   const [userId, setUserId] = useState<string | undefined>(serverUserId)
   useEffect(() => {
@@ -211,6 +214,103 @@ export default function ShopContent({ products, categories, config, userId: serv
   const activeCount = (selectedCategory ? 1 : 0) + selectedFabrics.length + selectedOccasions.length +
     (priceMin || priceMax ? 1 : 0) + (onlyNew ? 1 : 0) + (onlyInStock ? 1 : 0)
 
+  // Smart voice parser — converts speech into filters
+  const parseVoiceQuery = (transcript: string) => {
+    const t = transcript.toLowerCase().trim()
+    const FABRICS = ['kanjivaram', 'kanchipuram', 'banarasi', 'banaras', 'chanderi', 'tussar', 'organza', 'linen', 'georgette', 'chiffon', 'cotton', 'khadi', 'crepe', 'raw silk', 'bandhani', 'bandini']
+    const OCCASIONS = ['wedding', 'weddings', 'festive', 'festival', 'casual', 'office', 'party', 'religious', 'daily', 'daily wear']
+    const OCCASION_MAP: Record<string,string> = { weddings: 'Wedding', wedding: 'Wedding', festive: 'Festive', festival: 'Festive', casual: 'Casual', office: 'Office', party: 'Party', religious: 'Religious', daily: 'Daily Wear', 'daily wear': 'Daily Wear' }
+
+    let matched = false
+    let newSearch = ''
+
+    // Detect fabric
+    for (const fab of FABRICS) {
+      if (t.includes(fab)) {
+        const canon = fab === 'kanchipuram' ? 'Kanjivaram' : fab === 'banaras' ? 'Banarasi' : fab.charAt(0).toUpperCase() + fab.slice(1)
+        setSelectedFabrics([canon])
+        matched = true
+        break
+      }
+    }
+
+    // Detect price — "under X", "below X", "less than X"
+    const priceMatch = t.match(/(?:under|below|less than|upto|up to|within)\s*(?:rs\.?|₹|inr)?\s*(\d[\d,]*)/i)
+    if (priceMatch) {
+      const price = priceMatch[1].replace(/,/g, '')
+      setPriceMax(price)
+      matched = true
+    }
+
+    // Detect occasion
+    for (const occ of OCCASIONS) {
+      if (t.includes(occ)) {
+        const canonOcc = OCCASION_MAP[occ] || occ
+        setSelectedOccasions([canonOcc])
+        matched = true
+        break
+      }
+    }
+
+    // Detect "new" / "latest"
+    if (t.includes('new arrival') || t.includes('latest') || t.includes('new saree')) {
+      setOnlyNew(true); matched = true
+    }
+
+    // Detect "in stock" / "available"
+    if (t.includes('in stock') || t.includes('available') || t.includes('not sold out')) {
+      setOnlyInStock(true); matched = true
+    }
+
+    if (!matched) {
+      // Fall back to text search
+      newSearch = transcript.trim()
+      setSearchInput(newSearch)
+      setSearch(newSearch)
+      setVoiceError(`I heard "${transcript}". Try: "show me Kanjivaram under ₹5000"`)
+      return
+    }
+
+    setPage(1)
+    setVoiceError('')
+  }
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setVoiceError('Voice search is not supported in this browser. Try Chrome or Edge.')
+      return
+    }
+
+    if (voiceActive && recognitionRef.current) {
+      recognitionRef.current.stop()
+      setVoiceActive(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognitionRef.current = recognition
+    recognition.lang = 'en-IN'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    recognition.onstart = () => { setVoiceActive(true); setVoiceError('') }
+    recognition.onend   = () => { setVoiceActive(false) }
+    recognition.onerror = (e: any) => {
+      setVoiceActive(false)
+      if (e.error === 'not-allowed') setVoiceError('Microphone permission denied. Please allow microphone access.')
+      else if (e.error === 'no-speech') setVoiceError('No speech detected. Try again.')
+      else setVoiceError('Voice search failed. Please try again.')
+    }
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript
+      parseVoiceQuery(transcript)
+    }
+
+    try { recognition.start() } catch { setVoiceError('Could not start voice search. Try again.') }
+  }
+
   const clearAll = () => {
     setSelectedCategory(''); setSelectedFabrics([]); setSelectedOccasions([])
     setPriceMin(''); setPriceMax(''); setOnlyNew(false); setOnlyInStock(false)
@@ -269,23 +369,42 @@ export default function ShopContent({ products, categories, config, userId: serv
           </div>
         </div>
         {/* Mobile: full-width search bar */}
-        <div className="flex items-center gap-2 border px-3 lg:hidden" style={{ borderColor: 'var(--border)', height: 40 }}>
+        <div className="flex items-center gap-2 border px-3 lg:hidden" style={{ borderColor: voiceActive ? 'var(--crimson)' : 'var(--border)', height: 40, transition: 'border-color 0.2s' }}>
           <Search size={14} style={{ color: 'var(--text-secondary)' }} />
           <input type="text" aria-label="Search products" value={searchInput} onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
-            placeholder="Search sarees..." className="text-sm outline-none bg-transparent flex-1"
+            placeholder={voiceActive ? 'Listening...' : 'Search sarees...'}
+            className="text-sm outline-none bg-transparent flex-1"
             style={{ color: 'var(--text-primary)' }} />
           {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={14} /></button>}
+          <button type="button" onClick={startVoiceSearch}
+            aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
+            style={{ color: voiceActive ? 'var(--crimson)' : 'var(--text-secondary)', flexShrink: 0 }}>
+            {voiceActive ? <MicOff size={16} className="animate-pulse" /> : <Mic size={16} />}
+          </button>
         </div>
+        {voiceError && (
+          <div className="flex items-start gap-2 p-3 rounded-lg lg:hidden" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <AlertCircle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+            <p className="text-xs" style={{ color: '#DC2626' }}>{voiceError}</p>
+          </div>
+        )}
         {/* Desktop: original inline toolbar */}
         <div className="hidden lg:flex items-center gap-3">
-          <div className="flex items-center gap-2 border px-3" style={{ borderColor: 'var(--border)', height: 36 }}>
+          <div className="flex items-center gap-2 border px-3" style={{ borderColor: voiceActive ? 'var(--crimson)' : 'var(--border)', height: 36, transition: 'border-color 0.2s' }}>
             <Search size={14} style={{ color: 'var(--text-secondary)' }} />
-            <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+            <input type="text" aria-label="Search products" value={searchInput} onChange={e => setSearchInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
-              placeholder="Search sarees..." className="text-xs outline-none bg-transparent"
-              style={{ width: 160, color: 'var(--text-primary)' }} />
+              placeholder={voiceActive ? 'Listening...' : 'Search sarees...'}
+              className="text-xs outline-none bg-transparent"
+              style={{ width: 140, color: 'var(--text-primary)' }} />
             {searchInput && <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}><X size={12} /></button>}
+            <button type="button" onClick={startVoiceSearch}
+              aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
+              className="flex-shrink-0 transition-colors"
+              style={{ color: voiceActive ? 'var(--crimson)' : 'var(--text-secondary)' }}>
+              {voiceActive ? <MicOff size={14} className="animate-pulse" /> : <Mic size={14} />}
+            </button>
           </div>
           <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
             className="text-xs border px-2 outline-none" style={{ borderColor: 'var(--border)', height: 36, color: 'var(--text-primary)', background: 'white' }}>
@@ -356,6 +475,12 @@ export default function ShopContent({ products, categories, config, userId: serv
             </div>
           )}
 
+          {voiceError && (
+            <div className="hidden lg:flex items-start gap-2 p-3 rounded-lg mb-4" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+              <p className="text-xs" style={{ color: '#DC2626' }}>{voiceError}</p>
+            </div>
+          )}
           <p className="text-xs mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
             {isPending && (
               <span className="inline-block w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0"
