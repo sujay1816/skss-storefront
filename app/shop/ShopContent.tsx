@@ -106,8 +106,24 @@ function FiltersContent({ activeCount, categories, fabrics, selectedCategory, se
             onChange={e => { const v = Number(e.target.value); if (v >= Number(priceMin || 0) + 500) { setPriceMax(v === 50000 ? '' : String(v)); setPage(1) } }}
             className="price-slider w-full" />
           <div className="flex gap-2 mt-1">
-            <input type="number" placeholder="Min ₹" aria-label="Minimum price" value={priceMin} onChange={e => { setPriceMin(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
-            <input type="number" placeholder="Max ₹" aria-label="Maximum price" value={priceMax} onChange={e => { setPriceMax(e.target.value); setPage(1) }} className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            {/* FIX (H-3): Clamp values — min>=0, and prevent max < min */}
+            <input type="number" placeholder="Min ₹" aria-label="Minimum price" min={0} value={priceMin}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '') { setPriceMin(''); setPage(1); return }
+                const n = Math.max(0, Number(v))
+                setPriceMin(String(n)); setPage(1)
+              }}
+              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
+            <input type="number" placeholder="Max ₹" aria-label="Maximum price" min={0} value={priceMax}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '') { setPriceMax(''); setPage(1); return }
+                const n = Math.max(0, Number(v))
+                // Warn if max < min, but still set it (let server return empty rather than blocking user)
+                setPriceMax(String(n)); setPage(1)
+              }}
+              className="input-base flex-1" style={{ height: 32, fontSize: 11 }} />
           </div>
         </div>
       </FilterSection>
