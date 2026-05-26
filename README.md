@@ -1,81 +1,42 @@
-# skss-storefront — Complete Fix Package
+# Audit Fix Package — SKSS Storefront & Admin
+Generated: May 2026
 
-All fixes from every batch combined into one zip.
-TypeScript: 0 errors verified.
+## How to apply these fixes
 
-## Copy instructions — replace files at these exact paths
+1. **Open this folder** alongside your cloned repositories
+2. **For each file below**, copy it to the same relative path in the matching repo
+3. **For DELETE instructions**, follow the `DELETE_THIS_FILE.md` guidance
 
-### Root
-| File | What changed |
+---
+
+## skss-storefront — Files to Replace
+
+| File | Issue Fixed |
 |------|-------------|
-| `middleware.ts` | Redirects logged-in users away from /login and /signup; open redirect validation |
-| `next.config.js` | Regex fix that was causing Vercel build errors |
+| `app/forgot-password/page.tsx` | H-6: Cooldown timer was declared but never ran. Added working 60s countdown to prevent email spam. |
+| `app/shop/ShopContent.tsx` | H-3: Price filter text inputs accepted negative values. Added `min=0` clamping. |
 
-### app/
-| File | What changed |
+---
+
+## skss-admin — Files to Replace / Delete
+
+| File | Issue Fixed |
 |------|-------------|
-| `app/page.tsx` | New Arrivals now uses `newArrivals:true` filter |
-| `app/globals.css` | Mobile: newsletter stacks, lightbox pinch-zoom, announcement bar fix, skeleton shimmer |
-| `app/login/page.tsx` | useSearchParams(); removed router.refresh() race condition; Suspense wrapper |
-| `app/signup/page.tsx` | useSearchParams(); email confirmation screen; friendly errors; removed router.refresh() |
-| `app/forgot-password/page.tsx` | Uses NEXT_PUBLIC_SITE_URL for reset link domain |
-| `app/reset-password/page.tsx` | Confirm password field added |
-| `app/cart/page.tsx` | getUser(); coupon min_order_value check; 44px touch targets on qty buttons |
-| `app/checkout/page.tsx` | total capped at ₹0; address form grid-cols-1 on mobile |
-| `app/orders/page.tsx` | getUser() instead of getSession() |
-| `app/orders/[id]/page.tsx` | Redirect to /login?redirect=/orders/:id so user returns after login |
-| `app/profile/page.tsx` | router.push() not window.location.href; redirect param; phone validation; safe back() |
-| `app/wishlist/page.tsx` | Skeleton card grid replaces plain "Loading..." |
-| `app/contact/ContactClient.tsx` | Full contact form with spinner and success state |
-| `app/shop/ShopContent.tsx` | Mobile filter bottom drawer; responsive toolbar; smart pagination |
-| `app/product/[slug]/ProductDetailClient.tsx` | Lightbox swipe+pinch zoom; image loading skeleton; thumbnail scroll |
-| `app/auth/callback/route.ts` | Validates redirect param starts with / (prevents open redirect) |
+| `app/api/save-stock/route.ts` | C-3: No validation on stock values — negative numbers or non-integers could corrupt inventory. Added full validation. |
+| `app/orders/[id]/page.tsx` | H-5: No tracking ID validation when marking order as Shipped. Now requires ≥4 char AWB. |
+| `middleware.ts` | H-8: Added prominent comment warning that in-memory rate limiter doesn't work on serverless — recommends Upstash Redis. |
 
-### components/
-| File | What changed |
-|------|-------------|
-| `components/layout/Navbar.tsx` | getUser() on mount; announcement-bar CSS class |
-| `components/layout/Footer.tsx` | Social icons 44px touch targets |
-| `components/layout/WhatsAppButton.tsx` | Raised to bottom:5rem on mobile to clear sticky bars |
-| `components/product/ProductCard.tsx` | Image loading skeleton until loaded |
-| `components/product/RecentlyViewed.tsx` | NEW FILE — recently viewed products using localStorage |
+### Files to DELETE (do not replace — just delete)
 
-## Supabase SQL needed (run once)
+| File | Reason |
+|------|--------|
+| `app/orders/id/page.tsx` | C-1: Stale literal route conflicts with dynamic `[id]` route |
+| `app/products/id/page.tsx` | C-1: Same conflict |
 
-### 1. Contact messages table
-```sql
-create table contact_messages (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  email text not null,
-  message text not null,
-  created_at timestamptz default now(),
-  is_read boolean default false
-);
-alter table contact_messages enable row level security;
-create policy "Anyone can submit" on contact_messages for insert with check (true);
-```
+See `DELETE_THIS_FILE.md` in each directory for the git command to use.
 
-### 2. Backfill profiles for existing users
-```sql
-insert into profiles (id, email, full_name, role, whatsapp_opted_in, created_at)
-select
-  id,
-  email,
-  coalesce(raw_user_meta_data->>'full_name', raw_user_meta_data->>'name', split_part(email,'@',1)),
-  'customer',
-  false,
-  created_at
-from auth.users
-where id not in (select id from profiles);
-```
+---
 
-## Key fix — why redirect was broken after login
+## Full Audit Report
 
-`router.refresh()` was called immediately after `router.push(redirect)`.
-This caused a race: refresh() re-ran the middleware server-side before the
-auth cookie was fully written, so middleware still saw the user as logged out
-and redirected them back to /login.
-
-Fix: removed `router.refresh()` from both login and signup. The @supabase/ssr
-browser client handles cookie propagation automatically.
+See `AUDIT_REPORT.md` for the complete list of all 37 issues found (Critical, High, Medium, Low).
