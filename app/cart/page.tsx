@@ -220,6 +220,11 @@ export default function CartPage() {
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '16px', fontWeight: 400 }}>₹</span>{total.toLocaleString('en-IN')}
                 </span>
               </div>
+              {total >= 3000 && (
+                <p className="text-xs text-center mt-3 mb-1" style={{ color: '#1D4ED8', fontFamily: 'var(--font-body)' }}>
+                  💳 EMI from ₹{Math.ceil(total / 6).toLocaleString('en-IN')}/month available at checkout
+                </p>
+              )}
               <Link href="/checkout" className="btn-primary w-full justify-center mt-4" style={{ display: 'flex' }}>
                 Proceed to Checkout <ArrowRight size={14} />
               </Link>

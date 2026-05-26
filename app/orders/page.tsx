@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import Breadcrumb from '@/components/layout/Breadcrumb'
 import { Package, ChevronRight, Search as SearchIcon, X } from 'lucide-react'
 
 const OrderSkeleton = () => (
@@ -79,6 +80,9 @@ export default function OrdersPage() {
 
   return (
     <div className="page-container py-8 max-w-2xl animate-fadeIn">
+      <div className="mb-4">
+        <Breadcrumb crumbs={[{ label: 'Home', href: '/' }, { label: 'My Orders' }]} />
+      </div>
       <h1 className="section-heading mb-6">My Orders</h1>
       {orders.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-3 mb-6 orders-filter-bar">

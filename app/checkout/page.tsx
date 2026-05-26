@@ -25,6 +25,9 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online')
+  const [isBusinessPurchase, setIsBusinessPurchase] = useState(false)
+  const [gstin, setGstin] = useState('')
+  const [gstinError, setGstinError] = useState('')
   const [form, setForm] = useState({
     fullName: '', phone: '', addressLine1: '', addressLine2: '',
     city: '', state: 'Karnataka', pincode: '', saveAddress: true,
@@ -89,6 +92,9 @@ export default function CheckoutPage() {
     return pattern.test(clean)
   }
 
+  const validateGSTIN = (g: string) =>
+    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(g.trim().toUpperCase())
+
   const handlePhoneChange = (val: string) => {
     setForm(f => ({ ...f, phone: val }))
     if (val && !validatePhone(val)) {
@@ -134,6 +140,11 @@ export default function CheckoutPage() {
     if (!validatePhone(form.phone)) {
       setPhoneError('Enter a valid 10-digit Indian mobile number')
       toast.error('Please enter a valid phone number')
+      return
+    }
+    if (isBusinessPurchase && gstin && !validateGSTIN(gstin)) {
+      setGstinError('Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)')
+      toast.error('Please enter a valid GSTIN')
       return
     }
     if (form.pincode.length !== 6) {
@@ -220,7 +231,7 @@ export default function CheckoutPage() {
       // Use session email as the authoritative address — the email state variable
       // may still be '' if the getUser() useEffect hasn't resolved yet (race condition).
       const confirmedEmail = session?.user?.email || email
-      const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode }
+      const addressData = { full_name: form.fullName, phone: form.phone, address_line1: form.addressLine1, address_line2: form.addressLine2, city: form.city, state: form.state, pincode: form.pincode, gstin: isBusinessPurchase && gstin ? gstin.trim().toUpperCase() : null }
 
       // Single atomic server call — handles stock lock, order creation, and stock deduction
       // in one Postgres transaction. Prevents overselling even with simultaneous orders.
@@ -290,7 +301,7 @@ export default function CheckoutPage() {
 
       await clearCart(userId || undefined)
       toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful! Order confirmed.')
-      router.push(`/orders/${result.orderId}`)
+      router.push(`/orders/${result.orderId}?new=1`)
     } catch (error: any) {
       toast.error('Order creation failed: ' + error.message)
       setLoading(false)
@@ -397,6 +408,37 @@ export default function CheckoutPage() {
               <input type="checkbox" checked={form.saveAddress} onChange={e => setForm(f => ({ ...f, saveAddress: e.target.checked }))} style={{ accentColor: 'var(--crimson)' }} />
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save this address for future orders</span>
             </label>
+
+            {/* GST Invoice — optional, only shown when business purchase ticked */}
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <label className="flex items-center gap-2 cursor-pointer mb-3">
+                <input type="checkbox" checked={isBusinessPurchase}
+                  onChange={e => { setIsBusinessPurchase(e.target.checked); setGstin(''); setGstinError('') }}
+                  style={{ accentColor: 'var(--crimson)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                  This is a business purchase — I need a GST invoice
+                </span>
+              </label>
+              {isBusinessPurchase && (
+                <div>
+                  <input
+                    type="text"
+                    value={gstin}
+                    onChange={e => { setGstin(e.target.value.toUpperCase()); setGstinError('') }}
+                    placeholder="GSTIN (e.g. 22AAAAA0000A1Z5)"
+                    className="input-base w-full"
+                    maxLength={15}
+                    style={{ borderColor: gstinError ? 'var(--crimson)' : undefined, fontFamily: 'monospace', letterSpacing: '0.05em' }}
+                    aria-label="GSTIN number"
+                    autoComplete="off"
+                  />
+                  {gstinError && <p className="text-xs mt-1" style={{ color: 'var(--crimson)' }}>{gstinError}</p>}
+                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Your GSTIN will appear on the invoice PDF. Leave blank if not needed.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="card p-5">

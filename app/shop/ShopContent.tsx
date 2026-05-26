@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 // FIX: framer-motion removed from filter animations — replaced with CSS
 import { SlidersHorizontal, X, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ProductCard from '@/components/product/ProductCard'
+import Breadcrumb from '@/components/layout/Breadcrumb'
 import { getEffectivePrice } from '@/lib/utils'
 import type { Product, Category, SiteConfig } from '@/types'
 
@@ -240,6 +241,15 @@ export default function ShopContent({ products, categories, config, userId: serv
 
   return (
     <div className="page-container py-8">
+      {/* Breadcrumb */}
+      <div className="mb-4">
+        <Breadcrumb crumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Shop', href: '/shop' },
+          ...(selectedCategory ? [{ label: categories.find(c => c.slug === selectedCategory)?.name || selectedCategory }] : []),
+        ]} />
+      </div>
+
       {/* FIX #4: responsive toolbar — stacks on mobile */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-3">

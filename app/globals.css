@@ -712,3 +712,13 @@ video {
 /* ── SWATCH DOT ─────────────────────────────────────────────────────────── */
 .swatch-dot { flex-shrink: 0; transition: transform 0.15s; }
 .swatch-dot:hover { transform: scale(1.25); }
+
+/* ── BREADCRUMB ─────────────────────────────────────────────────────────── */
+.breadcrumb-nav {
+  font-family: var(--font-body);
+}
+.breadcrumb-link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
